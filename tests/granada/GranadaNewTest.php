@@ -117,6 +117,86 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($expected, $pairs);
     }
 
+    public function testfindPairsOrdered(){
+        $pairs = car::order_by_desc('id')->find_pairs();
+        $expected = array(
+            '4' => 'Car4',
+            '3' => 'Car3',
+            '2' => 'Car2',
+            '1' => 'Car1',
+        );
+        $this->assertequals($expected, $pairs);
+    }
+
+    public function testfindpairsforceselect(){
+        $pairs = car::select('id')->select('manufactor_id', 'name')->find_pairs();
+        $expected = array(
+            '1' => '1',
+            '2' => '1',
+            '3' => '2',
+            '4' => '2',
+        );
+        $this->assertequals($expected, $pairs);
+    }
+
+    public function testfindPairsWithJoin(){
+        $pairs = Car::join('manufactor', 'manufactor.id=car.manufactor_id')
+            ->select('car.name', 'car_name')
+            ->select('manufactor.name', 'manufactor_name')
+            ->find_pairs('car_name', 'manufactor_name');
+        $expected = array(
+            'Car1' => 'Manufactor1',
+            'Car2' => 'Manufactor1',
+            'Car3' => 'Manufactor2',
+            'Car4' => 'Manufactor2',
+        );
+        $this->assertEquals($expected, $pairs);
+    }
+
+    public function testfindPairsWithJoinIDName(){
+        $pairs = Car::join('manufactor', 'manufactor.id=car.manufactor_id')
+            ->select('car.name', 'id')
+            ->select('manufactor.name', 'name')
+            ->find_pairs();
+        $expected = array(
+            'Car1' => 'Manufactor1',
+            'Car2' => 'Manufactor1',
+            'Car3' => 'Manufactor2',
+            'Car4' => 'Manufactor2',
+        );
+        $this->assertEquals($expected, $pairs);
+    }
+
+    public function testfindPairsWithJoinOrdered(){
+        $pairs = Car::join('manufactor', 'manufactor.id=car.manufactor_id')
+            ->select('car.name', 'car_name')
+            ->select('manufactor.name', 'manufactor_name')
+            ->order_by_desc('car.name')
+            ->find_pairs('car_name', 'manufactor_name');
+        $expected = array(
+            'Car4' => 'Manufactor2',
+            'Car3' => 'Manufactor2',
+            'Car2' => 'Manufactor1',
+            'Car1' => 'Manufactor1',
+        );
+        $this->assertEquals($expected, $pairs);
+    }
+
+    public function testfindPairsWithJoinExpr(){
+        $pairs = Car::join('manufactor', 'manufactor.id=car.manufactor_id')
+            ->join('owner', 'owner.id=car.owner_id')
+            ->select('car.name', 'car_name')
+            ->select_expr('manufactor.name || " " || owner.name', 'manufactor_name') // For MySQL select_expr('CONCAT(manufactor.name, " ", owner.name)', 'manufactor_name')
+            ->find_pairs('car_name', 'manufactor_name');
+        $expected = array(
+            'Car1' => 'Manufactor1 Owner1',
+            'Car2' => 'Manufactor1 Owner2',
+            'Car3' => 'Manufactor2 Owner3',
+            'Car4' => 'Manufactor2 Owner4',
+        );
+        $this->assertEquals($expected, $pairs);
+    }
+
     public function testNoResultsfindPairs(){
         $pairs = Car::where('id',10)->find_pairs('id', 'name');
         $this->assertNull($pairs);

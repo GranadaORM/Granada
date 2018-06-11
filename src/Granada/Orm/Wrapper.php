@@ -253,6 +253,10 @@ class Wrapper extends ORM {
     {
         $key = ($key) ? $key : 'id';
         $value = ($value) ? $value : 'name';
+        if (count($this->_result_columns) == 2) {
+            // The select fields have already been set
+            return self::assoc_to_keyval($this->find_array(), $key, $value);
+        }
         return self::assoc_to_keyval($this->select_raw("$key,$value")->order_by_asc($value)->find_array(), $key, $value);
     }
 
