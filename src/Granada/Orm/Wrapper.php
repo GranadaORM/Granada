@@ -275,7 +275,7 @@ class Wrapper extends ORM {
     {
         if(empty($assoc) OR empty($key_field) OR empty($val_field))
         {
-            return null;
+            return array();
         }
 
         $output = array();

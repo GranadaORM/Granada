@@ -199,7 +199,12 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
 
     public function testNoResultsfindPairs(){
         $pairs = Car::where('id',10)->find_pairs('id', 'name');
-        $this->assertNull($pairs);
+        $this->assertEquals(array(), $pairs);
+    }
+
+    public function testNoResultsfindMany(){
+        $cars = Car::where('id',10)->find_many();
+        $this->assertEquals(0, count($cars));
     }
 
     public function testfilters(){
