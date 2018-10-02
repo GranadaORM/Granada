@@ -1,9 +1,8 @@
 Granada
 =====
 
-[![Latest Stable Version](https://poser.pugx.org/surt/granada/v/stable.png)](https://packagist.org/packages/surt/granada)
-[![Build Status](https://travis-ci.org/Surt/Granada.png?branch=develop)](https://travis-ci.org/Surt/Granada)
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/Surt/granada/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+[![Latest Stable Version](https://poser.pugx.org/granadaorm/granada/v/stable.png)](https://packagist.org/packages/granadaorm/granada)
+[![Build Status](https://travis-ci.com/GranadaORM/Granada.svg?branch=master)](https://travis-ci.org/GranadaORM/Granada)
 
 Granada is a easy to use Active Record implementation, and ORM based on Idiorm/Paris.
 
@@ -294,6 +293,8 @@ Features
 * Supports collections of models with method chaining to filter or apply actions to multiple results at once.
 * Multiple connections are supported
 
+History
+=======
 
-
-
+Granada was originally developed by [Erik Wiesenthal](https://github.com/surt), up to version 1.5.
+Further development started by [Josh Marshall](https://github.com/joshbmarshall) to release version 2.0
