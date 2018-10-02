@@ -9,10 +9,10 @@ use ArrayAccess;
     * Copyright (c) 2013, Erik Wiesenthal
     * All rights reserved
     *
-    * http://github.com/Surt/Granada/
+    * https://github.com/GranadaORM/Granada/
     *
     * A simple Active Record implementation built on top of Idiorm, Paris and Eloquent
-    * ( http://github.com/Surt/Granada/ ).
+    * ( https://github.com/GranadaORM/Granada/ ).
     *
     * You should include Idiorm before you include this file:
     * require_once 'your/path/to/idiorm.php';

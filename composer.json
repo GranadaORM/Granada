@@ -26,6 +26,9 @@
             "role": "Initial Developer"
         }
     ],
+    "replace": {
+        "surt/granada": "*"
+    },
     "require": {
         "php": ">=5.6.0"
     },

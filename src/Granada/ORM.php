@@ -10,14 +10,14 @@ use PDO;
  * Copyright (c) 2013, Erik Wiesenthal
  * All rights reserved
  *
- * http://github.com/Surt/Granada/
+ * https://github.com/GranadaORM/Granada/
  *
  * Idiorm with some small changes
- * ( http://github.com/Surt/Granada/ ).
+ * ( https://github.com/GranadaORM/Granada/ ).
  *
  * Idiorm
  *
- * http://github.com/j4mie/idiorm/
+ * https://github.com/j4mie/idiorm/
  *
  * A single-class super-simple database abstraction layer for PHP.
  * Provides (nearly) zero-configuration object-relational mapping
