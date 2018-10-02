@@ -44,11 +44,7 @@ Install
 -------
 Using composer:
 ```
-  "require": {
-
-        "surt/granada": "dev-master"
-
-    }
+  composer require granadaorm/granada
 ```
 
 Configure it:
