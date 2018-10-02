@@ -1,12 +1,12 @@
 {
-    "name": "surt/granada",
+    "name": "granadaorm/granada",
     "type": "library",
     "description": "Active Record / ORM with eager loading, lazy loading and more",
     "keywords": ["active record", "orm","eager-loading", "paris", "idiorm", "database"],
-    "homepage": "https://github.com/Surt/Granada",
+    "homepage": "https://github.com/GranadaORM/Granada",
      "support": {
-        "issues": "https://github.com/Surt/Granada/issues",
-        "source": "https://github.com/Surt/Granada"
+        "issues": "https://github.com/GranadaORM/Granada/issues",
+        "source": "https://github.com/GranadaORM/Granada"
     },
     "license": [
         "BSD-2-Clause",
@@ -15,14 +15,19 @@
     ],
     "authors": [
         {
+            "name": "Josh Marshall",
+            "email": "josh@jmarshall.com.au",
+            "homepage": "https://www.jmarshall.com.au",
+            "role": "Developer"
+        },
+        {
             "name": "Erik Wiesenthal",
             "email": "erikforo@hotmail.com",
-            "homepage": "http://www.codetogether.es",
-            "role": "Developer"
+            "role": "Initial Developer"
         }
     ],
     "require": {
-        "php": ">=5.3.0"
+        "php": ">=5.6.0"
     },
     "autoload": {
         "psr-0": {"Granada": "src/"}
