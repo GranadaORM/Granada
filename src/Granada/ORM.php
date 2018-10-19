@@ -1216,14 +1216,26 @@ class ORM implements ArrayAccess {
                     $query[] = "AND";
                 }
                 $query[] = $this->_quote_identifier($key);
-                if (is_null($item) && ($op == '=')) {
-                    $query[] = 'IS NULL';
-                } else if (is_null($item) && ($op == '!=')) {
-                    $query[] = 'IS NOT NULL';
+                if (is_array($item)) {
+                    $placeholders = $this->_create_placeholders($item);
+                    $data = array_merge($data, $item);
+                    if ($op == '=') {
+                        $query[] = 'IN (' . $placeholders . ')';
+                    } else if ($op == '!=') {
+                        $query[] = 'NOT IN (' . $placeholders . ')';
+                    } else {
+                        throw new InvalidArgumentException('You only pass an array for = and !=.');
+                    }
                 } else {
-                    $query[] = $op . " ?";
-                    $data[] = $item;
-                }
+					if (is_null($item) && ($op == '=')) {
+						$query[] = 'IS NULL';
+					} else if (is_null($item) && ($op == '!=')) {
+						$query[] = 'IS NOT NULL';
+					} else {
+						$query[] = $op . " ?";
+						$data[] = $item;
+					}
+				}
             }
         }
         $query[] = "))";
