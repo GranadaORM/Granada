@@ -139,11 +139,27 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testWhereAnyIsSingleCol() {
+        ORM::for_table('widget')->where_any_is(array(
+            array('name' => 'Joe'),
+            array('name' => 'Fred')))->find_many();
+        $expected = "SELECT * FROM `widget` WHERE (( `name` = 'Joe' ) OR ( `name` = 'Fred' ))";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
     public function testWhereAnyIs() {
         ORM::for_table('widget')->where_any_is(array(
             array('name' => 'Joe', 'age' => 10),
             array('name' => 'Fred', 'age' => 20)))->find_many();
         $expected = "SELECT * FROM `widget` WHERE (( `name` = 'Joe' AND `age` = '10' ) OR ( `name` = 'Fred' AND `age` = '20' ))";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testWhereAnyIsAssymetricComparisons() {
+        ORM::for_table('widget')->where_any_is(array(
+            array('name' => 'Joe'),
+            array('name' => 'Fred', 'age' => 20)))->find_many();
+        $expected = "SELECT * FROM `widget` WHERE (( `name` = 'Joe' ) OR ( `name` = 'Fred' AND `age` = '20' ))";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -176,6 +192,30 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
             array('name' => 'Joe', 'age' => NULL),
             array('name' => NULL, 'age' => 20)), '!=')->find_many();
         $expected = "SELECT * FROM `widget` WHERE (( `name` != 'Joe' AND `age` IS NOT NULL ) OR ( `name` IS NOT NULL AND `age` != '20' ))";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testWhereAnyIsIns() {
+        ORM::for_table('widget')->where_any_is(array(
+            array('name' => 'Joe', 'age' => array(18, 19)),
+            array('name' => array('Bob', 'Jack'), 'age' => 20)))->find_many();
+        $expected = "SELECT * FROM `widget` WHERE (( `name` = 'Joe' AND `age` IN ('18', '19') ) OR ( `name` IN ('Bob', 'Jack') AND `age` = '20' ))";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testWhereAnyIsNOTIns() {
+        ORM::for_table('widget')->where_any_is(array(
+            array('name' => 'Joe', 'age' => array(18, 19)),
+            array('name' => array('Bob', 'Jack'), 'age' => 20)), '!=')->find_many();
+        $expected = "SELECT * FROM `widget` WHERE (( `name` != 'Joe' AND `age` NOT IN ('18', '19') ) OR ( `name` NOT IN ('Bob', 'Jack') AND `age` != '20' ))";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testWhereAnyIsInsMixedComparator() {
+        ORM::for_table('widget')->where_any_is(array(
+            array('name' => 'Joe', 'age' => array(18, 19)),
+            array('name' => array('Bob', 'Jack'), 'age' => 20)), array( 'age' => '!='))->find_many();
+        $expected = "SELECT * FROM `widget` WHERE (( `name` = 'Joe' AND `age` NOT IN ('18', '19') ) OR ( `name` IN ('Bob', 'Jack') AND `age` != '20' ))";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
