@@ -4,6 +4,7 @@ php:
   - 7.0
   - 7.1
   - 7.2
+  - 7.3
 script: "phpunit --colors --coverage-text --coverage-clover=coverage.clover"
 after_script:
   - wget https://scrutinizer-ci.com/ocular.phar
