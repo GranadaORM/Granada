@@ -41,6 +41,14 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
     }
 
     /**
+     * Determine if the result set is empty
+     * @return boolean
+     */
+    public function has_results() {
+        return !empty($this->_results);
+    }
+
+    /**
      * Get the current result set as an array
      * @return array
      */

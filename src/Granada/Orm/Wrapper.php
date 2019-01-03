@@ -169,7 +169,21 @@ class Wrapper extends ORM {
      */
     public function find_many() {
         $instances = parent::find_many();
-        return $instances ? Eager::hydrate($this, $instances, self::$_config[$this->_connection_name]['return_result_sets']) : $instances;
+
+		// Check if now rows returned
+		if (is_array($instances)) {
+			if (!$instances) {
+				return array();
+			}
+		} else {
+			if (!$instances->has_results()) {
+				// No rows, return empty array
+				return array();
+			}
+		}
+
+		// Add eager relationships
+        return Eager::hydrate($this, $instances, self::$_config[$this->_connection_name]['return_result_sets']);
     }
 
     /**
