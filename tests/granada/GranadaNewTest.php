@@ -206,6 +206,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         $cars = Car::find_many();
 		// Not an empty array
 		$this->assertNotSame(array(), $cars);
+        $this->assertEquals(true, $cars->has_results());
 
         $expected = array(
             '1' => 'Car1',
@@ -235,7 +236,9 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
 
     public function testNoResultsfindMany(){
         $cars = Car::where('id',10)->find_many();
+        $this->assertSame(array(), $cars->as_array());
         $this->assertEquals(0, count($cars));
+        $this->assertEquals(false, $cars->has_results());
     }
 
     public function testfilters(){
