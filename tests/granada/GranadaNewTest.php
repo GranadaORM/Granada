@@ -235,6 +235,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
 
     public function testNoResultsfindMany(){
         $cars = Car::where('id',10)->find_many();
+        $this->assertSame(array(), $cars->as_array());
         $this->assertEquals(0, count($cars));
     }
 

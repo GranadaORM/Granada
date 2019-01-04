@@ -163,8 +163,7 @@ class Wrapper extends ORM {
     /**
      * Tell the ORM that you are expecting multiple results
      * from your query, and execute it. Will return an array
-     * of instances of the ORM class, or an empty array if
-     * no rows were returned.
+     * or ResultSet of instances of the ORM class
      * @return array|\Granada\ResultSet
      */
     public function find_many() {
@@ -173,12 +172,11 @@ class Wrapper extends ORM {
 		// Check if now rows returned
 		if (is_array($instances)) {
 			if (!$instances) {
-				return array();
+				return $instances;
 			}
 		} else {
 			if (!$instances->has_results()) {
-				// No rows, return empty array
-				return array();
+				return $instances;
 			}
 		}
 
