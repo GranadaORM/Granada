@@ -199,7 +199,7 @@ class Wrapper extends ORM {
         foreach($rows as $current_key => $current_row) {
             $row = $this->_create_instance_from_row($current_row);
             $row = $this->_create_model_instance($row);
-            $key = (isset($row->{$this->_instance_id_column}) && $this->_associative_results) ? $row->id() : $current_key;
+            $key = (isset($row->{$this->_instance_id_column}) && $this->_associative_results && $row->id()) ? $row->id() : $current_key;
             $instances[$key] = $row;
         }
 

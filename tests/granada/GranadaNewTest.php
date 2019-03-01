@@ -202,6 +202,24 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(array(), $pairs);
     }
 
+    public function testfindManySelect(){
+        $cars = Car::select('name')->find_many();
+		// Not an empty array
+		$this->assertNotSame(array(), $cars);
+        $this->assertEquals(true, $cars->has_results());
+
+        $expected = array(
+			'0' => 'Car1',
+			'1' => 'Car2',
+			'2' => 'Car3',
+			'3' => 'Car4'
+        );
+		foreach ($cars as $id => $car) {
+			$this->assertNull($car->id); // We are only getting the name field
+			$this->assertEquals($expected[$id], $car->name);
+		}
+    }
+
     public function testfindMany(){
         $cars = Car::find_many();
 		// Not an empty array
