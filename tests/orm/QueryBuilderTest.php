@@ -255,6 +255,18 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testOrderByClear() {
+        ORM::for_table('widget')->order_by_asc('name')->order_by_desc('age')->order_by_clear()->find_one();
+        $expected = "SELECT * FROM `widget` LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testOrderByClearAddMore() {
+        ORM::for_table('widget')->order_by_asc('name')->order_by_desc('age')->order_by_clear()->order_by_asc('id')->find_one();
+        $expected = "SELECT * FROM `widget` ORDER BY `id` ASC LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
     public function testGroupBy() {
         ORM::for_table('widget')->group_by('name')->find_many();
         $expected = "SELECT * FROM `widget` GROUP BY `name`";

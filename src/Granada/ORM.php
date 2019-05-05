@@ -1379,6 +1379,14 @@ class ORM implements ArrayAccess {
     }
 
     /**
+     * Clear all ORDER BY clauses, used to override previous orders
+     */
+    public function order_by_clear() {
+        $this->_order_by = array();
+        return $this;
+    }
+
+    /**
      * Add an ORDER BY column DESC clause
      * @param string $column_name
      */
