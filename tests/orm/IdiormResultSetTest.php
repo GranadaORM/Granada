@@ -67,6 +67,30 @@ class ResultSetTest extends PHPUnit_Framework_TestCase {
         $this->assertSame($result_set, $return_array);
     }
 
+    public function testIsFirstAndLast() {
+        $result_set = array(
+			'item1' => new stdClass,
+			'item2' => new stdClass,
+			'item3' => new stdClass,
+			);
+        $ResultSet = new ResultSet($result_set);
+        foreach($ResultSet as $key => $record) {
+            $return_array[$key] = $record;
+			if ($key == 'item1') {
+				$this->assertSame(true, $record->_isFirstResult);
+				$this->assertSame(false, $record->_isLastResult);
+			}
+			if ($key == 'item2') {
+				$this->assertSame(false, $record->_isFirstResult);
+				$this->assertSame(false, $record->_isLastResult);
+			}
+			if ($key == 'item3') {
+				$this->assertSame(false, $record->_isFirstResult);
+				$this->assertSame(true, $record->_isLastResult);
+			}
+        }
+    }
+
     public function testCallingMethods() {
         $result_set = array('item' => ORM::for_table('test'), 'item2' => ORM::for_table('test'));
         $ResultSet = new ResultSet($result_set);

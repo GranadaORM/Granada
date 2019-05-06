@@ -220,3 +220,17 @@ If an order declaration is already made (e.g. from a filter or previous code) th
 		->find_many();
         // SELECT * FROM `user` ORDER BY `id` ASC
 
+# First and Last items in a result
+
+When using `foreach` to iterate through a list of results, there are two functions you can use to determine if the result is the first or last item.
+This is very handy when outputting data and you want the first or last to be slightly different from the others.
+
+	<?php
+	foreach ($items as $item) {
+		if ($item->isFirstResult()) {
+			// This is the first item in the list
+		}
+		if ($item->isLastResult()) {
+			// This is the last item in the list
+		}
+	}

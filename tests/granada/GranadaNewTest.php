@@ -220,6 +220,60 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
 		}
     }
 
+    public function testfindManyFirstAndLast(){
+        $cars = Car::find_many();
+
+        $expected = array(
+			'Car1' => array(
+				'first' => true,
+				'last' => false,
+			),
+			'Car2' => array(
+				'first' => false,
+				'last' => false,
+			),
+			'Car3' => array(
+				'first' => false,
+				'last' => false,
+			),
+			'Car4' => array(
+				'first' => false,
+				'last' => true,
+			),
+        );
+		foreach ($cars as $car) {
+			$this->assertSame($expected[$car->name]['first'], $car->isFirstResult());
+			$this->assertSame($expected[$car->name]['last'], $car->isLastResult());
+		}
+    }
+
+    public function testfindManyFirstAndLastDiffOrder(){
+        $cars = Car::order_by_desc('id')->find_many();
+
+        $expected = array(
+			'Car1' => array(
+				'first' => false,
+				'last' => true,
+			),
+			'Car2' => array(
+				'first' => false,
+				'last' => false,
+			),
+			'Car3' => array(
+				'first' => false,
+				'last' => false,
+			),
+			'Car4' => array(
+				'first' => true,
+				'last' => false,
+			),
+        );
+		foreach ($cars as $car) {
+			$this->assertSame($expected[$car->name]['first'], $car->isFirstResult());
+			$this->assertSame($expected[$car->name]['last'], $car->isLastResult());
+		}
+    }
+
     public function testfindMany(){
         $cars = Car::find_many();
 		// Not an empty array
