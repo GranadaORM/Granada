@@ -220,6 +220,180 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
 		}
     }
 
+    public function testfindManyFirstAndLast(){
+        $cars = Car::find_many();
+
+        $expected = array(
+			'Car1' => array(
+				'first' => true,
+				'last' => false,
+			),
+			'Car2' => array(
+				'first' => false,
+				'last' => false,
+			),
+			'Car3' => array(
+				'first' => false,
+				'last' => false,
+			),
+			'Car4' => array(
+				'first' => false,
+				'last' => true,
+			),
+        );
+		foreach ($cars as $car) {
+			$this->assertSame($expected[$car->name]['first'], $car->isFirstResult());
+			$this->assertSame($expected[$car->name]['last'], $car->isLastResult());
+		}
+    }
+
+    public function testfindManyFirstAndLastDiffOrder(){
+        $cars = Car::order_by_desc('id')->find_many();
+
+        $expected = array(
+			'Car1' => array(
+				'first' => false,
+				'last' => true,
+			),
+			'Car2' => array(
+				'first' => false,
+				'last' => false,
+			),
+			'Car3' => array(
+				'first' => false,
+				'last' => false,
+			),
+			'Car4' => array(
+				'first' => true,
+				'last' => false,
+			),
+        );
+		foreach ($cars as $car) {
+			$this->assertSame($expected[$car->name]['first'], $car->isFirstResult());
+			$this->assertSame($expected[$car->name]['last'], $car->isLastResult());
+		}
+    }
+
+    public function testRelatedModelFirstAndLast(){
+        $cars = Car::find_many();
+		// SELECT * FROM `car`
+
+        $expected = array(
+			'Car1' => array(
+				0 => array(
+					'first' => true,
+					'last' => false,
+				),
+				1 => array(
+					'first' => false,
+					'last' => false,
+				),
+				2 => array(
+					'first' => false,
+					'last' => true,
+				),
+			),
+			'Car2' => array(
+				0 => array(
+					'first' => true,
+					'last' => false,
+				),
+				1 => array(
+					'first' => false,
+					'last' => true,
+				),
+			),
+			'Car3' => array(
+				0 => array(
+					'first' => true,
+					'last' => false,
+				),
+				1 => array(
+					'first' => false,
+					'last' => true,
+				),
+			),
+			'Car4' => array(
+				0 => array(
+					'first' => true,
+					'last' => false,
+				),
+				1 => array(
+					'first' => false,
+					'last' => true,
+				),
+			),
+        );
+		foreach ($cars as $car) {
+			$partcounter = 0;
+			foreach ($car->parts as $part) {
+				$this->assertSame($expected[$car->name][$partcounter]['first'], $part->isFirstResult());
+				$this->assertSame($expected[$car->name][$partcounter]['last'], $part->isLastResult());
+				$partcounter++;
+			}
+		}
+    }
+
+    public function testRelatedModelFirstAndLastEager(){
+        $cars = Car::with('parts')->find_many();
+		// SELECT `part`.*, `car_part`.`car_id` FROM `part` JOIN `car_part` ON `part`.`id` = `car_part`.`part_id` WHERE `car_part`.`car_id` IN ('1', '2', '3', '4')
+
+        $expected = array(
+			'Car1' => array(
+				0 => array(
+					'first' => true,
+					'last' => false,
+				),
+				1 => array(
+					'first' => false,
+					'last' => false,
+				),
+				2 => array(
+					'first' => false,
+					'last' => true,
+				),
+			),
+			'Car2' => array(
+				0 => array(
+					'first' => true,
+					'last' => false,
+				),
+				1 => array(
+					'first' => false,
+					'last' => true,
+				),
+			),
+			'Car3' => array(
+				0 => array(
+					'first' => true,
+					'last' => false,
+				),
+				1 => array(
+					'first' => false,
+					'last' => true,
+				),
+			),
+			'Car4' => array(
+				0 => array(
+					'first' => true,
+					'last' => false,
+				),
+				1 => array(
+					'first' => false,
+					'last' => true,
+				),
+			),
+        );
+		foreach ($cars as $car) {
+			$partcounter = 0;
+			foreach ($car->parts as $part) {
+				$this->assertSame($expected[$car->name][$partcounter]['first'], $part->isFirstResult());
+				$this->assertSame($expected[$car->name][$partcounter]['last'], $part->isLastResult());
+				$partcounter++;
+			}
+		}
+    }
+
     public function testfindMany(){
         $cars = Car::find_many();
 		// Not an empty array

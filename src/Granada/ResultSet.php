@@ -130,6 +130,14 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * @return \ArrayIterator
      */
     public function getIterator() {
+        // Set first/last flags
+        $count = count($this->_results);
+        $result_number = 0;
+        foreach ($this->_results as $idx => $result) {
+            $result_number++;
+            $this->_results[$idx]->_isFirstResult = (1 === $result_number);
+            $this->_results[$idx]->_isLastResult = ($count === $result_number);
+        }
         return new ArrayIterator($this->_results);
     }
 

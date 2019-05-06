@@ -132,7 +132,7 @@ Overriding the comparison for one data type:
             array('name' => 'Fred', 'age' => 20),
 		), array('age' => '>')
 		)->find_many();
-        // SELECT * FROM `widget` WHERE (( `name` = 'Joe' AND `age` > '10' ) OR ( `name` = 'Fred' AND `age` > '20' ))
+        // SELECT * FROM `user` WHERE (( `name` = 'Joe' AND `age` > '10' ) OR ( `name` = 'Fred' AND `age` > '20' ))
 
 Overriding the comparison for all data types:
 
@@ -142,7 +142,7 @@ Overriding the comparison for all data types:
             array('score' => '5', 'age' => 10),
             array('score' => '15', 'age' => 20),
 		), '>')->find_many();
-        // SELECT * FROM `widget` WHERE (( `score` > '5' AND `age` > '10' ) OR ( `score` > '15' AND `age` > '20' ))
+        // SELECT * FROM `user` WHERE (( `score` > '5' AND `age` > '10' ) OR ( `score` > '15' AND `age` > '20' ))
 
 You can use NULL values in comparisons:
 
@@ -163,7 +163,7 @@ They also work with the `!=` operator:
             array('name' => NULL, 'age' => 20),
 		), '!=')
 		->find_many();
-        // SELECT * FROM `widget` WHERE (( `name` != 'Joe' AND `age` IS NOT NULL ) OR ( `name` IS NOT NULL AND `age` != '20' ))
+        // SELECT * FROM `user` WHERE (( `name` != 'Joe' AND `age` IS NOT NULL ) OR ( `name` IS NOT NULL AND `age` != '20' ))
 
 Pass an array to convert it into an IN or NOT IN (depending on the operator):
 
@@ -174,4 +174,63 @@ Pass an array to convert it into an IN or NOT IN (depending on the operator):
             array('name' => array('Bob', 'Jack'), 'age' => 20),
 		), array( 'age' => '!=')
 		)->find_many();
-        // SELECT * FROM `widget` WHERE (( `name` = 'Joe' AND `age` NOT IN ('18', '19') ) OR ( `name` IN ('Bob', 'Jack') AND `age` != '20' ))
+        // SELECT * FROM `user` WHERE (( `name` = 'Joe' AND `age` NOT IN ('18', '19') ) OR ( `name` IN ('Bob', 'Jack') AND `age` != '20' ))
+
+## Setting the order of results
+
+Ordering results are set in order of priority, and can be defined multiple times for sub-ordering.
+
+order_by_asc()
+
+	<?php
+	$items = User::order_by_asc('name')
+		->find_many();
+        // SELECT * FROM `user` ORDER BY `name` ASC
+
+order_by_desc()
+
+	<?php
+	$items = User::order_by_desc('name')
+		->find_many();
+        // SELECT * FROM `user` ORDER BY `name` DESC
+
+Combining two order types
+
+	<?php
+	$items = User::order_by_desc('name')
+		->order_by_asc('id')
+		->find_many();
+        // SELECT * FROM `user` ORDER BY `name` DESC, `id` ASC
+
+order_by_expr()
+
+	<?php
+	$items = User::order_by_expr('name+0')
+		->find_many();
+        // SELECT * FROM `user` ORDER BY name+0
+
+### Clearing previous order declarations
+
+If an order declaration is already made (e.g. from a filter or previous code) that you want to over-ride, you can clear it:
+
+	<?php
+	$items = User::order_by_desc('name')
+		->order_by_clear() // Clears out the name order from above
+		->order_by_asc('id')
+		->find_many();
+        // SELECT * FROM `user` ORDER BY `id` ASC
+
+# First and Last items in a result
+
+When using `foreach` to iterate through a list of results, there are two functions you can use to determine if the result is the first or last item.
+This is very handy when outputting data and you want the first or last to be slightly different from the others.
+
+	<?php
+	foreach ($items as $item) {
+		if ($item->isFirstResult()) {
+			// This is the first item in the list
+		}
+		if ($item->isLastResult()) {
+			// This is the last item in the list
+		}
+	}

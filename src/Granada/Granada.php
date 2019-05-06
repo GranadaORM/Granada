@@ -115,6 +115,13 @@ use ArrayAccess;
          */
         public $relating_table;
 
+        /**
+         * First and last result flags
+         *
+         * @var boolean
+         */
+        public $_isFirstResult = false;
+        public $_isLastResult = false;
 
         /**
          * Retrieve the value of a static property on a class. If the
@@ -551,6 +558,22 @@ use ArrayAccess;
          */
         public function id() {
             return $this->orm->id();
+        }
+
+        /**
+         * Is this record the first result in a foreach()
+         * @return boolean
+         */
+        public function isFirstResult() {
+            return $this->_isFirstResult;
+        }
+
+        /**
+         * Is this record the last result in a foreach()
+         * @return boolean
+         */
+        public function isLastResult() {
+            return $this->_isLastResult;
         }
 
         /**
