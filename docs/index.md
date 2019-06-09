@@ -220,6 +220,29 @@ If an order declaration is already made (e.g. from a filter or previous code) th
 		->find_many();
         // SELECT * FROM `user` ORDER BY `id` ASC
 
+### Clearing previous where and having declarations
+
+If an where or having declaration is already made (e.g. from a filter or previous code) that you want to over-ride, you can clear it:
+
+For where:
+
+	<?php
+	$items = User::where('name', 'Fred')
+		->clear_where() // Clears out all where declarations
+		->where('name', 'Joe')
+		->find_many();
+        // SELECT * FROM `user` WHERE `name` = 'Joe'
+
+Similarly for having:
+
+	<?php
+	$items = User::group_by('name')
+		->having('name', 'Fred')
+		->clear_having() // Clears out all having declarations
+		->having('name', 'Joe')
+		->find_one();
+        // SELECT * FROM `user` GROUP BY `name` HAVING `name` = 'Joe' LIMIT 1
+
 # First and Last items in a result
 
 When using `foreach` to iterate through a list of results, there are two functions you can use to determine if the result is the first or last item.
