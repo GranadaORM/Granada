@@ -48,6 +48,26 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testClearWhereClause() {
+        ORM::for_table('widget')
+				->where('name', 'Fred')
+				->clear_where()
+				->where('name', 'Joe')
+				->find_one();
+        $expected = "SELECT * FROM `widget` WHERE `name` = 'Joe' LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testClearWhereClauseDiffField() {
+        ORM::for_table('widget')
+				->where('name', 'Fred')
+				->clear_where()
+				->where('age', 10)
+				->find_one();
+        $expected = "SELECT * FROM `widget` WHERE `age` = '10' LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
     public function testSingleWhereClauseEqEmpty() {
         ORM::for_table('widget')->where('name', '')->find_one();
         $expected = "SELECT * FROM `widget` WHERE `name` = '' LIMIT 1";
@@ -288,6 +308,16 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
     public function testHaving() {
         ORM::for_table('widget')->group_by('name')->having('name', 'Fred')->find_one();
         $expected = "SELECT * FROM `widget` GROUP BY `name` HAVING `name` = 'Fred' LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testClearHaving() {
+        ORM::for_table('widget')->group_by('name')
+				->having('name', 'Fred')
+				->clear_having()
+				->having('name', 'Joe')
+				->find_one();
+        $expected = "SELECT * FROM `widget` GROUP BY `name` HAVING `name` = 'Joe' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 

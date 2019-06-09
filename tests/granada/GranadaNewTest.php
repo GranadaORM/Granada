@@ -65,7 +65,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
             'name' => 'New Car',
         ));
         $car->save();
-    	$expected = 5;
+    	$expected = 6;
         $this->assertEquals($expected, $car->id);
     }
 
@@ -451,10 +451,74 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
                 'id'=> '20',
                 'name' =>'Car20',
                 'manufactor_id'=>  1,
-                'owner_id'=>  1
+                'owner_id'=>  1,
+				'is_deleted' => 0,
             )
         ));
         $count = Car::count();
+        $expectedSql   = array();
+        $expectedSql[] = "INSERT INTO `car` (`id`, `name`, `manufactor_id`, `owner_id`, `is_deleted`) VALUES ('20', 'test', '1', '1', '0')";
+        $expectedSql[] = "SELECT COUNT(*) AS `count` FROM `car` WHERE `car`.`is_deleted` = '0' LIMIT 1";
+
+        $fullQueryLog = ORM::get_query_log();
+
+        // Return last two queries
+        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 2);
+
+        $this->assertEquals($expectedSql, $actualSql);
         $this->assertEquals(5, $count, 'Car must be Inserted');
     }
+
+    public function testInsertDeleted(){
+        Car::insert(array(
+            array(
+                'id'=> '20',
+                'name' =>'Car20',
+                'manufactor_id'=>  1,
+                'owner_id'=>  1,
+				'is_deleted' => 1,
+            )
+        ));
+        $count = Car::count();
+        $expectedSql   = array();
+        $expectedSql[] = "INSERT INTO `car` (`id`, `name`, `manufactor_id`, `owner_id`, `is_deleted`) VALUES ('20', 'test', '1', '1', '1')";
+        $expectedSql[] = "SELECT COUNT(*) AS `count` FROM `car` WHERE `car`.`is_deleted` = '0' LIMIT 1";
+
+        $fullQueryLog = ORM::get_query_log();
+
+        // Return last two queries
+        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 2);
+
+        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals(4, $count);
+    }
+
+    public function testCountAll() {
+        $count = Car::count();
+        $expectedSql   = array();
+        $expectedSql[] = "SELECT COUNT(*) AS `count` FROM `car` WHERE `car`.`is_deleted` = '0' LIMIT 1";
+
+        $fullQueryLog = ORM::get_query_log();
+
+        // Return last two queries
+        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 1);
+
+        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals(4, $count);
+    }
+
+    public function testCountAllCleared() {
+        $count = Car::clear_where()->count();
+        $expectedSql   = array();
+        $expectedSql[] = "SELECT COUNT(*) AS `count` FROM `car` LIMIT 1";
+
+        $fullQueryLog = ORM::get_query_log();
+
+        // Return last two queries
+        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 1);
+
+        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals(5, $count);
+    }
+
 }

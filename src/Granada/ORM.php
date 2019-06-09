@@ -1104,6 +1104,24 @@ class ORM implements ArrayAccess {
         return $this;
     }
 
+    /**
+     * Clear / Reset the WHERE clause(s)
+	 * @return ORM
+     */
+    public function clear_where() {
+        $this->_where_conditions = array();
+		return $this;
+    }
+
+    /**
+     * Clear / Reset the HAVING clause(s)
+	 * @return ORM
+     */
+    public function clear_having() {
+        $this->_having_conditions = array();
+		return $this;
+    }
+
    /**
      * Helper method to compile a simple COLUMN SEPARATOR VALUE
      * style HAVING or WHERE condition into a string and value ready to

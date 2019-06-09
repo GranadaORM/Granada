@@ -38,7 +38,7 @@ class EagerTest extends PHPUnit_Framework_TestCase {
         $car = Model::factory('Car')->with('manufactor')->find_one(1);
 
         $expectedSql   = array();
-        $expectedSql[] = "SELECT * FROM `car` WHERE `id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT * FROM `manufactor` WHERE `id` IN ('1')";
 
         $fullQueryLog = ORM::get_query_log();
@@ -54,7 +54,7 @@ class EagerTest extends PHPUnit_Framework_TestCase {
         $car = Model::factory('Car')->with('owner','manufactor')->find_one(1);
 
         $expectedSql = array();
-        $expectedSql[] = "SELECT * FROM `car` WHERE `id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT * FROM `owner` WHERE `id` IN ('1')";
         $expectedSql[] = "SELECT * FROM `manufactor` WHERE `id` IN ('1')";
 
@@ -71,7 +71,7 @@ class EagerTest extends PHPUnit_Framework_TestCase {
 
         $expectedSql   = array();
         $expectedSql[] = "SELECT * FROM `owner` WHERE `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT * FROM `car` WHERE `owner_id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1')";
 
         $fullQueryLog = ORM::get_query_log();
 
@@ -86,7 +86,7 @@ class EagerTest extends PHPUnit_Framework_TestCase {
 
         $expectedSql   = array();
         $expectedSql[] = "SELECT * FROM `manufactor` WHERE `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT * FROM `car` WHERE `manufactor_id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `manufactor_id` IN ('1')";
         $fullQueryLog = ORM::get_query_log();
 
         // Return last two queries
@@ -103,7 +103,7 @@ class EagerTest extends PHPUnit_Framework_TestCase {
         }
 
         $expectedSql    = array();
-        $expectedSql[]  = "SELECT * FROM `car` WHERE `id` = '1' LIMIT 1";
+        $expectedSql[]  = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
         $expectedSql[]  = "SELECT `part`.*, `car_part`.`car_id` FROM `part` JOIN `car_part` ON `part`.`id` = `car_part`.`part_id` WHERE `car_part`.`car_id` IN ('1')";
 
         $expectedParts = array();
@@ -126,7 +126,7 @@ class EagerTest extends PHPUnit_Framework_TestCase {
         $cars = Model::factory('Car')->with('owner','manufactor')->find_many();
 
         $expectedSql = array();
-        $expectedSql[] = "SELECT * FROM `car`";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0'";
         $expectedSql[] = "SELECT * FROM `owner` WHERE `id` IN ('1', '2', '3', '4')";
         $expectedSql[] = "SELECT * FROM `manufactor` WHERE `id` IN ('1', '2')";
 
@@ -143,7 +143,7 @@ class EagerTest extends PHPUnit_Framework_TestCase {
 
         $expectedSql   = array();
         $expectedSql[] = "SELECT * FROM `owner`";
-        $expectedSql[] = "SELECT * FROM `car` WHERE `owner_id` IN ('1', '2', '3', '4')";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1', '2', '3', '4')";
 
         $fullQueryLog = ORM::get_query_log();
 
@@ -158,7 +158,7 @@ class EagerTest extends PHPUnit_Framework_TestCase {
 
         $expectedSql   = array();
         $expectedSql[] = "SELECT * FROM `manufactor`";
-        $expectedSql[] = "SELECT * FROM `car` WHERE `manufactor_id` IN ('1', '2')";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `manufactor_id` IN ('1', '2')";
 
         $fullQueryLog = ORM::get_query_log();
 
@@ -190,41 +190,41 @@ class EagerTest extends PHPUnit_Framework_TestCase {
         $expectedParts = array();
         $expectedParts[] =  array('id' => '1', 'name' => 'Part1',
                                 'cars' => array(
-                                    array('id' => '1', 'name' => 'Car1', 'manufactor_id' => '1', 'owner_id' => '1'),
-                                    array('id' => '2', 'name' => 'Car2', 'manufactor_id' => '1', 'owner_id' => '2'),
-                                    array('id' => '3', 'name' => 'Car3', 'manufactor_id' => '2', 'owner_id' => '3'),
-                                    array('id' => '4', 'name' => 'Car4', 'manufactor_id' => '2', 'owner_id' => '4'),
-                                    array('id' => '1', 'name' => 'Car1', 'manufactor_id' => '1', 'owner_id' => '1'),
+                                    array('id' => '1', 'name' => 'Car1', 'manufactor_id' => '1', 'owner_id' => '1', 'is_deleted' => 0),
+                                    array('id' => '2', 'name' => 'Car2', 'manufactor_id' => '1', 'owner_id' => '2', 'is_deleted' => 0),
+                                    array('id' => '3', 'name' => 'Car3', 'manufactor_id' => '2', 'owner_id' => '3', 'is_deleted' => 0),
+                                    array('id' => '4', 'name' => 'Car4', 'manufactor_id' => '2', 'owner_id' => '4', 'is_deleted' => 0),
+                                    array('id' => '1', 'name' => 'Car1', 'manufactor_id' => '1', 'owner_id' => '1', 'is_deleted' => 0),
                                 )
                             );
 
         $expectedParts[] =  array('id' => '2', 'name' => 'Part2',
                                 'cars' => array(
-                                    array('id' => '1', 'name' => 'Car1', 'manufactor_id' => '1', 'owner_id' => '1'),
+                                    array('id' => '1', 'name' => 'Car1', 'manufactor_id' => '1', 'owner_id' => '1', 'is_deleted' => 0),
                                 )
                             );
 
         $expectedParts[] =  array('id' => '3', 'name' => 'Part3',
                                 'cars' => array(
-                                    array('id' => '2', 'name' => 'Car2', 'manufactor_id' => '1', 'owner_id' => '2'),
+                                    array('id' => '2', 'name' => 'Car2', 'manufactor_id' => '1', 'owner_id' => '2', 'is_deleted' => 0),
                                 )
                             );
 
         $expectedParts[] =  array('id' =>  '4', 'name' => 'Part4',
                                 'cars' => array(
-                                    array('id' => '3', 'name' => 'Car3', 'manufactor_id' => '2', 'owner_id' => '3'),
+                                    array('id' => '3', 'name' => 'Car3', 'manufactor_id' => '2', 'owner_id' => '3', 'is_deleted' => 0),
                                 )
                             );
 
         $expectedParts[] =  array('id' => '5', 'name' => 'Part5',
                                 'cars' => array(
-                                    array('id' => '4', 'name' => 'Car4', 'manufactor_id' => '2', 'owner_id' => '4'),
+                                    array('id' => '4', 'name' => 'Car4', 'manufactor_id' => '2', 'owner_id' => '4', 'is_deleted' => 0),
                                 )
                             );
 
         $expectedSql    = array();
         $expectedSql[]  = "SELECT * FROM `part`";
-        $expectedSql[]  = "SELECT `car`.*, `car_part`.`part_id` FROM `car` JOIN `car_part` ON `car`.`id` = `car_part`.`car_id` WHERE `car_part`.`part_id` IN ('1', '2', '3', '4', '5')";
+        $expectedSql[]  = "SELECT `car`.*, `car_part`.`part_id` FROM `car` JOIN `car_part` ON `car`.`id` = `car_part`.`car_id` WHERE `car`.`is_deleted` = '0' AND `car_part`.`part_id` IN ('1', '2', '3', '4', '5')";
 
         $fullQueryLog = ORM::get_query_log();
 
@@ -244,7 +244,7 @@ class EagerTest extends PHPUnit_Framework_TestCase {
 
         $expectedSql    = array();
         $expectedSql[]  = "SELECT * FROM `owner` WHERE `id` = '1' LIMIT 1";
-        $expectedSql[]  = "SELECT * FROM `car` WHERE `owner_id` IN ('1')";
+        $expectedSql[]  = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1')";
         $expectedSql[]  = "SELECT * FROM `manufactor` WHERE `id` IN ('1')";
 
         $this->assertEquals($expectedSql, $actualSql);
