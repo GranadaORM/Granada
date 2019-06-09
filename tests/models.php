@@ -59,7 +59,7 @@ class Car extends Model {
         return $query->where('name', $name);
     }
 
-	public static function defaultFilter($query) {
+	protected static function _defaultFilter($query) {
 		return $query->where('car.is_deleted', 0);
 	}
  }

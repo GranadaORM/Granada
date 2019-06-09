@@ -251,7 +251,7 @@ To set up default filtering, create a function in the model. For example:
 
 	<?php
 	class Car extends Model {
-		public static function defaultFilter($query) {
+		public static function _defaultFilter($query) {
 			return $query->where('car.is_deleted', 0);
 		}
 	}

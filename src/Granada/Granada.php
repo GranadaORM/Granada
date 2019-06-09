@@ -219,7 +219,7 @@ use ArrayAccess;
             $wrapper->set_class_name($class_name);
             $wrapper->use_id_column(self::_get_id_column_name($class_name));
             $wrapper->resultSetClass = $class_name::$resultSetClass;
-			$class_name::defaultFilter($wrapper);
+			$class_name::_defaultFilter($wrapper);
             return $wrapper;
         }
 
@@ -381,7 +381,6 @@ use ArrayAccess;
          */
         public function set_orm($orm) {
 			$class_name = get_class($this);
-			$class_name::defaultFilter($orm);
             $this->orm = $orm;
         }
 
@@ -595,9 +594,17 @@ use ArrayAccess;
             return static::$resultSetClass;
         }
 
-		public static function defaultFilter($query) {
+		/**
+		 * Set a filter that runs on every query for this model.
+		 * For example if you have a field 'is_deleted' that you want to only show if set to 0,
+		 *
+		 * Use return $query->where('is_deleted', 0);
+		 *
+		 * @param Orm\Wrapper $query
+		 * @return Orm\Wrapper
+		 */
+		protected static function _defaultFilter($query) {
 			return $query;
-			return $query->where('is_deleted', 1);
 		}
 
         /**
