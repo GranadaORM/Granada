@@ -380,7 +380,6 @@ use ArrayAccess;
 		 * @param Orm\Wrapper $orm
          */
         public function set_orm($orm) {
-			$class_name = get_class($this);
             $this->orm = $orm;
         }
 
