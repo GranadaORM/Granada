@@ -56,7 +56,8 @@ class Wrapper extends ORM {
      * class bound to the supplied table name.
      *
      * A repeat of content in parent::for_table, so that
-     * created class is ORMWrapper, not ORM
+     * created class is Wrapper, not ORM
+	 * @return Wrapper
      */
     public static function for_table($table_name, $connection_name = parent::DEFAULT_CONNECTION) {
         self::_setup_db($connection_name);
@@ -253,7 +254,7 @@ class Wrapper extends ORM {
      */
     public function reset_relation()
     {
-        array_shift($this->_where_conditions);
+        array_pop($this->_where_conditions);
         return $this;
     }
 

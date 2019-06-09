@@ -243,6 +243,32 @@ Similarly for having:
 		->find_one();
         // SELECT * FROM `user` GROUP BY `name` HAVING `name` = 'Joe' LIMIT 1
 
+# Default filtering
+
+In some cases a default filter is very useful.
+For example an `is_deleted` field that flags a record as deleted in the database but the fields are never returned in queries.
+To set up default filtering, create a function in the model. For example:
+
+	<?php
+	class Car extends Model {
+		public static function defaultFilter($query) {
+			return $query->where('car.is_deleted', 0);
+		}
+	}
+
+Any queries that attempt to load results from the car table will filter based on the `is_deleted` column.
+It's recommended to include the table name in the default filter as it will be needed for any joins.
+
+Don't forget to create an index on columns that have a default filter!
+
+To override the default filtering, use the `clear_where()` function, for example:
+
+	<?php
+	$count = Car::clear_where()->count();
+	// Gets the number of all cars, deleted or not
+	$count = Car::count();
+	// Gets only the cars that are not deleted
+
 # First and Last items in a result
 
 When using `foreach` to iterate through a list of results, there are two functions you can use to determine if the result is the first or last item.

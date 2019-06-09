@@ -202,6 +202,7 @@ use ArrayAccess;
          * which allows a database query to be built. The wrapped ORM object is
          * responsible for returning instances of the correct class when
          * its find_one or find_many methods are called.
+		 * @return Orm\Wrapper
          */
         public static function factory($class_name, $connection_name = null) {
             $class_name = self::$auto_prefix_models . $class_name;
@@ -218,6 +219,7 @@ use ArrayAccess;
             $wrapper->set_class_name($class_name);
             $wrapper->use_id_column(self::_get_id_column_name($class_name));
             $wrapper->resultSetClass = $class_name::$resultSetClass;
+			$class_name::defaultFilter($wrapper);
             return $wrapper;
         }
 
@@ -375,8 +377,11 @@ use ArrayAccess;
 
         /**
          * Set the wrapped ORM instance associated with this Model instance.
+		 * @param Orm\Wrapper $orm
          */
         public function set_orm($orm) {
+			$class_name = get_class($this);
+			$class_name::defaultFilter($orm);
             $this->orm = $orm;
         }
 
@@ -589,6 +594,11 @@ use ArrayAccess;
         public function get_resultSetClass(){
             return static::$resultSetClass;
         }
+
+		public static function defaultFilter($query) {
+			return $query;
+			return $query->where('is_deleted', 1);
+		}
 
         /**
          * Calls static methods directly on the Orm\Wrapper
