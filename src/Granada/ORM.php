@@ -2063,6 +2063,7 @@ class ORM implements ArrayAccess {
      * Build an INSERT query
      */
     protected function _build_insert() {
+        $query = array();
         $query[] = "INSERT INTO";
         $query[] = $this->_quote_identifier($this->_table_name);
         $field_list = array_map(array($this, '_quote_identifier'), array_keys($this->_dirty_fields));

@@ -17,7 +17,7 @@
         /**
          * Get an easy to use instance of the class
          * @param string $subject
-         * @return \self
+         * @return Str
          */
         public static function value($subject) {
             return new self($subject);

@@ -231,6 +231,7 @@
          */
         private static function belongs_to($relationship, &$parents, $relating_key, $include, $return_result_set)
         {
+            $keys = array();
             foreach ($parents as &$parent)
             {
                 $keys[] = $parent->$relating_key;
