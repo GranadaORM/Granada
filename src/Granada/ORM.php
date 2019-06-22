@@ -645,7 +645,7 @@ class ORM implements ArrayAccess {
      * from your query, and execute it. Will return an array
      * of instances of the ORM class, or an empty array if
      * no rows were returned.
-     * @return array|\ResultSet
+     * @return array|ResultSet
      */
     public function find_many() {
         if(self::$_config[$this->_connection_name]['return_result_sets']) {
