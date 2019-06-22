@@ -29,7 +29,7 @@
          * @param string $search
          * @param string $replace
          * @param string $subject
-         * @return string
+         * @return string|array|false
          */
         public static function str_replace_outside_quotes($search, $replace, $subject) {
             return self::value($subject)->replace_outside_quotes($search, $replace);
@@ -48,7 +48,7 @@
          * string where they appear outside quotes
          * @param string $search
          * @param string $replace
-         * @return string
+         * @return string|array|false
          */
         public function replace_outside_quotes($search, $replace) {
             $this->search = $search;
@@ -61,7 +61,7 @@
          * of $this->search with $this->replace
          * @author Jeff Roberson <ridgerunner@fluxbb.org>
          * @link http://stackoverflow.com/a/13370709/461813 StackOverflow answer
-         * @return string
+         * @return string|array|false
          */
         protected function _str_replace_outside_quotes(){
             $re_valid = '/
@@ -94,7 +94,7 @@
          * @author Jeff Roberson <ridgerunner@fluxbb.org>
          * @link http://stackoverflow.com/a/13370709/461813 StackOverflow answer
          * @param array $matches
-         * @return string
+         * @return string|array|null
          */
         protected function _str_replace_outside_quotes_cb($matches) {
             // Return quoted string chunks (in group $1) unaltered.

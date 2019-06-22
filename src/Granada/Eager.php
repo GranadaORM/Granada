@@ -60,7 +60,7 @@
 
                     if (!method_exists($model, $relationship['name']))
                     {
-                        throw new Exception("Attempting to eager load [{$relationship['name']}], but the relationship is not defined.", '500');
+                        throw new Exception("Attempting to eager load [{$relationship['name']}], but the relationship is not defined.", 500);
                     }
 
                     self::eagerly($model, $results, $relationship, $return_result_set);
@@ -95,8 +95,9 @@
         /**
          * Eagerly load a relationship.
          *
-         * @param  array   $parents
-         * @param  string  $include
+         * @param Granada $model
+         * @param array $parents
+         * @param array $include
          * @param boolean $return_result_set
          * @return void
          */
@@ -118,7 +119,7 @@
 
                 if (in_array($relating = $model->relating, array('has_one', 'has_many', 'belongs_to')))
                 {
-                    return self::$relating($relationship, $parents, $model->relating_key, $include['name'], $return_result_set);
+                    self::$relating($relationship, $parents, $model->relating_key, $include['name'], $return_result_set);
                 }
                 else
                 {
@@ -132,7 +133,7 @@
          *
          * @param  object  $relationship
          * @param  array   $parents
-         * @param  string  $relating
+         * @param  string  $relating_key
          * @param  string  $include
          * @return void
          */
@@ -175,7 +176,7 @@
          *
          * @param  object  $relationship
          * @param  array   $parents
-         * @param  string  $relating
+         * @param  string  $relating_key
          * @param  string  $include
          * @return void
          */

@@ -8,6 +8,8 @@ use ArrayIterator;
 /**
  * A result set class for working with collections of model instances
  * @author Simon Holywell <treffynnon@php.net>
+ *
+ * @method integer id() Get the id of this record
  */
 class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
     /**
@@ -58,7 +60,7 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
 
     /**
      * Get the current result set as an array
-     * @return string
+     * @return string|false
      */
     public function as_json() {
         $result = array();
