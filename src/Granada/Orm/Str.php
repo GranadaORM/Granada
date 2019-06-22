@@ -17,7 +17,7 @@
         /**
          * Get an easy to use instance of the class
          * @param string $subject
-         * @return \self
+         * @return \Granada\Orm\Str
          */
         public static function value($subject) {
             return new self($subject);
@@ -104,3 +104,6 @@
                 $this->replace, $matches[2]);
         }
     }
+
+class IdiormStringException extends \Exception {
+}

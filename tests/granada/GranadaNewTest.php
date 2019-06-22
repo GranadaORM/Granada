@@ -118,7 +118,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testfindPairsOrdered(){
-        $pairs = car::order_by_desc('id')->find_pairs();
+        $pairs = Car::order_by_desc('id')->find_pairs();
         $expected = array(
             '4' => 'Car4',
             '3' => 'Car3',
