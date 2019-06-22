@@ -80,7 +80,7 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * Merge the resultSet with an array
      * @return ResultSet
      */
-    public function merge(IdiormResultSet $result) {
+    public function merge() {
         array_push($this->_results, $this->_results);
         return $this;
     }
@@ -161,7 +161,7 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
 
     /**
      * ArrayAccess
-     * @param int|string $offset
+     * @param int|string|null $offset
      * @param mixed $value
      */
     public function offsetSet($offset, $value) {

@@ -199,7 +199,7 @@ class ORM implements ArrayAccess {
      * required to use Idiorm). If you have more than one setting
      * you wish to configure, another shortcut is to pass an array
      * of settings (and omit the second argument).
-     * @param string $key
+     * @param array|string $key
      * @param mixed $value
      * @param string $connection_name Which connection to use
      */
@@ -688,7 +688,7 @@ class ORM implements ArrayAccess {
      * Tell the ORM that you are expecting multiple results
      * from your query, and execute it. Will return a result set object
      * containing instances of the ORM class.
-     * @return \ResultSet
+     * @return \Granada\ResultSet
      */
     public function find_result_set() {
         $resultSetClass = $this->resultSetClass;
@@ -1189,7 +1189,7 @@ class ORM implements ArrayAccess {
     /**
      * Add a WHERE column != value clause to your query.
      * @param string $column_name
-     * @param string $value
+     * @param string|null $value
      */
     public function where_not_equal($column_name, $value) {
 		if (is_null($value)) {
@@ -1242,7 +1242,7 @@ class ORM implements ArrayAccess {
                     } else if ($op == '!=') {
                         $query[] = 'NOT IN (' . $placeholders . ')';
                     } else {
-                        throw new InvalidArgumentException('You only pass an array for = and !=.');
+                        throw new \InvalidArgumentException('You only pass an array for = and !=.');
                     }
                 } else {
 					if (is_null($item) && ($op == '=')) {
@@ -1257,7 +1257,7 @@ class ORM implements ArrayAccess {
             }
         }
         $query[] = "))";
-        return $this->where_raw(join($query, ' '), $data);
+        return $this->where_raw(implode(' ', $query), $data);
     }
 
     /**
@@ -2159,7 +2159,7 @@ class ORM implements ArrayAccess {
 
     public function offsetSet($key, $value) {
         if(is_null($key)) {
-            throw new InvalidArgumentException('You must specify a key/array index.');
+            throw new \InvalidArgumentException('You must specify a key/array index.');
         }
         $this->set($key, $value);
     }
