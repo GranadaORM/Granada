@@ -522,7 +522,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testDirty() {
-        $car = Car::find_one(1);
+        $car = Model::factory('Car')->find_one(1);
 
         $this->assertSame(false, $car->is_dirty('name'));
         $this->assertEquals(1, $car->manufactor_id);
@@ -533,7 +533,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testCleanValue() {
-        $car = Car::find_one(1);
+        $car = Model::factory('Car')->find_one(1);
 
         $this->assertEquals(1, $car->manufactor_id);
         $this->assertEquals(1, $car->clean_value('manufactor_id'));
