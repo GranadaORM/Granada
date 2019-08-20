@@ -515,6 +515,7 @@ use ArrayAccess;
 
         /**
          * Check whether the given field has changed since the object was created or saved
+         * @return bool
          */
         public function is_dirty($property) {
             return $this->orm->is_dirty($property);
@@ -525,6 +526,30 @@ use ArrayAccess;
          */
         public function list_dirty_fields() {
             return $this->orm->list_dirty_fields();
+        }
+
+        /**
+         * Check whether the given field has not changed since the object was created or saved
+         * @return bool
+         */
+        public function is_clean($property) {
+            return !$this->is_dirty($property);
+        }
+
+        /**
+         * Get the value of this property the last time the object was created or saved
+         * @return mixed
+         */
+        public function clean_value($property) {
+            return $this->orm->clean_value($property);
+        }
+
+        /**
+         * Get the values of this object the last time it was created or saved
+         * @return array
+         */
+        public function clean_values() {
+            return $this->orm->clean_values();
         }
 
         /**
