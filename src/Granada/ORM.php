@@ -1837,7 +1837,7 @@ class ORM implements ArrayAccess {
         $query = $this->_build_select();
         $caching_enabled = self::$_config[$this->_connection_name]['caching'];
 
-		$cache_key = '';
+        $cache_key = '';
         if ($caching_enabled) {
             $cache_key = self::_create_cache_key($query, $this->_values);
             $cached_result = self::_check_query_cache($cache_key, $this->_connection_name);
@@ -2200,7 +2200,7 @@ class ORM implements ArrayAccess {
      *
      * @param  string   $name
      * @param  array    $arguments
-     * @return ORM|false
+     * @return ORM
      */
     public function __call($name, $arguments)
     {

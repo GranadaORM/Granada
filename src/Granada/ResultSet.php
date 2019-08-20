@@ -60,7 +60,7 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
 
     /**
      * Get the current result set as an array
-     * @return string|false
+     * @return string
      */
     public function as_json() {
         $result = array();

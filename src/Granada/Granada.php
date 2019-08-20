@@ -78,6 +78,7 @@ use ArrayAccess;
         /**
          * The ORM instance used by this model
          * instance to communicate with the database.
+         * @var ORM
          */
         public $orm;
 
