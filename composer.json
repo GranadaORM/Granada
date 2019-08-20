@@ -26,6 +26,9 @@
             "role": "Initial Developer"
         }
     ],
+    "scripts": {
+        "test": "phpunit"
+    },
     "replace": {
         "surt/granada": "*"
     },

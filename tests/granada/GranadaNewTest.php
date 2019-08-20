@@ -521,4 +521,37 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(5, $count);
     }
 
+    public function testDirty() {
+        $car = Model::factory('Car')->find_one(1);
+
+        $this->assertSame(false, $car->is_dirty('name'));
+        $this->assertEquals(1, $car->manufactor_id);
+
+        $car->manufactor_id = 2;
+        $this->assertSame(true, $car->is_dirty('manufactor_id'));
+        $this->assertEquals(2, $car->manufactor_id);
+    }
+
+    public function testCleanValue() {
+        $car = Model::factory('Car')->find_one(1);
+
+        $this->assertEquals(1, $car->manufactor_id);
+        $this->assertEquals(1, $car->clean_value('manufactor_id'));
+        $car->manufactor_id = 2;
+        $this->assertEquals(1, $car->clean_value('manufactor_id'));
+        $this->assertEquals(2, $car->manufactor_id);
+        $expected = array(
+            'id' => '1',
+            'name' => 'Car1',
+            'manufactor_id' => '1',
+            'owner_id' => '1',
+            'is_deleted' => '0',
+        );
+        $this->assertEquals($expected, $car->clean_values());
+        $car->save();
+        // Changes after save
+        $expected['manufactor_id'] = 2;
+        $this->assertEquals($expected, $car->clean_values());
+    }
+
 }

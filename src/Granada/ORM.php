@@ -169,6 +169,9 @@ class ORM implements ArrayAccess {
     // lifetime of the object
     protected $_dirty_fields = array();
 
+    // The data as at hydration time, used for comparison of dirty fields
+    protected $_clean_data = array();
+
     // Fields that are to be inserted in the DB raw
     protected $_expr_fields = array();
 
@@ -542,6 +545,7 @@ class ORM implements ArrayAccess {
     protected function __construct($table_name, $data = array(), $connection_name = self::DEFAULT_CONNECTION) {
         $this->_table_name = $table_name;
         $this->_data = $data;
+        $this->_clean_data = $data;
 
         $this->_connection_name = $connection_name;
 
@@ -797,6 +801,7 @@ class ORM implements ArrayAccess {
      */
     public function hydrate($data=array()) {
         $this->_data = $data;
+        $this->_clean_data = $data;
         return $this;
     }
 
@@ -1977,10 +1982,30 @@ class ORM implements ArrayAccess {
 
     /**
      * List the dirty fields that need updating on next save
-	 *
+	 * @return array
      */
     public function list_dirty_fields() {
         return $this->_dirty_fields;
+    }
+
+    /**
+     * Get the clean data for this record before it was made dirty
+	 * @return array
+     */
+    public function clean_values() {
+        return $this->_clean_data;
+    }
+
+    /**
+     * Get the value of this field when the data was last hydrated
+     * ie before it became dirty
+     * @return mixed
+     */
+    public function clean_value($key) {
+        if (!array_key_exists($key, $this->_clean_data)) {
+            return null;
+        }
+        return $this->_clean_data[$key];
     }
 
     /**
@@ -2037,6 +2062,7 @@ class ORM implements ArrayAccess {
         }
         $this->clear_cache();
         $this->_dirty_fields = $this->_expr_fields = array();
+        $this->_clean_data = $this->_data;
         return $success;
     }
 
