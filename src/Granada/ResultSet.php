@@ -8,6 +8,8 @@ use ArrayIterator;
 /**
  * A result set class for working with collections of model instances
  * @author Simon Holywell <treffynnon@php.net>
+ *
+ * @method integer id() Get the id of this record
  */
 class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
     /**

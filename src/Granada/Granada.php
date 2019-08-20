@@ -68,7 +68,7 @@ use ArrayAccess;
 
         /**
          * Set a prefix for model names. This can be a namespace or any other
-         * abitrary prefix such as the PEAR naming convention.
+         * arbitrary prefix such as the PEAR naming convention.
          * @example Model::$auto_prefix_models = 'MyProject_MyModels_'; //PEAR
          * @example Model::$auto_prefix_models = '\MyProject\MyModels\'; //Namespaces
          * @var string
@@ -78,6 +78,7 @@ use ArrayAccess;
         /**
          * The ORM instance used by this model
          * instance to communicate with the database.
+         * @var ORM
          */
         public $orm;
 
