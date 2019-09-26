@@ -1179,7 +1179,7 @@ class ORM implements ArrayAccess {
      *    ->find_many();
      *
      * @param boolean $condition
-     * @param function $callback
+     * @param callable $callback
      * @return self
      */
     public function onlyif($condition, $callback) {
