@@ -110,6 +110,107 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testOptionalWhereClauses() {
+        ORM::for_table('widget')
+            ->onlyif(true, function($q) {
+                return $q->where('name', 'Fred');
+            })
+            ->where('age', 10)
+            ->find_one();
+        $expected = "SELECT * FROM `widget` WHERE `name` = 'Fred' AND `age` = '10' LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testOptionalWhereClauses2() {
+        ORM::for_table('widget')
+            ->onlyif(false, function($q) {
+                return $q->where('name', 'Fred');
+            })
+            ->where('age', 10)
+            ->find_one();
+        $expected = "SELECT * FROM `widget` WHERE `age` = '10' LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testOptionalWhereClausesExtraParams() {
+        $where_name = 'Fred';
+        ORM::for_table('widget')
+            ->onlyif(true, function($q) use($where_name) {
+                return $q->where('name', $where_name);
+            })
+            ->where('age', 10)
+            ->find_one();
+        $expected = "SELECT * FROM `widget` WHERE `name` = 'Fred' AND `age` = '10' LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testOptionalWhereClausesVariable1() {
+        $min_age = 10;
+        ORM::for_table('widget')
+            ->onlyif($min_age > 0, function ($q) use($min_age) {
+                return $q->where_gte('age', $min_age);
+            })
+            ->find_one();
+        $expected = "SELECT * FROM `widget` WHERE `age` >= '10' LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testOptionalWhereClausesVariable2() {
+        $min_age = 0;
+        ORM::for_table('widget')
+            ->onlyif($min_age > 0, function ($q) use($min_age) {
+                return $q->where_gte('age', $min_age);
+            })
+            ->find_one();
+        $expected = "SELECT * FROM `widget` LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testOptionalOrderClause1() {
+        $order_by_age = true;
+        $order_by_name = true;
+        ORM::for_table('widget')
+            ->onlyif($order_by_age, function ($q) {
+                return $q->order_by_asc('age');
+            })
+            ->onlyif($order_by_name, function ($q) {
+                return $q->order_by_asc('name');
+            })
+            ->find_one();
+        $expected = "SELECT * FROM `widget` ORDER BY `age` ASC, `name` ASC LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testOptionalOrderClause2() {
+        $order_by_age = true;
+        $order_by_name = false;
+        ORM::for_table('widget')
+            ->onlyif($order_by_age, function ($q) {
+                return $q->order_by_asc('age');
+            })
+            ->onlyif($order_by_name, function ($q) {
+                return $q->order_by_asc('name');
+            })
+            ->find_one();
+        $expected = "SELECT * FROM `widget` ORDER BY `age` ASC LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testOptionalOrderClause3() {
+        $order_by_age = false;
+        $order_by_name = false;
+        ORM::for_table('widget')
+            ->onlyif($order_by_age, function ($q) {
+                return $q->order_by_asc('age');
+            })
+            ->onlyif($order_by_name, function ($q) {
+                return $q->order_by_asc('name');
+            })
+            ->find_one();
+        $expected = "SELECT * FROM `widget` LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
     public function testWhereNotEqual() {
         ORM::for_table('widget')->where_not_equal('name', 'Fred')->find_many();
         $expected = "SELECT * FROM `widget` WHERE `name` != 'Fred'";

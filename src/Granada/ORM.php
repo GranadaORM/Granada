@@ -1169,6 +1169,27 @@ class ORM implements ArrayAccess {
     }
 
     /**
+     * Optionally add to a chain
+     * To avoid breaking long chain commands, calls the function only if the first parameter is truthy.
+     * Use like:
+     *  Car::where('id', 3)
+     *    ->onlyif($only_enabled, function($q) {
+     *          return $q->where('enabled', 1);
+     *      });
+     *    ->find_many();
+     *
+     * @param boolean $condition
+     * @param function $callback
+     * @return self
+     */
+    public function onlyif($condition, $callback) {
+        if ($condition) {
+            return $callback($this);
+        }
+
+        return $this;
+    }
+    /**
      * Add a WHERE column = value clause to your query. Each time
      * this is called in the chain, an additional WHERE will be
      * added, and these will be ANDed together when the final query
