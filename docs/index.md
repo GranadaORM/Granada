@@ -176,6 +176,27 @@ Pass an array to convert it into an IN or NOT IN (depending on the operator):
 		)->find_many();
         // SELECT * FROM `user` WHERE (( `name` = 'Joe' AND `age` NOT IN ('18', '19') ) OR ( `name` IN ('Bob', 'Jack') AND `age` != '20' ))
 
+Optionally apply a where, use this to avoid breaking long chains. Can also be used for order:
+
+	<?php
+	$min_age = 5;
+	$order = true;
+	$items = User::where('class', 'Test')
+			->if(false, function($q) { // Will skip this filter
+				return $q->where_lt('age', 10);
+			})
+			->if($min_age > 0, function($q) use ($min_age) { // Will apply this filter only when min_age is greater than 0
+				return $q->where_gt('age', $min_age);
+			})
+			->if($order, function($q) {
+				return $q->order_by_asc('age);
+			})
+			->find_many();
+	// SELECT * FROM `user` WHERE
+	// `class` = 'Test'
+	// AND `age` > 5;
+
+
 ## Setting the order of results
 
 Ordering results are set in order of priority, and can be defined multiple times for sub-ordering.
