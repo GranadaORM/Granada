@@ -112,7 +112,7 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
 
     public function testOptionalWhereClauses() {
         ORM::for_table('widget')
-            ->if(true, function($q) {
+            ->onlyif(true, function($q) {
                 return $q->where('name', 'Fred');
             })
             ->where('age', 10)
@@ -123,7 +123,7 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
 
     public function testOptionalWhereClauses2() {
         ORM::for_table('widget')
-            ->if(false, function($q) {
+            ->onlyif(false, function($q) {
                 return $q->where('name', 'Fred');
             })
             ->where('age', 10)
@@ -135,7 +135,7 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
     public function testOptionalWhereClausesExtraParams() {
         $where_name = 'Fred';
         ORM::for_table('widget')
-            ->if(true, function($q) use($where_name) {
+            ->onlyif(true, function($q) use($where_name) {
                 return $q->where('name', $where_name);
             })
             ->where('age', 10)
@@ -147,7 +147,7 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
     public function testOptionalWhereClausesVariable1() {
         $min_age = 10;
         ORM::for_table('widget')
-            ->if($min_age > 0, function ($q) use($min_age) {
+            ->onlyif($min_age > 0, function ($q) use($min_age) {
                 return $q->where_gte('age', $min_age);
             })
             ->find_one();
@@ -158,7 +158,7 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
     public function testOptionalWhereClausesVariable2() {
         $min_age = 0;
         ORM::for_table('widget')
-            ->if($min_age > 0, function ($q) use($min_age) {
+            ->onlyif($min_age > 0, function ($q) use($min_age) {
                 return $q->where_gte('age', $min_age);
             })
             ->find_one();
@@ -170,10 +170,10 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
         $order_by_age = true;
         $order_by_name = true;
         ORM::for_table('widget')
-            ->if($order_by_age, function ($q) {
+            ->onlyif($order_by_age, function ($q) {
                 return $q->order_by_asc('age');
             })
-            ->if($order_by_name, function ($q) {
+            ->onlyif($order_by_name, function ($q) {
                 return $q->order_by_asc('name');
             })
             ->find_one();
@@ -185,10 +185,10 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
         $order_by_age = true;
         $order_by_name = false;
         ORM::for_table('widget')
-            ->if($order_by_age, function ($q) {
+            ->onlyif($order_by_age, function ($q) {
                 return $q->order_by_asc('age');
             })
-            ->if($order_by_name, function ($q) {
+            ->onlyif($order_by_name, function ($q) {
                 return $q->order_by_asc('name');
             })
             ->find_one();
@@ -200,10 +200,10 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
         $order_by_age = false;
         $order_by_name = false;
         ORM::for_table('widget')
-            ->if($order_by_age, function ($q) {
+            ->onlyif($order_by_age, function ($q) {
                 return $q->order_by_asc('age');
             })
-            ->if($order_by_name, function ($q) {
+            ->onlyif($order_by_name, function ($q) {
                 return $q->order_by_asc('name');
             })
             ->find_one();

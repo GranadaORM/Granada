@@ -182,13 +182,13 @@ Optionally apply a where, use this to avoid breaking long chains. Can also be us
 	$min_age = 5;
 	$order = true;
 	$items = User::where('class', 'Test')
-			->if(false, function($q) { // Will skip this filter
+			->onlyif(false, function($q) { // Will skip this filter
 				return $q->where_lt('age', 10);
 			})
-			->if($min_age > 0, function($q) use ($min_age) { // Will apply this filter only when min_age is greater than 0
+			->onlyif($min_age > 0, function($q) use ($min_age) { // Will apply this filter only when min_age is greater than 0
 				return $q->where_gt('age', $min_age);
 			})
-			->if($order, function($q) {
+			->onlyif($order, function($q) {
 				return $q->order_by_asc('age);
 			})
 			->find_many();

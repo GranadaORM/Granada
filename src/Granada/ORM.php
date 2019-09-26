@@ -1173,7 +1173,7 @@ class ORM implements ArrayAccess {
      * To avoid breaking long chain commands, calls the function only if the first parameter is truthy.
      * Use like:
      *  Car::where('id', 3)
-     *    ->if($only_enabled, function($q) {
+     *    ->onlyif($only_enabled, function($q) {
      *          return $q->where('enabled', 1);
      *      });
      *    ->find_many();
@@ -1182,7 +1182,7 @@ class ORM implements ArrayAccess {
      * @param function $callback
      * @return self
      */
-    public function if($condition, $callback) {
+    public function onlyif($condition, $callback) {
         if ($condition) {
             return $callback($this);
         }
