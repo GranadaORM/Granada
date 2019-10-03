@@ -146,6 +146,7 @@ class ORM implements ArrayAccess {
 
     // Array of WHERE clauses
     protected $_where_conditions = array();
+    protected $_where_conditions_stash = array();
 
     // LIMIT
     protected $_limit = null;
@@ -1107,6 +1108,30 @@ class ORM implements ArrayAccess {
             self::CONDITION_FRAGMENT => $fragment,
             self::CONDITION_VALUES => $values,
         ));
+        return $this;
+    }
+
+    /**
+     * Save the where conditions and clear
+     * Use pop_where to get them back
+     *
+     * @return ORM
+     */
+    public function stash_where() {
+        $this->_where_conditions_stash = $this->_where_conditions;
+        return $this->clear_where();
+    }
+
+    /**
+     * Reinstate the stashed conditions to the end of the where list
+     *
+     * @return ORM
+     */
+    public function pop_where() {
+        foreach ($this->_where_conditions_stash as $stash) {
+            $this->_where_conditions[] = $stash;
+        }
+        $this->_where_conditions_stash = array();
         return $this;
     }
 

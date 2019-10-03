@@ -254,7 +254,7 @@ class Wrapper extends ORM {
      */
     public function reset_relation()
     {
-        array_pop($this->_where_conditions);
+        array_shift($this->_where_conditions);
         return $this;
     }
 

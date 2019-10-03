@@ -250,7 +250,7 @@ use ArrayAccess;
 
             // Added: to determine eager load relationship parameters
             $this->relating_key = $foreign_key_name;
-            return self::factory($associated_class_name, $connection_name)->where($foreign_key_name, $where_value);
+            return self::factory($associated_class_name, $connection_name)->stash_where()->where($foreign_key_name, $where_value)->pop_where();
         }
 
         /**
@@ -300,10 +300,10 @@ use ArrayAccess;
                 //"{$associated_table_name}.primary_key = {$associated_object_id}"
                 //NOTE: primary_key is a placeholder for the actual primary key column's name
                 //in $associated_table_name
-                $desired_record = self::factory($associated_class_name, $connection_name)->where_id_is($associated_object_id);
+                $desired_record = self::factory($associated_class_name, $connection_name)->stash_where()->where_id_is($associated_object_id)->pop_where();
             } else {
                 //"{$associated_table_name}.{$foreign_key_name_in_associated_models_table} = {$associated_object_id}"
-                $desired_record = self::factory($associated_class_name, $connection_name)->where($foreign_key_name_in_associated_models_table, $associated_object_id);
+                $desired_record = self::factory($associated_class_name, $connection_name)->stash_where()->where($foreign_key_name_in_associated_models_table, $associated_object_id)->pop_where();
             }
 
             return $desired_record;
@@ -369,10 +369,12 @@ use ArrayAccess;
             $this->relating_table = $join_table_name;
 
             return self::factory($associated_class_name, $connection_name)
+                ->stash_where()
                 ->select("{$associated_table_name}.*")
                 ->join($join_table_name, array("{$associated_table_name}.{$associated_table_id_column}", '=', "{$join_table_name}.{$key_to_associated_table}"))
                 ->where("{$join_table_name}.{$key_to_base_table}", $this->$base_table_id_column)
-                ->non_associative();
+                ->non_associative()
+                ->pop_where();
         }
 
 

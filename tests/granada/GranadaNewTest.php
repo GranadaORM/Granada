@@ -65,7 +65,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
             'name' => 'New Car',
         ));
         $car->save();
-    	$expected = 6;
+        $expected = 7;
         $this->assertEquals($expected, $car->id);
     }
 
@@ -112,7 +112,8 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
             '1' => 'Car1',
             '2' => 'Car2',
             '3' => 'Car3',
-            '4' => 'Car4'
+            '4' => 'Car4',
+            '6' => 'Car6',
         );
         $this->assertEquals($expected, $pairs);
     }
@@ -120,6 +121,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
     public function testfindPairsOrdered(){
         $pairs = Car::order_by_desc('id')->find_pairs();
         $expected = array(
+            '6' => 'Car6',
             '4' => 'Car4',
             '3' => 'Car3',
             '2' => 'Car2',
@@ -135,6 +137,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
             '2' => '1',
             '3' => '2',
             '4' => '2',
+            '6' => '2',
         );
         $this->assertequals($expected, $pairs);
     }
@@ -149,6 +152,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
             'Car2' => 'Manufactor1',
             'Car3' => 'Manufactor2',
             'Car4' => 'Manufactor2',
+            'Car6' => 'Manufactor2',
         );
         $this->assertEquals($expected, $pairs);
     }
@@ -163,6 +167,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
             'Car2' => 'Manufactor1',
             'Car3' => 'Manufactor2',
             'Car4' => 'Manufactor2',
+            'Car6' => 'Manufactor2',
         );
         $this->assertEquals($expected, $pairs);
     }
@@ -178,6 +183,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
             'Car3' => 'Manufactor2',
             'Car2' => 'Manufactor1',
             'Car1' => 'Manufactor1',
+            'Car6' => 'Manufactor2',
         );
         $this->assertEquals($expected, $pairs);
     }
@@ -193,6 +199,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
             'Car2' => 'Manufactor1 Owner2',
             'Car3' => 'Manufactor2 Owner3',
             'Car4' => 'Manufactor2 Owner4',
+            'Car6' => 'Manufactor2 Owner4',
         );
         $this->assertEquals($expected, $pairs);
     }
@@ -212,7 +219,8 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
 			'0' => 'Car1',
 			'1' => 'Car2',
 			'2' => 'Car3',
-			'3' => 'Car4'
+            '3' => 'Car4',
+            '4' => 'Car6',
         );
 		foreach ($cars as $id => $car) {
 			$this->assertNull($car->id); // We are only getting the name field
@@ -237,6 +245,10 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
 				'last' => false,
 			),
 			'Car4' => array(
+				'first' => false,
+				'last' => false,
+			),
+			'Car6' => array(
 				'first' => false,
 				'last' => true,
 			),
@@ -264,6 +276,10 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
 				'last' => false,
 			),
 			'Car4' => array(
+				'first' => false,
+				'last' => false,
+			),
+			'Car6' => array(
 				'first' => true,
 				'last' => false,
 			),
@@ -404,7 +420,8 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
             '1' => 'Car1',
             '2' => 'Car2',
             '3' => 'Car3',
-            '4' => 'Car4'
+            '4' => 'Car4',
+            '6' => 'Car6',
         );
 		foreach ($cars as $id => $car) {
         	$this->assertEquals($id, $car->id);
@@ -466,7 +483,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 2);
 
         $this->assertEquals($expectedSql, $actualSql);
-        $this->assertEquals(5, $count, 'Car must be Inserted');
+        $this->assertEquals(6, $count, 'Car must be Inserted');
     }
 
     public function testInsertDeleted(){
@@ -490,7 +507,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 2);
 
         $this->assertEquals($expectedSql, $actualSql);
-        $this->assertEquals(4, $count);
+        $this->assertEquals(5, $count);
     }
 
     public function testCountAll() {
@@ -504,7 +521,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 1);
 
         $this->assertEquals($expectedSql, $actualSql);
-        $this->assertEquals(4, $count);
+        $this->assertEquals(5, $count);
     }
 
     public function testCountAllCleared() {
@@ -518,7 +535,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 1);
 
         $this->assertEquals($expectedSql, $actualSql);
-        $this->assertEquals(5, $count);
+        $this->assertEquals(6, $count);
     }
 
     public function testDirty() {
@@ -546,6 +563,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
             'manufactor_id' => '1',
             'owner_id' => '1',
             'is_deleted' => '0',
+            'enabled' => '1',
         );
         $this->assertEquals($expected, $car->clean_values());
         $car->save();
