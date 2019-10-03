@@ -10,7 +10,7 @@ use Granada\Model;
 
 class Manufactor extends Model {
     public function cars() {
-        return $this->has_many('Car');
+        return $this->has_many('Car')->where('enabled', 1);
     }
 }
 

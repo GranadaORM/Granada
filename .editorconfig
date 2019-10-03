@@ -1,0 +1,19 @@
+# top-most EditorConfig file
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+
+; temporary
+trim_trailing_whitespace = true
+
+[*.php]
+indent_style = spaces
+indent_size = 4
+insert_final_newline = true
+
+[vendor/**]
+; Use editor default (possible autodetection).
+indent_style =
+indent_size =
