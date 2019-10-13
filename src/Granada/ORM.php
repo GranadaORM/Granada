@@ -546,7 +546,7 @@ class ORM implements ArrayAccess {
     protected function __construct($table_name, $data = array(), $connection_name = self::DEFAULT_CONNECTION) {
         $this->_table_name = $table_name;
         $this->_data = $data;
-        $this->_clean_data = $data;
+        $this->_clean_data = array();
 
         $this->_connection_name = $connection_name;
 
@@ -802,7 +802,7 @@ class ORM implements ArrayAccess {
      */
     public function hydrate($data=array()) {
         $this->_data = $data;
-        $this->_clean_data = $data;
+        $this->_clean_data = array();
         return $this;
     }
 
@@ -2006,6 +2006,10 @@ class ORM implements ArrayAccess {
             $key = array($key => $value);
         }
         foreach ($key as $field => $value) {
+            if (!array_key_exists($field, $this->_clean_data) && array_key_exists($field, $this->_data)) {
+                // Save the data the first time only
+                $this->_clean_data[$field] = $this->_data[$field];
+            }
             $this->_data[$field] = $value;
             $this->_dirty_fields[$field] = $value;
             if (false === $expr and isset($this->_expr_fields[$field])) {
@@ -2039,7 +2043,7 @@ class ORM implements ArrayAccess {
 	 * @return array
      */
     public function clean_values() {
-        return $this->_clean_data;
+        return array_merge($this->_data, $this->_clean_data);
     }
 
     /**
@@ -2048,10 +2052,13 @@ class ORM implements ArrayAccess {
      * @return mixed
      */
     public function clean_value($key) {
-        if (!array_key_exists($key, $this->_clean_data)) {
-            return null;
+        if (array_key_exists($key, $this->_clean_data)) {
+            return $this->_clean_data[$key];
         }
-        return $this->_clean_data[$key];
+        if (array_key_exists($key, $this->_data)) {
+            return $this->_data[$key];
+        }
+        return NULL;
     }
 
     /**
@@ -2108,7 +2115,7 @@ class ORM implements ArrayAccess {
         }
         $this->clear_cache();
         $this->_dirty_fields = $this->_expr_fields = array();
-        $this->_clean_data = $this->_data;
+        $this->_clean_data = array();
         return $success;
     }
 
