@@ -36,7 +36,7 @@
         "php": ">=5.6.0"
     },
     "suggest": {
-		"granadaorm/build": "Automatically build model classes from the database schema",
+		"granadaorm/builder": "Automatically build model classes from the database schema",
 		"granadaorm/form": "Quick generate html forms from the model structure using css frameworks such as Bootstrap and Bulma"
 	},
     "autoload": {
