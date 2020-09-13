@@ -305,7 +305,8 @@ class Wrapper extends ORM {
         if (!is_a($parameters, '\Cake\Chronos\Chronos')) {
             return $parameters;
         }
-        return $this->_class_name::adjustTimezoneForWhere($varname, $parameters);
+		$classname = $this->_class_name;
+        return $classname::adjustTimezoneForWhere($varname, $parameters);
     }
 
     /**
