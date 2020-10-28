@@ -64,6 +64,18 @@ class GranadaTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testFindOneCamelCase() {
+        $widget = Model::factory('Simple')->findOne();
+        $expected = "SELECT * FROM `simple` LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testFindOneCamelCaseWithId() {
+        $widget = Model::factory('Simple')->findOne(1);
+        $expected = "SELECT * FROM `simple` WHERE `id` = '1' LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
     public function testUpdateData() {
         $widget = Model::factory('Simple')->find_one(1);
         $widget->name = "Fred";

@@ -403,7 +403,6 @@ class Wrapper extends ORM {
         else {
             $underscore_method = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $method));
             if(method_exists($this,$underscore_method)){
-                array_unshift($parameters, $this);
                 return call_user_func_array(array($this,$underscore_method), $parameters);
             }
             throw new Exception(" no static $method found or static method 'filter_$method' not defined in ".$this->_class_name);
