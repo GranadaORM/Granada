@@ -14,7 +14,10 @@ use Granada\Model;
  */
 class EagerTest extends PHPUnit_Framework_TestCase {
 
-    public function setUp() {
+    /**
+     * @before
+     */
+    protected function beforeTest() {
 
         // The tests for eager loading requires a real database.
         // Set up SQLite in memory
@@ -27,7 +30,10 @@ class EagerTest extends PHPUnit_Framework_TestCase {
         ORM::configure('logging', true);
     }
 
-    public function tearDown() {
+    /**
+     * @after
+     */
+    protected function afterTest() {
         ORM::configure('logging', false);
         ORM::set_db(null);
     }

@@ -5,7 +5,10 @@ use Granada\ResultSet;
 
 class ResultSetTest extends PHPUnit_Framework_TestCase {
 
-    public function setUp() {
+    /**
+     * @before
+     */
+    protected function beforeTest() {
         // Enable logging
         ORM::configure('logging', true);
 
@@ -14,14 +17,17 @@ class ResultSetTest extends PHPUnit_Framework_TestCase {
         ORM::set_db($db);
     }
 
-    public function tearDown() {
+    /**
+     * @after
+     */
+    protected function afterTest() {
         ORM::reset_config();
         ORM::reset_db();
     }
 
     public function testGet() {
         $ResultSet = new ResultSet();
-        $this->assertInternalType('array', $ResultSet->get_results());
+        $this->assertTrue(is_array($ResultSet->get_results()));
     }
 
     public function testConstructor() {
@@ -54,7 +60,7 @@ class ResultSetTest extends PHPUnit_Framework_TestCase {
     public function testGetIterator() {
         $result_set = array('item' => new stdClass);
         $ResultSet = new ResultSet($result_set);
-        $this->assertInstanceOf('ArrayIterator', $ResultSet->getIterator());
+        $this->assertTrue(is_a($ResultSet->getIterator(), 'ArrayIterator'));
     }
 
     public function testForeach() {

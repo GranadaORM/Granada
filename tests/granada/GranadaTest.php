@@ -6,7 +6,10 @@ class GranadaTest extends PHPUnit_Framework_TestCase {
 
     const ALTERNATE = 'alternate';
 
-    public function setUp() {
+    /**
+     * @before
+     */
+    protected function beforeTest() {
         // Set up the dummy database connection
         ORM::set_db(new MockPDO('sqlite::memory:'));
 
@@ -14,7 +17,10 @@ class GranadaTest extends PHPUnit_Framework_TestCase {
         ORM::configure('logging', true);
     }
 
-    public function tearDown() {
+    /**
+     * @after
+     */
+    protected function afterTest() {
         ORM::configure('logging', false);
         ORM::set_db(null);
     }

@@ -4,7 +4,10 @@ use Granada\ORM;
 
 class QueryBuilderTest extends PHPUnit_Framework_TestCase {
 
-    public function setUp() {
+    /**
+     * @before
+     */
+    protected function beforeTest() {
         // Enable logging
         ORM::configure('logging', true);
 
@@ -13,7 +16,10 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
         ORM::set_db($db);
     }
 
-    public function tearDown() {
+    /**
+     * @after
+     */
+    protected function afterTest() {
         ORM::reset_config();
         ORM::reset_db();
     }
@@ -299,7 +305,7 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
         $expected = "SELECT * FROM `widget` WHERE (( `score` > '5' AND `age` > '10' ) OR ( `score` > '15' AND `age` > '20' ))";
         $this->assertEquals($expected, ORM::get_last_query());
     }
-    
+
     public function testWhereAnyIsNULLs() {
         ORM::for_table('widget')->where_any_is(array(
             array('name' => 'Joe', 'age' => NULL),
