@@ -4,7 +4,7 @@ use Granada\ORM;
 
 class QueryBuilderMssqlTest extends PHPUnit_Framework_TestCase {
 
-    public function setUp() {
+    public function setUp(): void {
         // Enable logging
         ORM::configure('logging', true);
 
@@ -13,7 +13,7 @@ class QueryBuilderMssqlTest extends PHPUnit_Framework_TestCase {
         ORM::set_db($db);
     }
 
-    public function tearDown() {
+    public function tearDown(): void {
         ORM::reset_config();
         ORM::reset_db();
     }

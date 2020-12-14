@@ -6,7 +6,7 @@ class MultipleConnectionsTest extends PHPUnit_Framework_TestCase {
 
     const ALTERNATE = 'alternate';
 
-    public function setUp() {
+    public function setUp(): void {
 
         // Set up the dummy database connection
         ORM::set_db(new MockPDO('sqlite::memory:'));
@@ -17,7 +17,7 @@ class MultipleConnectionsTest extends PHPUnit_Framework_TestCase {
         ORM::configure('logging', true, self::ALTERNATE);
     }
 
-    public function tearDown() {
+    public function tearDown(): void {
         ORM::configure('logging', false);
         ORM::configure('logging', false, self::ALTERNATE);
 

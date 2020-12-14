@@ -2078,6 +2078,11 @@ class ORM implements ArrayAccess {
     public function save($ignore = false) {
         $query = array();
 
+        // Fix if id field is blank but not null
+        if (!($this->id() && array_key_exists($this->_get_id_column_name(), $this->_dirty_fields))) {
+            unset($this->_dirty_fields[$this->_get_id_column_name()]);
+        }
+
         // remove any expression fields as they are already baked into the query
         $values = array_values(array_diff_key($this->_dirty_fields, $this->_expr_fields));
 

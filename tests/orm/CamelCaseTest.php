@@ -4,7 +4,7 @@ use Granada\ORM;
 
 class CamelCaseTest extends PHPUnit_Framework_TestCase {
 
-    public function setUp() {
+    public function setUp(): void {
         // Enable logging
         ORM::configure('logging', true);
 
@@ -13,7 +13,7 @@ class CamelCaseTest extends PHPUnit_Framework_TestCase {
         ORM::setDb($db);
     }
 
-    public function tearDown() {
+    public function tearDown(): void {
         ORM::resetConfig();
         ORM::resetDb();
     }

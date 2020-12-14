@@ -4,7 +4,7 @@ use Granada\Model;
 
 class ModelPrefixingTest extends PHPUnit_Framework_TestCase {
 
-    public function setUp() {
+    public function setUp(): void {
         // Set up the dummy database connection
         ORM::set_db(new MockPDO('sqlite::memory:'));
 
@@ -14,7 +14,7 @@ class ModelPrefixingTest extends PHPUnit_Framework_TestCase {
         Model::$auto_prefix_models = null;
     }
 
-    public function tearDown() {
+    public function tearDown(): void {
         ORM::configure('logging', false);
         ORM::set_db(null);
 
@@ -23,17 +23,16 @@ class ModelPrefixingTest extends PHPUnit_Framework_TestCase {
 
     public function testStaticPropertyExists() {
         $this->assertClassHasStaticAttribute('auto_prefix_models', 'Granada\Model');
-        $this->assertInternalType('null', Model::$auto_prefix_models);
+        $this->assertSame(null, Model::$auto_prefix_models);
     }
 
     public function testSettingAndUnsettingStaticPropertyValue() {
         $model_prefix = 'My_Model_Prefix_';
-        $this->assertInternalType('null', Model::$auto_prefix_models);
+        $this->assertSame(null, Model::$auto_prefix_models);
         Model::$auto_prefix_models = $model_prefix;
-        $this->assertInternalType('string', Model::$auto_prefix_models);
-        $this->assertEquals($model_prefix, Model::$auto_prefix_models);
+        $this->assertSame($model_prefix, Model::$auto_prefix_models);
         Model::$auto_prefix_models = null;
-        $this->assertInternalType('null', Model::$auto_prefix_models);
+        $this->assertSame(null, Model::$auto_prefix_models);
     }
 
     public function testNoPrefixOnAutoTableName() {
