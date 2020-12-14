@@ -14,8 +14,10 @@ use Granada\Model;
  */
 class GranadaNewTest extends PHPUnit_Framework_TestCase {
 
-    public function setUp(): void {
-
+    /**
+     * @before
+     */
+    protected function beforeTest() {
         // The tests for eager loading requires a real database.
         // Set up SQLite in memory
         ORM::set_db(new PDO('sqlite::memory:'));
@@ -27,7 +29,10 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         ORM::configure('logging', true);
     }
 
-    public function tearDown(): void {
+    /**
+     * @after
+     */
+    protected function afterTest() {
         ORM::configure('logging', false);
         ORM::set_db(null);
     }
@@ -455,9 +460,6 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($car->name, 'Car1');
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testnonExistentFilter(){
         try {
             $car = Car::test('Car1')->find_one();

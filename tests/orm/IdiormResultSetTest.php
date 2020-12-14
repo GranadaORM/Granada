@@ -5,7 +5,10 @@ use Granada\ResultSet;
 
 class ResultSetTest extends PHPUnit_Framework_TestCase {
 
-    public function setUp(): void {
+    /**
+     * @before
+     */
+    protected function beforeTest() {
         // Enable logging
         ORM::configure('logging', true);
 
@@ -14,7 +17,10 @@ class ResultSetTest extends PHPUnit_Framework_TestCase {
         ORM::set_db($db);
     }
 
-    public function tearDown(): void {
+    /**
+     * @after
+     */
+    protected function afterTest() {
         ORM::reset_config();
         ORM::reset_db();
     }
