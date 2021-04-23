@@ -91,4 +91,14 @@ class ORMTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue(is_a($statement, 'MockPDOStatement'));
     }
 
+    public function testSaveInsideLoop() {
+        $cars = ORM::for_table('car')->find_many();
+        foreach ($cars as $car) {
+            $car->name = 'ABC';
+            $car->save();
+            $expected = "UPDATE `car` SET `name` = 'ABC' WHERE `id` = '" . $car->id . "'";
+            $this->assertEquals($expected, ORM::get_last_query());
+        }
+    }
+
 }
