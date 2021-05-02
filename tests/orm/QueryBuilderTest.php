@@ -266,6 +266,30 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testWhereLtOrNull() {
+        ORM::for_table('widget')->where_lt_or_null('age', '20')->find_many();
+        $expected = "SELECT * FROM `widget` WHERE ( `age` < '20' OR `age` IS NULL )";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testWhereLteOrNull() {
+        ORM::for_table('widget')->where_lte_or_null('age', '20')->find_many();
+        $expected = "SELECT * FROM `widget` WHERE ( `age` <= '20' OR `age` IS NULL )";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testWhereGtOrNull() {
+        ORM::for_table('widget')->where_gt_or_null('age', '20')->find_many();
+        $expected = "SELECT * FROM `widget` WHERE ( `age` > '20' OR `age` IS NULL )";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testWhereGteOrNull() {
+        ORM::for_table('widget')->where_gte_or_null('age', '20')->find_many();
+        $expected = "SELECT * FROM `widget` WHERE ( `age` >= '20' OR `age` IS NULL )";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
     public function testWhereAnyIsSingleCol() {
         ORM::for_table('widget')->where_any_is(array(
             array('name' => 'Joe'),
