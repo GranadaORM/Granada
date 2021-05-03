@@ -322,6 +322,24 @@ class Wrapper extends ORM {
             array_unshift($parameters, $this);
             return call_user_func_array(array($this->_class_name,'filter_'.$method), $parameters);
         } else if (substr($method, 0, 6) == 'where_') {
+            $end12 = substr($method, -12);
+            if ($end12 == '_lte_or_null') {
+                $varname = substr($method, 6, -12);
+                return $this->where_lte_or_null($varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
+            }
+            if ($end12 == '_gte_or_null') {
+                $varname = substr($method, 6, -12);
+                return $this->where_gte_or_null($varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
+            }
+            $end11 = substr($method, -11);
+            if ($end11 == '_lt_or_null') {
+                $varname = substr($method, 6, -11);
+                return $this->where_lt_or_null($varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
+            }
+            if ($end11 == '_gt_or_null') {
+                $varname = substr($method, 6, -11);
+                return $this->where_gt_or_null($varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
+            }
             $end10 = substr($method, -10);
             if ($end10 == '_not_equal') {
                 $varname = substr($method, 6, -10);

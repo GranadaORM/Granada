@@ -469,6 +469,26 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         }
     }
 
+    public function testVarnameLtOrNULL() {
+        Part::where_name_lt_or_null(5)->find_many();
+        $this->assertSame("SELECT * FROM `part` WHERE ( `name` < '5' OR `name` IS NULL )", ORM::get_last_query());
+    }
+
+    public function testVarnameLteOrNULL() {
+        Part::where_name_lte_or_null(5)->find_many();
+        $this->assertSame("SELECT * FROM `part` WHERE ( `name` <= '5' OR `name` IS NULL )", ORM::get_last_query());
+    }
+
+    public function testVarnameGtOrNULL() {
+        Part::where_name_gt_or_null(5)->find_many();
+        $this->assertSame("SELECT * FROM `part` WHERE ( `name` > '5' OR `name` IS NULL )", ORM::get_last_query());
+    }
+
+    public function testVarnameGteOrNULL() {
+        Part::where_name_gte_or_null(5)->find_many();
+        $this->assertSame("SELECT * FROM `part` WHERE ( `name` >= '5' OR `name` IS NULL )", ORM::get_last_query());
+    }
+
     public function testInsert(){
         Car::insert(array(
             array(

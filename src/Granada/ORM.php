@@ -1367,6 +1367,42 @@ class ORM implements ArrayAccess {
     }
 
     /**
+     * Add a WHERE ... < OR NULL clause to your query
+     * @param string $column_name
+     * @param integer $value
+     */
+    public function where_lt_or_null($column_name, $value) {
+        return $this->where_raw('( ' . $this->_quote_identifier($column_name) . ' < ? OR ' . $this->_quote_identifier($column_name) . ' IS NULL )', $value);
+    }
+
+    /**
+     * Add a WHERE ... < OR NULL clause to your query
+     * @param string $column_name
+     * @param integer $value
+     */
+    public function where_lte_or_null($column_name, $value) {
+        return $this->where_raw('( ' . $this->_quote_identifier($column_name) . ' <= ? OR ' . $this->_quote_identifier($column_name) . ' IS NULL )', $value);
+    }
+
+    /**
+     * Add a WHERE ... < OR NULL clause to your query
+     * @param string $column_name
+     * @param integer $value
+     */
+    public function where_gt_or_null($column_name, $value) {
+        return $this->where_raw('( ' . $this->_quote_identifier($column_name) . ' > ? OR ' . $this->_quote_identifier($column_name) . ' IS NULL )', $value);
+    }
+
+    /**
+     * Add a WHERE ... < OR NULL clause to your query
+     * @param string $column_name
+     * @param integer $value
+     */
+    public function where_gte_or_null($column_name, $value) {
+        return $this->where_raw('( ' . $this->_quote_identifier($column_name) . ' >= ? OR ' . $this->_quote_identifier($column_name) . ' IS NULL )', $value);
+    }
+
+    /**
      * Add a WHERE ... IN clause to your query
      */
     public function where_in($column_name, $values) {
