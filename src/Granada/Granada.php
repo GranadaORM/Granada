@@ -517,10 +517,19 @@ use ArrayAccess;
 
         /**
          * Check whether the given field has changed since the object was created or saved
+         * @param string $property
          * @return bool
          */
         public function is_dirty($property) {
             return $this->orm->is_dirty($property);
+        }
+
+        /**
+         * Check whether the any fields have changed since the object was created or saved
+         * @return bool
+         */
+        public function is_any_dirty() {
+            return $this->orm->is_any_dirty();
         }
 
         /**

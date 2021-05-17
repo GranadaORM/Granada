@@ -2053,7 +2053,9 @@ class ORM implements ArrayAccess {
                 $this->_clean_data[$field] = $this->_data[$field];
             }
             $this->_data[$field] = $value;
-            $this->_dirty_fields[$field] = $value;
+            if ($this->is_new() || $expr || $this->clean_value($field) != $value) {
+                $this->_dirty_fields[$field] = $value;
+            }
             if (false === $expr and isset($this->_expr_fields[$field])) {
                 unset($this->_expr_fields[$field]);
             } else if (true === $expr) {
@@ -2067,9 +2069,19 @@ class ORM implements ArrayAccess {
      * Check whether the given field has been changed since this
      * object was saved.
      * @param string $key
+     * @return bool
      */
     public function is_dirty($key) {
         return isset($this->_dirty_fields[$key]);
+    }
+
+    /**
+     * Check whether the any field has been changed since this
+     * object was saved.
+     * @return bool
+     */
+    public function is_any_dirty() {
+        return count($this->_dirty_fields) > 0;
     }
 
     /**
