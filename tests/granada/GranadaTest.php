@@ -84,10 +84,28 @@ class GranadaTest extends PHPUnit_Framework_TestCase {
 
     public function testUpdateData() {
         $widget = Model::factory('Simple')->find_one(1);
+        $widget->name = "Bob";
+        $widget->age = 12;
+        $widget->save();
+        $expected = "UPDATE `simple` SET `name` = 'Bob', `age` = '12' WHERE `id` = '1'";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testUpdateDataOnlyAge() {
+        $widget = Model::factory('Simple')->find_one(1);
+        $widget->name = "Fred"; // Was Fred before
+        $widget->age = 12;
+        $widget->save();
+        $expected = "UPDATE `simple` SET `age` = '12' WHERE `id` = '1'";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testUpdateDataNoChange() {
+        $widget = Model::factory('Simple')->find_one(1);
         $widget->name = "Fred";
         $widget->age = 10;
         $widget->save();
-        $expected = "UPDATE `simple` SET `name` = 'Fred', `age` = '10' WHERE `id` = '1'";
+        $expected = "SELECT * FROM `simple` WHERE `id` = '1' LIMIT 1"; // Nothing changed, do not update database
         $this->assertEquals($expected, ORM::get_last_query());
     }
 

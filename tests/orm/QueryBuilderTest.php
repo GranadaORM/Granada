@@ -729,49 +729,67 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testUpdateSameData() {
+        $widget = ORM::for_table('widget')->find_one(1);
+        $widget->name = "Fred"; // Does not change so does not write in the database
+        $widget->age = 12;
+        $widget->save();
+        $expected = "UPDATE `widget` SET `age` = '12' WHERE `id` = '1'";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testUpdateNoUpdates() {
+        $widget = ORM::for_table('widget')->find_one(1);
+        $widget->name = "Fred"; // Does not change so does not write to database
+        $widget->age = 10; // Does not change so does not write to database
+        $widget->save();
+        $expected = "SELECT * FROM `widget` WHERE `id` = '1' LIMIT 1"; // No update command sent, we only see the select above
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
     public function testUpdateData() {
         $widget = ORM::for_table('widget')->find_one(1);
-        $widget->name = "Fred";
-        $widget->age = 10;
+        $widget->name = "Bob";
+        $widget->age = 11;
         $widget->save();
-        $expected = "UPDATE `widget` SET `name` = 'Fred', `age` = '10' WHERE `id` = '1'";
+        $expected = "UPDATE `widget` SET `name` = 'Bob', `age` = '11' WHERE `id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testUpdateDataContainingAnExpression() {
         $widget = ORM::for_table('widget')->find_one(1);
-        $widget->name = "Fred";
-        $widget->age = 10;
+        $widget->name = "Bob";
+        $widget->age = 12;
         $widget->set_expr('added', 'NOW()');
         $widget->save();
-        $expected = "UPDATE `widget` SET `name` = 'Fred', `age` = '10', `added` = NOW() WHERE `id` = '1'";
+        $expected = "UPDATE `widget` SET `name` = 'Bob', `age` = '12', `added` = NOW() WHERE `id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testUpdateMultipleFields() {
         $widget = ORM::for_table('widget')->find_one(1);
-        $widget->set(array("name" => "Fred", "age" => 10));
+        $widget->set(array("name" => "Bob", "age" => 12));
         $widget->save();
-        $expected = "UPDATE `widget` SET `name` = 'Fred', `age` = '10' WHERE `id` = '1'";
+        $expected = "UPDATE `widget` SET `name` = 'Bob', `age` = '12' WHERE `id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testUpdateMultipleFieldsContainingAnExpression() {
         $widget = ORM::for_table('widget')->find_one(1);
-        $widget->set(array("name" => "Fred", "age" => 10));
+        $widget->set(array("name" => "Bob", "age" => 12));
         $widget->set_expr(array("added" => "NOW()", "lat_long" => "GeomFromText('POINT(1.2347 2.3436)')"));
         $widget->save();
-        $expected = "UPDATE `widget` SET `name` = 'Fred', `age` = '10', `added` = NOW(), `lat_long` = GeomFromText('POINT(1.2347 2.3436)') WHERE `id` = '1'";
+        $expected = "UPDATE `widget` SET `name` = 'Bob', `age` = '12', `added` = NOW(), `lat_long` = GeomFromText('POINT(1.2347 2.3436)') WHERE `id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testUpdateMultipleFieldsContainingAnExpressionAndOverridePreviouslySetExpression() {
         $widget = ORM::for_table('widget')->find_one(1);
-        $widget->set(array("name" => "Fred", "age" => 10));
+        $widget->set(array("name" => "Bob", "age" => 12));
         $widget->set_expr(array("added" => "NOW()", "lat_long" => "GeomFromText('POINT(1.2347 2.3436)')"));
         $widget->lat_long = 'unknown';
         $widget->save();
-        $expected = "UPDATE `widget` SET `name` = 'Fred', `age` = '10', `added` = NOW(), `lat_long` = 'unknown' WHERE `id` = '1'";
+        $expected = "UPDATE `widget` SET `name` = 'Bob', `age` = '12', `added` = NOW(), `lat_long` = 'unknown' WHERE `id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -842,14 +860,6 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
     public function testIssue57LogQueryRaisesWarningWhenQuestionMarkSupplied() {
         ORM::for_table('widget')->where_raw('comments LIKE "has been released?%"')->find_many();
         $expected = 'SELECT * FROM `widget` WHERE comments LIKE "has been released?%"';
-        $this->assertEquals($expected, ORM::get_last_query());
-    }
-
-    public function testIssue74EscapingQuoteMarksIn_quote_identifier_part() {
-        $widget = ORM::for_table('widget')->find_one(1);
-        $widget->set('ad`ded', '2013-01-04');
-        $widget->save();
-        $expected = "UPDATE `widget` SET `ad``ded` = '2013-01-04' WHERE `id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 

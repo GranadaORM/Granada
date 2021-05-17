@@ -569,10 +569,12 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         $car = Model::factory('Car')->find_one(1);
 
         $this->assertSame(false, $car->is_dirty('name'));
+        $this->assertSame(false, $car->is_any_dirty());
         $this->assertEquals(1, $car->manufactor_id);
 
         $car->manufactor_id = 2;
         $this->assertSame(true, $car->is_dirty('manufactor_id'));
+        $this->assertSame(true, $car->is_any_dirty());
         $this->assertEquals(2, $car->manufactor_id);
     }
 
