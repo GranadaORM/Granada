@@ -793,6 +793,15 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testUpdateFieldThereAndBack() {
+        $widget = ORM::for_table('widget')->find_one(1);
+        $widget->set(array("name" => "Bob", "age" => 12));
+        $widget->name = 'Fred';
+        $widget->save();
+        $expected = "UPDATE `widget` SET `name` = 'Fred', `age` = '12' WHERE `id` = '1'";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
     public function testDeleteData() {
         $widget = ORM::for_table('widget')->find_one(1);
         $widget->delete();
