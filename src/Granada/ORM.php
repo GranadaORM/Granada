@@ -2052,8 +2052,9 @@ class ORM implements ArrayAccess {
                 // Save the data the first time only
                 $this->_clean_data[$field] = $this->_data[$field];
             }
+            $oldval = array_key_exists($field, $this->_data) ? $this->_data[$field] : null;
             $this->_data[$field] = $value;
-            if ($this->is_new() || $expr || $this->clean_value($field) != $value) {
+            if ($this->is_new() || $expr || $oldval != $value) {
                 $this->_dirty_fields[$field] = $value;
             }
             if (false === $expr and isset($this->_expr_fields[$field])) {
