@@ -59,6 +59,30 @@ class ORMTest extends PHPUnit_Framework_TestCase {
 
     }
 
+    public function testIsDirtySimilarValue() {
+        $model = ORM::for_table('test')->create();
+        $model->test = 0;
+        $this->assertTrue($model->is_dirty('test'));
+        $model->save();
+        $this->assertFalse($model->is_dirty('test'));
+        $model->test = 0;
+        $this->assertFalse($model->is_dirty('test'));
+
+        $model->test = '';
+        $this->assertTrue($model->is_dirty('test'));
+        $model->save();
+        $this->assertFalse($model->is_dirty('test'));
+        $model->test = '';
+        $this->assertFalse($model->is_dirty('test'));
+
+        $model->test = null;
+        $this->assertTrue($model->is_dirty('test'));
+        $model->save();
+        $this->assertFalse($model->is_dirty('test'));
+        $model->test = null;
+        $this->assertFalse($model->is_dirty('test'));
+    }
+
     public function testArrayAccess() {
         $value = 'test';
         $model = ORM::for_table('test')->create();
