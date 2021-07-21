@@ -2054,7 +2054,7 @@ class ORM implements ArrayAccess {
             }
             $oldval = array_key_exists($field, $this->_data) ? $this->_data[$field] : null;
             $this->_data[$field] = $value;
-            if ($this->is_new() || $expr || $oldval !== $value) {
+            if ($this->is_new() || $expr || $oldval != $value) {
                 $this->_dirty_fields[$field] = $value;
             }
             if (false === $expr and isset($this->_expr_fields[$field])) {
