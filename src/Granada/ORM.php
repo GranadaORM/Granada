@@ -2054,7 +2054,13 @@ class ORM implements ArrayAccess {
             }
             $oldval = array_key_exists($field, $this->_data) ? $this->_data[$field] : null;
             $this->_data[$field] = $value;
-            if ($this->is_new() || $expr || $oldval != $value) {
+            $set_as_dirty = $this->is_new() || $expr;
+            if (is_float($value)) {
+                $set_as_dirty = abs($oldval - $value) > 0.00000000000001;
+            } else if ($oldval != $value) {
+                $set_as_dirty = true;
+            }
+            if ($set_as_dirty) {
                 $this->_dirty_fields[$field] = $value;
             }
             if (false === $expr and isset($this->_expr_fields[$field])) {

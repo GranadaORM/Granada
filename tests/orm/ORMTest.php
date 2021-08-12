@@ -59,6 +59,17 @@ class ORMTest extends PHPUnit_Framework_TestCase {
 
     }
 
+    public function testIsDirtySimilarFloats() {
+        $model = ORM::for_table('test')->create();
+        $model->test = 5.2;
+        $this->assertTrue($model->is_dirty('test'));
+        $model->save();
+        $this->assertFalse($model->is_dirty('test'));
+        $model->test = 5.2 + 0.00000000000001;
+        $this->assertFalse($model->is_dirty('test'));
+        $model->save();
+    }
+
     public function testIsDirtySetNull() {
         $model = ORM::for_table('test')->create();
         $model->test = 5;
