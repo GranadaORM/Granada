@@ -264,6 +264,11 @@ Similarly for having:
 		->find_one();
         // SELECT * FROM `user` GROUP BY `name` HAVING `name` = 'Joe' LIMIT 1
 
+## Get raw SELECT query
+
+Sometimes you may want to build a raw SELECT query for use, e.g. to send to a reporting module that directly connects to the database.
+Instead of calling `find_many()` call `get_select_query()` and it will give you the raw SELECT ready to send to the database server.
+
 # Default filtering
 
 In some cases a default filter is very useful.

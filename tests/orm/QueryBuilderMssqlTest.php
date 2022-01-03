@@ -33,6 +33,7 @@ class QueryBuilderMssqlTest extends PHPUnit_Framework_TestCase {
     public function testLimit() {
         ORM::for_table('widget')->limit(5)->find_many();
         $expected = 'SELECT TOP 5 * FROM "widget"';
+        $this->assertSame($expected, ORM::for_table('widget')->limit(5)->get_select_query());
         $this->assertEquals($expected, ORM::get_last_query());
     }
 

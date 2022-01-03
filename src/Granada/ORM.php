@@ -661,6 +661,16 @@ class ORM implements ArrayAccess {
     }
 
     /**
+     * Instead of running the query, get the query that would be run for a find_many() call
+     * @param string $connection_name
+     * @return string
+     */
+    public function get_select_query($connection_name = self::DEFAULT_CONNECTION) {
+        $this->_log_query($this->_build_select(), $this->_values, $connection_name);
+        return $this->get_last_query();
+    }
+
+    /**
      * Tell the ORM that you are expecting multiple results
      * from your query, and execute it. Will return an array
      * of instances of the ORM class, or an empty array if
