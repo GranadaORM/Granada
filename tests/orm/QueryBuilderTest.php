@@ -879,4 +879,30 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
         $expected = "UPDATE `widget` SET `added` = NOW() WHERE `id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
+
+    public function testGetSelectQuery() {
+        $this->assertSame("SELECT * FROM `widget`", ORM::for_table('widget')->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE `name` != 'Fred'", ORM::for_table('widget')->where_not_equal('name', 'Fred')->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE `name` IN ('Fred', 'Joe')", ORM::for_table('widget')->where_in('name', array('Fred', 'Joe'))->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE 0", ORM::for_table('widget')->where_in('name', array())->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE `name` NOT IN ('Fred', 'Joe')", ORM::for_table('widget')->where_not_in('name', array('Fred', 'Joe'))->get_select_query());
+        $this->assertSame("SELECT * FROM `widget`", ORM::for_table('widget')->where_not_in('name', array())->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE ( `age` < '20' OR `age` IS NULL )", ORM::for_table('widget')->where_lt_or_null('age', '20')->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE ( `age` <= '20' OR `age` IS NULL )", ORM::for_table('widget')->where_lte_or_null('age', '20')->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE ( `age` > '20' OR `age` IS NULL )", ORM::for_table('widget')->where_gt_or_null('age', '20')->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE ( `age` >= '20' OR `age` IS NULL )", ORM::for_table('widget')->where_gte_or_null('age', '20')->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE (( `name` = 'Joe' ) OR ( `name` = 'Fred' ))", ORM::for_table('widget')->where_any_is(array(
+            array('name' => 'Joe'),
+            array('name' => 'Fred')))->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE (( `name` = 'Joe' AND `age` = '10' ) OR ( `name` = 'Fred' AND `age` = '20' ))", ORM::for_table('widget')->where_any_is(array(
+            array('name' => 'Joe', 'age' => 10),
+            array('name' => 'Fred', 'age' => 20)))->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE (( `name` = 'Joe' ) OR ( `name` = 'Fred' AND `age` = '20' ))", ORM::for_table('widget')->where_any_is(array(
+            array('name' => 'Joe'),
+            array('name' => 'Fred', 'age' => 20)))->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE (( `name` = 'Joe' AND `age` > '10' ) OR ( `name` = 'Fred' AND `age` > '20' ))", ORM::for_table('widget')->where_any_is(array(
+            array('name' => 'Joe', 'age' => 10),
+            array('name' => 'Fred', 'age' => 20)), array('age' => '>'))->get_select_query());
+        $this->assertSame('SELECT * FROM `widget` WHERE username LIKE "ben%"', ORM::for_table('widget')->where_raw('username LIKE "ben%"')->get_select_query());
+    }
 }
