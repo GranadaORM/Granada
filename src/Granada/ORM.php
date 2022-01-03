@@ -666,7 +666,13 @@ class ORM implements ArrayAccess {
      * @return string
      */
     public function get_select_query($connection_name = self::DEFAULT_CONNECTION) {
+        // Ensure logging works
+        $before_log = self::$_config[$connection_name]['logging'];
+        self::$_config[$connection_name]['logging'] = true;
+
         $this->_log_query($this->_build_select(), $this->_values, $connection_name);
+
+        self::$_config[$connection_name]['logging'] = $before_log;
         return $this->get_last_query();
     }
 
