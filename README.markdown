@@ -2,7 +2,7 @@ Granada
 =====
 
 [![Latest Stable Version](https://poser.pugx.org/granadaorm/granada/v/stable.png)](https://packagist.org/packages/granadaorm/granada)
-[![Build Status](https://travis-ci.com/GranadaORM/Granada.svg?branch=master)](https://travis-ci.org/GranadaORM/Granada)
+![Build Status](https://github.com/GranadaORM/Granada/actions/workflows/ci.yml/badge.svg)
 
 Granada is a easy to use Active Record implementation, and ORM based on Idiorm/Paris.
 
@@ -202,10 +202,10 @@ ModelName::aname($argument1, $argument2)->....
 ---
 ### Overload GET and MISSING property
 
- 
+
 ```php
     // In the Model
-    
+
     // Work on defined
     protected function get_path($value)
     {
@@ -220,7 +220,7 @@ ModelName::aname($argument1, $argument2)->....
     ...
 
     // outside of the model
-    echo $content_instance->path; // returns the lowercase path value of $content_instance 
+    echo $content_instance->path; // returns the lowercase path value of $content_instance
     echo $content_instance->testing; // returns 'whatever' since we defined a missing_{attribute_name}
 ```
 
