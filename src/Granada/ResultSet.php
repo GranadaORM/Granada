@@ -170,6 +170,7 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * @param int|string|null $offset
      * @param mixed $value
      */
+    #[\ReturnTypeWillChange]
     public function offsetSet($offset, $value) {
         if (is_null($offset))
         {
