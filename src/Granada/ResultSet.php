@@ -122,6 +122,7 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * Get the number of records in the result set
      * @return int
      */
+    #[\ReturnTypeWillChange]
     public function count() {
         return count($this->_results);
     }
@@ -131,6 +132,7 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * over the result set.
      * @return \ArrayIterator
      */
+    #[\ReturnTypeWillChange]
     public function getIterator() {
         // Set first/last flags
         $count = count($this->_results);
@@ -148,6 +150,7 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * @param int|string $offset
      * @return bool
      */
+    #[\ReturnTypeWillChange]
     public function offsetExists($offset) {
         return isset($this->_results[$offset]);
     }
@@ -157,6 +160,7 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * @param int|string $offset
      * @return mixed
      */
+    #[\ReturnTypeWillChange]
     public function offsetGet($offset) {
         return $this->_results[$offset];
     }
@@ -181,6 +185,7 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * ArrayAccess
      * @param int|string $offset
      */
+    #[\ReturnTypeWillChange]
     public function offsetUnset($offset) {
         unset($this->_results[$offset]);
     }
