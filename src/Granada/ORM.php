@@ -2311,15 +2311,17 @@ class ORM implements ArrayAccess {
     // --------------------- //
     // ---  ArrayAccess  --- //
     // --------------------- //
-
+    #[\ReturnTypeWillChange]
     public function offsetExists($key) {
         return isset($this->_data[$key]);
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetGet($key) {
         return $this->get($key);
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetSet($key, $value) {
         if(is_null($key)) {
             throw new \InvalidArgumentException('You must specify a key/array index.');
@@ -2327,6 +2329,7 @@ class ORM implements ArrayAccess {
         $this->set($key, $value);
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetUnset($key) {
         unset($this->_data[$key]);
         unset($this->_dirty_fields[$key]);
