@@ -485,6 +485,7 @@ use ArrayAccess;
          * @param int|string $offset
          * @return bool
          */
+        #[\ReturnTypeWillChange]
         public function offsetExists($offset) {
             return $this->__isset($offset);
         }
@@ -494,6 +495,7 @@ use ArrayAccess;
          * @param int|string $offset
          * @return mixed
          */
+        #[\ReturnTypeWillChange]
         public function offsetGet($offset) {
              return $this->__get($offset);
         }
@@ -503,6 +505,7 @@ use ArrayAccess;
          * @param int|string $offset
          * @param mixed $value
          */
+        #[\ReturnTypeWillChange]
         public function offsetSet($offset, $value) {
             return $this->__set($offset, $value);
         }
@@ -511,6 +514,7 @@ use ArrayAccess;
          * ArrayAccess
          * @param int|string $offset
          */
+        #[\ReturnTypeWillChange]
         public function offsetUnset($offset) {
             $this->orm->offsetUnset($offset);
         }
