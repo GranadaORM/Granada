@@ -2335,19 +2335,22 @@ class ORM implements ArrayAccess {
     // --------------------- //
     // --- MAGIC METHODS --- //
     // --------------------- //
+    #[\ReturnTypeWillChange]
     public function __get($key) {
         return $this->offsetGet($key);
     }
 
+    #[\ReturnTypeWillChange]
     public function __set($key, $value) {
         $this->offsetSet($key, $value);
     }
 
+    #[\ReturnTypeWillChange]
     public function __unset($key) {
         $this->offsetUnset($key);
     }
 
-
+    #[\ReturnTypeWillChange]
     public function __isset($key) {
         return $this->offsetExists($key);
     }
