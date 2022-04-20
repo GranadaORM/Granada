@@ -463,8 +463,11 @@ class ORM implements ArrayAccess {
         }
 
         if (count($parameters) > 0) {
-            // Escape the parameters
-            $parameters = array_map(array(self::$_db[$connection_name], 'quote'), $parameters);
+            // Escape the parameters it not null
+            foreach ($parameters as $key => $parameter)
+            {
+                $parameters[$key] = ($parameter === null) ? 'NULL' : self::$_db[$connection_name]->quote($parameter);
+            }
 
             // Avoid %format collision for vsprintf
             $query = str_replace("%", "%%", $query);
