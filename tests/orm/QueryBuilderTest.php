@@ -729,6 +729,15 @@ class QueryBuilderTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testInsertDataWithNull() {
+        $widget = ORM::for_table('widget')->create();
+        $widget->name = "Fred";
+        $widget->age = null;
+        $widget->save();
+        $expected = "INSERT INTO `widget` (`name`, `age`) VALUES ('Fred', NULL)";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
     public function testUpdateSameData() {
         $widget = ORM::for_table('widget')->find_one(1);
         $widget->name = "Fred"; // Does not change so does not write in the database
