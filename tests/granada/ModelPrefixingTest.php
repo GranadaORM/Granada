@@ -28,7 +28,7 @@ class ModelPrefixingTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testStaticPropertyExists() {
-        $this->assertClassHasStaticAttribute('auto_prefix_models', 'Granada\Model');
+        $this->assertTrue(property_exists(\Granada\Model::class, 'auto_prefix_models'));
         $this->assertSame(null, Model::$auto_prefix_models);
     }
 
