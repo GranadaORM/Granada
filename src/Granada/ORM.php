@@ -643,7 +643,7 @@ class ORM implements ArrayAccess {
         $rows = $this->limit(1)->_run();
 
         if (empty($rows)) {
-            return false;
+            return null;
         }
 
         return $this->_create_instance_from_row($rows[0]);
