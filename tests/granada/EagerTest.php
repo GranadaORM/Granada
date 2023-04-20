@@ -45,7 +45,7 @@ class EagerTest extends PHPUnit_Framework_TestCase {
 
         $expectedSql   = array();
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
 
         $fullQueryLog = ORM::get_query_log();
 
@@ -62,7 +62,7 @@ class EagerTest extends PHPUnit_Framework_TestCase {
         $expectedSql = array();
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT * FROM `owner` WHERE `id` IN ('1')";
-        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
 
         $fullQueryLog = ORM::get_query_log();
 
@@ -134,7 +134,7 @@ class EagerTest extends PHPUnit_Framework_TestCase {
         $expectedSql = array();
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0'";
         $expectedSql[] = "SELECT * FROM `owner` WHERE `id` IN ('1', '2', '3', '4')";
-        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `id` IN ('1', '2')";
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1', '2')";
 
         $fullQueryLog = ORM::get_query_log();
 
@@ -251,7 +251,7 @@ class EagerTest extends PHPUnit_Framework_TestCase {
         $expectedSql    = array();
         $expectedSql[]  = "SELECT * FROM `owner` WHERE `id` = '1' LIMIT 1";
         $expectedSql[]  = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1')";
-        $expectedSql[]  = "SELECT * FROM `manufactor` WHERE `id` IN ('1')";
+        $expectedSql[]  = "SELECT * FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
 
         $this->assertEquals($expectedSql, $actualSql);
     }
@@ -272,5 +272,25 @@ class EagerTest extends PHPUnit_Framework_TestCase {
     public function testLazyLoading() {
         $owner = Model::factory('Owner')->find_one(1);
         $this->assertEquals($owner->car->manufactor_id, 1);
+    }
+
+    public function testLazyMissingManufacturerNull() {
+        $man1 = Manufactor::find_one(1);
+        $man1->enabled = false;
+        $man1->save();
+
+        $car1 = Car::find_one(1);
+
+        $this->assertNull($car1->manufactor);
+    }
+
+    public function testEagerMissingManufacturerNull() {
+        $man1 = Manufactor::find_one(1);
+        $man1->enabled = false;
+        $man1->save();
+
+        $car1 = Car::with('manufactor')->find_one(1);
+
+        $this->assertNull($car1->manufactor);
     }
 }

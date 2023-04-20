@@ -70,8 +70,8 @@ class Wrapper extends ORM {
      * it with the supplied Idiorm instance.
      */
     protected function _create_model_instance($orm) {
-        if ($orm === false) {
-            return false;
+        if (is_null($orm)) {
+            return null;
         }
         $model = new $this->_class_name();
         $orm->resultSetClass = $model->get_resultSetClass();

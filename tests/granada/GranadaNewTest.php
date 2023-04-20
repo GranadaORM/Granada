@@ -601,4 +601,9 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($expected, $car->clean_values());
     }
 
+    public function testNotFound() {
+        $car = Model::factory('Car')->find_one(20);
+        $this->assertNull($car);
+    }
+
 }

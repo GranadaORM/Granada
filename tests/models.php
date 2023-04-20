@@ -28,7 +28,7 @@ class Part extends Model {
 
 class Car extends Model {
     public function manufactor() {
-        return $this->belongs_to('Manufactor');
+        return $this->belongs_to('Manufactor')->where('enabled', 1);
     }
 
     public function owner() {

@@ -1,5 +1,6 @@
 CREATE TABLE manufactor (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    enabled INTEGER,
     name TEXT
 );
 
@@ -33,8 +34,8 @@ CREATE TABLE car_part (
     FOREIGN KEY (part_id) REFERENCES part (id)
 );
 
-INSERT INTO manufactor(id,name) VALUES (1, 'Manufactor1');
-INSERT INTO manufactor(id,name) VALUES (2, 'Manufactor2');
+INSERT INTO manufactor(id,name,enabled) VALUES (1, 'Manufactor1', 1);
+INSERT INTO manufactor(id,name,enabled) VALUES (2, 'Manufactor2', 1);
 
 INSERT INTO owner(id,name) VALUES (1, 'Owner1');
 INSERT INTO owner(id,name) VALUES (2, 'Owner2');
