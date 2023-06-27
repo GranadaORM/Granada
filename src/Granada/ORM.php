@@ -664,6 +664,14 @@ class ORM implements ArrayAccess {
     }
 
     /**
+     * Perform a find_many then map the results through a function
+     * @param callable $func
+     */
+    public function find_map($func) {
+        return array_values(array_map($func, $this->find_many()->as_array()));
+    }
+
+    /**
      * Instead of running the query, get the query that would be run for a find_many() call
      * @param string $connection_name
      * @return string

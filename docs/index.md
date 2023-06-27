@@ -43,6 +43,20 @@ Get a number of records from the database, in an iterable list, by using the `fi
 		echo $item->name;
 	}
 
+## Loading multiple records, mapped to a structure
+
+Get a number of records from the database, in a custom mapped structure, by using the `find_map()` function.
+
+	<?php
+	$item = User::find_map(fn ($e) => (object)[
+		'id' => $e->id,
+		'name' => $e->first_name . ' ' . $e->last_name,
+		'isChild' => $e->age < 18,
+	]);
+	foreach ($items as $item) {
+		echo $item->isChild;
+	}
+
 ## Limiting results
 
 Specify the number of results you want to load using the `limit()` and `offset()` functions:

@@ -606,4 +606,34 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         $this->assertNull($car);
     }
 
+    public function testMapped() {
+        $cars = Model::factory('Car')->find_map(fn ($e) => [
+            'id' => $e->id,
+            'name' => $e->name . ' ' . $e->manufactor_id,
+        ]);
+        $expected = array(
+            array(
+                'id' => 1,
+                'name' => 'Car1 1',
+            ),
+            array(
+                'id' => 2,
+                'name' => 'Car2 1',
+            ),
+            array(
+                'id' => 3,
+                'name' => 'Car3 2',
+            ),
+            array(
+                'id' => 4,
+                'name' => 'Car4 2',
+            ),
+            array(
+                'id' => 6,
+                'name' => 'Car6 2',
+            ),
+        );
+        $this->assertEquals($expected, $cars);
+    }
+
 }
