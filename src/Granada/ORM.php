@@ -668,7 +668,7 @@ class ORM implements ArrayAccess {
      * @param callable $func
      */
     public function find_map($func) {
-        return array_values(array_map($func, $this->find_many()->as_array()));
+        return array_map($func, $this->find_many()->as_array());
     }
 
     /**

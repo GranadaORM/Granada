@@ -607,7 +607,7 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testMapped() {
-        $cars = Model::factory('Car')->find_map(function ($e) {
+        $cars = Model::factory('Car')->order_by_desc('id')->find_map(function ($e) {
             return [
                 'id' => $e->id,
                 'name' => $e->name . ' ' . $e->manufactor_id,
@@ -621,25 +621,25 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
          * ]);
          */
         $expected = array(
-            array(
-                'id' => 1,
-                'name' => 'Car1 1',
+            6 => array(
+                'id' => 6,
+                'name' => 'Car6 2',
             ),
-            array(
-                'id' => 2,
-                'name' => 'Car2 1',
-            ),
-            array(
-                'id' => 3,
-                'name' => 'Car3 2',
-            ),
-            array(
+            4 => array(
                 'id' => 4,
                 'name' => 'Car4 2',
             ),
-            array(
-                'id' => 6,
-                'name' => 'Car6 2',
+            3 => array(
+                'id' => 3,
+                'name' => 'Car3 2',
+            ),
+            2 => array(
+                'id' => 2,
+                'name' => 'Car2 1',
+            ),
+            1 => array(
+                'id' => 1,
+                'name' => 'Car1 1',
             ),
         );
         $this->assertEquals($expected, $cars);
