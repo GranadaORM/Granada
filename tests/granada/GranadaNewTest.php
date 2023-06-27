@@ -607,19 +607,19 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testMapped() {
-        if (version_compare(phpversion(), '7.4', '<')) {
-            $cars = Model::factory('Car')->find_map(function ($e) {
-                return [
-                    'id' => $e->id,
-                    'name' => $e->name . ' ' . $e->manufactor_id,
-                ];
-            });
-        } else {
-            $cars = Model::factory('Car')->find_map(fn ($e) => [
+        $cars = Model::factory('Car')->find_map(function ($e) {
+            return [
                 'id' => $e->id,
                 'name' => $e->name . ' ' . $e->manufactor_id,
-            ]);
-        }
+            ];
+        });
+        /**
+         * For PHP 7.4+ you can use shorthand functions
+         * $cars = Model::factory('Car')->find_map(fn ($e) => [
+         *   'id' => $e->id,
+         *   'name' => $e->name . ' ' . $e->manufactor_id,
+         * ]);
+         */
         $expected = array(
             array(
                 'id' => 1,
