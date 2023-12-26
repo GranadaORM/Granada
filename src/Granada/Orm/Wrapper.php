@@ -404,11 +404,10 @@ class Wrapper extends ORM {
             if (substr($method, -13) == '_natural_desc') {
                 $varname = substr($method, 9, -13);
                 return $this->order_by_expr($expression = 'LENGTH(`' . $varname . '`), `' . $varname . '` DESC');
-                return $this->order_by_expr($expression = 'LENGTH(`' . $varname . '`), `' . $varname . '`');
             }
             if (substr($method, -12) == '_natural_asc') {
                 $varname = substr($method, 9, -12);
-                return $this->order_by_expr($expression = 'LENGTH(`' . $varname . '`), `' . $varname . '`');
+                return $this->order_by_expr($expression = 'LENGTH(`' . $varname . '`), `' . $varname . '` ASC');
             }
             if (substr($method, -5) == '_desc') {
                 $varname = substr($method, 9, -5);
@@ -418,6 +417,8 @@ class Wrapper extends ORM {
                 $varname = substr($method, 9, -4);
                 return $this->order_by_asc($varname);
             }
+            $varname = substr($method, 9);
+            return $this->order_by_asc($varname);
         }
         else {
             $underscore_method = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $method));

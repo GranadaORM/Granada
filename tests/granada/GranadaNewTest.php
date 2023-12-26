@@ -469,6 +469,31 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         }
     }
 
+    public function testVarnameOrderBy() {
+        Part::order_by_name()->find_many();
+        $this->assertSame("SELECT * FROM `part` ORDER BY `name` ASC", ORM::get_last_query());
+    }
+
+    public function testVarnameOrderByAsc() {
+        Part::order_by_name_asc()->find_many();
+        $this->assertSame("SELECT * FROM `part` ORDER BY `name` ASC", ORM::get_last_query());
+    }
+
+    public function testVarnameOrderByDesc() {
+        Part::order_by_name_desc()->find_many();
+        $this->assertSame("SELECT * FROM `part` ORDER BY `name` DESC", ORM::get_last_query());
+    }
+
+    public function testVarnameOrderByNaturalAsc() {
+        Part::order_by_name_natural_asc()->find_many();
+        $this->assertSame("SELECT * FROM `part` ORDER BY LENGTH(`name`), `name` ASC", ORM::get_last_query());
+    }
+
+    public function testVarnameOrderByNaturalDesc() {
+        Part::order_by_name_natural_desc()->find_many();
+        $this->assertSame("SELECT * FROM `part` ORDER BY LENGTH(`name`), `name` DESC", ORM::get_last_query());
+    }
+
     public function testVarnameLtOrNULL() {
         Part::where_name_lt_or_null(5)->find_many();
         $this->assertSame("SELECT * FROM `part` WHERE ( `part`.`name` < '5' OR `part`.`name` IS NULL )", ORM::get_last_query());
