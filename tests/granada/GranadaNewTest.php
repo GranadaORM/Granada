@@ -514,6 +514,35 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         $this->assertSame("SELECT * FROM `part` WHERE ( `part`.`name` >= '5' OR `part`.`name` IS NULL )", ORM::get_last_query());
     }
 
+    public function testVarnameEqual() {
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE `part`.`name` = 'Part2'",
+            Part::where_name('Part2')->get_select_query()
+        );
+    }
+
+    public function testVarnameInBlank() {
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE 0",
+            Part::where_name_in([])->get_select_query()
+        );
+    }
+
+    public function testVarnameIn() {
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE `part`.`name` IN ('Part1', 'Part2')",
+            Part::where_name_in(['Part1', 'Part2'])->get_select_query()
+        );
+    }
+
+    public function testVarnameNotIn() {
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE `part`.`name` NOT IN ('Part1', 'Part2')",
+            Part::where_name_not_in(['Part1', 'Part2'])->get_select_query()
+        );
+    }
+
+
     public function testInsert(){
         Car::insert(array(
             array(

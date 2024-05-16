@@ -359,7 +359,7 @@ class Wrapper extends ORM {
             $end7 = substr($method, -7);
             if ($end7 == '_not_in') {
                 $varname = substr($method, 6, -7);
-                return $this->where_not_in($tablename . $varname);
+                return $this->where_not_in($tablename . $varname, $parameters[0]);
             }
             $end5 = substr($method, -5);
             if ($end5 == '_like') {
@@ -390,7 +390,7 @@ class Wrapper extends ORM {
             }
             if ($end3 == '_in') {
                 $varname = substr($method, 6, -3);
-                return $this->where_in($tablename . $varname);
+                return $this->where_in($tablename . $varname, $parameters[0]);
             }
             $varname = substr($method, 6);
             return $this->where_equal($tablename . $varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
