@@ -302,11 +302,12 @@ class Wrapper extends ORM {
     }
 
     public function adjustTimezoneForWhere($varname, $parameters) {
-        if (!is_a($parameters, '\Cake\Chronos\Chronos')) {
-            return $parameters;
-        }
         $classname = $this->_class_name;
-        return (new $classname)->adjustTimezoneForWhere($varname, $parameters);
+        if (method_exists($classname, 'adjustTimezoneForWhere')) {
+            return (new $classname)->adjustTimezoneForWhere($varname, $parameters);
+        }
+
+        return $parameters;
     }
 
     /**
@@ -358,7 +359,7 @@ class Wrapper extends ORM {
             $end7 = substr($method, -7);
             if ($end7 == '_not_in') {
                 $varname = substr($method, 6, -7);
-                return $this->where_not_in($tablename . $varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
+                return $this->where_not_in($tablename . $varname);
             }
             $end5 = substr($method, -5);
             if ($end5 == '_like') {
@@ -389,7 +390,7 @@ class Wrapper extends ORM {
             }
             if ($end3 == '_in') {
                 $varname = substr($method, 6, -3);
-                return $this->where_in($tablename . $varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
+                return $this->where_in($tablename . $varname);
             }
             $varname = substr($method, 6);
             return $this->where_equal($tablename . $varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
