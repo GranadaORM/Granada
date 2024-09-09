@@ -1,5 +1,5 @@
-<?php namespace Granada;
+<?php
 
-class Model extends Granada {
+namespace Granada;
 
-}
+class Model extends Granada {}

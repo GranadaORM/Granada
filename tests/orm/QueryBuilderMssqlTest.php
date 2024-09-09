@@ -2,12 +2,13 @@
 
 use Granada\ORM;
 
-class QueryBuilderMssqlTest extends PHPUnit_Framework_TestCase {
-
+class QueryBuilderMssqlTest extends \PHPUnit\Framework\TestCase
+{
     /**
      * @before
      */
-    protected function beforeTest() {
+    protected function beforeTest()
+    {
         // Enable logging
         ORM::configure('logging', true);
 
@@ -19,23 +20,24 @@ class QueryBuilderMssqlTest extends PHPUnit_Framework_TestCase {
     /**
      * @after
      */
-    protected function afterTest() {
+    protected function afterTest()
+    {
         ORM::reset_config();
         ORM::reset_db();
     }
 
-    public function testFindOne() {
+    public function testFindOne()
+    {
         ORM::for_table('widget')->find_one();
         $expected = 'SELECT TOP 1 * FROM "widget"';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
-    public function testLimit() {
+    public function testLimit()
+    {
         ORM::for_table('widget')->limit(5)->find_many();
         $expected = 'SELECT TOP 5 * FROM "widget"';
         $this->assertSame($expected, ORM::for_table('widget')->limit(5)->get_select_query());
         $this->assertEquals($expected, ORM::get_last_query());
     }
-
 }
-

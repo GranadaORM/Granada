@@ -1,0 +1,29 @@
+{
+  "files.trimTrailingWhitespace": true,
+  "intelephense.completion.insertUseDeclaration": false,
+  "intelephense.environment.shortOpenTag": false,
+  "intelephense.format.braces": "per",
+  "intelephense.phpdoc.useFullyQualifiedNames": true,
+  "php.suggest.basic": false,
+  "prettier.enable": false,
+  "files.exclude": {
+    "composer.lock": true,
+    ".phpunit.result.cache": true
+  },
+  "search.exclude": {},
+  "[php]": {
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4,
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": true,
+    "editor.defaultFormatter": "Jota0222.multi-formatter",
+    "multiFormatter.formatterList": [
+      "bmewburn.vscode-intelephense-client",
+      "junstyle.php-cs-fixer"
+    ]
+  },
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "never"
+  }
+}

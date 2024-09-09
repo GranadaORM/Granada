@@ -9,7 +9,7 @@ For starters we'll have some more complex examples here, and as features are add
 
 If you want to contribute to the documentation, please feel free to submit a pull request!
 
-# Querying
+## Querying
 
 Note: in the examples below, it shows the query as executed on the SQL database.
 Internally it does use placeholders so you only need to escape data if you are sending your data inline in a raw query.
@@ -18,242 +18,263 @@ Internally it does use placeholders so you only need to escape data if you are s
 
 To load a model by its primary key, use the `find_one()` function, specifying the primary key:
 
-	<?php
-	$item = User::find_one($id);
-	// SELECT * FROM user WHERE id=$id;
-	echo $item->name;
+```php
+$item = User::find_one($id);
+// SELECT * FROM user WHERE id=$id;
+echo $item->name;
+```
 
 ## Loading a single record
 
 To load a single record of a model, set the query parameters then use `find_one()` function to limit to one record:
 
-	<?php
-	$item = User::find_one();
-	// SELECT * FROM user LIMIT 1;
-	echo $item->name;
+```php
+$item = User::find_one();
+// SELECT * FROM user LIMIT 1;
+echo $item->name;
+```
 
 ## Loading multiple records
 
 Get a number of records from the database, in an iterable list, by using the `find_many()` function.
 
-	<?php
-	$items = User::find_many();
-	// SELECT * FROM user;
-	foreach ($items as $item) {
-		echo $item->name;
-	}
+```php
+$items = User::find_many();
+// SELECT * FROM user;
+foreach ($items as $item) {
+   echo $item->name;
+}
+```
 
 ## Loading multiple records, mapped to a structure
 
 Get a number of records from the database, in a custom mapped structure, by using the `find_map()` function.
 
-	<?php
-	$item = User::find_map(fn ($e) => (object)[
-		'id' => $e->id,
-		'name' => $e->first_name . ' ' . $e->last_name,
-		'isChild' => $e->age < 18,
-	]);
-	foreach ($items as $item) {
-		echo $item->isChild;
-	}
+```php
+$item = User::find_map(fn ($e) => (object)[
+    'id'      => $e->id,
+    'name'    => $e->first_name . ' ' . $e->last_name,
+    'isChild' => $e->age < 18,
+]);
+foreach ($items as $item) {
+    echo $item->isChild;
+}
+```
 
 ## Limiting results
 
 Specify the number of results you want to load using the `limit()` and `offset()` functions:
 
-	<?php
-	$items = User::offset(15)
-			->limit(5)
-			->find_many();
-	// SELECT * FROM user LIMIT 5 OFFSET 15;
+```php
+$items = User::offset(15)
+    ->limit(5)
+    ->find_many();
+// SELECT * FROM user LIMIT 5 OFFSET 15;
+```
 
-## Filtering results
+### Filtering results
 
 Add comparative filters to the query by using various functions.
 As you can see they are by default all reducing (uses AND).
 
-	<?php
-	$items = User::where('class', 'Test')
-			->where_gt('age', 5)
-			->where_lt('age', 10)
-			->where_gte('friends', 2)
-			->where_lte('friends', 4)
-			->where_not_equal('enabled', 1)
-			->where_like('first_name', '%red%')
-			->where_not_like('first_name', '%blue%')
-			->where_null('date_completed')
-			->where_not_null('date_commenced')
-			->where_raw('id IN (SELECT user_id FROM class_enrolment WHERE class_id=?)', $class_id)
-			->find_many();
-	// SELECT * FROM `user` WHERE
-	// `class` = 'Test'
-	// AND `age` > 5
-	// AND `age` < 10
-	// AND `friends` >= 2
-	// AND `friends` <= 4
-	// AND `enabled` != 1
-	// AND `first_name` LIKE "%red%"
-	// AND `first_name` NOT LIKE "%blue%"
-	// AND `date_completed` IS NULL
-	// AND `date_commenced` IS NOT NULL
-	// AND `id` IN (SELECT user_id FROM class_enrolment WHERE class_id=$class_id);
+```php
+$items = User::where('class', 'Test')
+    ->where_gt('age', 5)
+    ->where_lt('age', 10)
+    ->where_gte('friends', 2)
+    ->where_lte('friends', 4)
+    ->where_not_equal('enabled', 1)
+    ->where_like('first_name', '%red%')
+    ->where_not_like('first_name', '%blue%')
+    ->where_null('date_completed')
+    ->where_not_null('date_commenced')
+    ->where_raw('id IN (SELECT user_id FROM class_enrolment WHERE class_id=?)', $class_id)
+    ->find_many();
+// SELECT * FROM `user` WHERE
+// `class` = 'Test'
+// AND `age` > 5
+// AND `age` < 10
+// AND `friends` >= 2
+// AND `friends` <= 4
+// AND `enabled` != 1
+// AND `first_name` LIKE "%red%"
+// AND `first_name` NOT LIKE "%blue%"
+// AND `date_completed` IS NULL
+// AND `date_commenced` IS NOT NULL
+// AND `id` IN (SELECT user_id FROM class_enrolment WHERE class_id=$class_id);
+```
 
-## Using OR in filters
+### Using OR in filters
 
 Since the default is to reduce results by using AND's, we use the `where_any_is()` function to add a group of filters that are OR'd together.
 
 A simple OR, shown mixed with an AND filter:
 
-	<?php
-	$items = User::where_any_is(
-        array(
-            array('name' => 'Joe'),
-            array('name' => 'Fred'),
-		))
-		->where('enabled', 1)
-		->find_many();
-        // SELECT * FROM `user` WHERE (`name` = 'Joe' OR `name` = 'Fred' ) AND `enabled` = 1
+```php
+$items = User::where_any_is(
+    [
+        ['name' => 'Joe'],
+        ['name' => 'Fred'],
+    ])
+    ->where('enabled', 1)
+    ->find_many();
+    // SELECT * FROM `user` WHERE (`name` = 'Joe' OR `name` = 'Fred' ) AND `enabled` = 1
+```
 
 An OR, with a non-default operator
 
-	<?php
-	$items = User::where_any_is(
-        array(
-            array('name' => 'Joe'),
-            array('name' => 'Fred'),
-		), '!=')
-		->where('enabled', 1)
-		->find_many();
-        // SELECT * FROM `user` WHERE (`name` != 'Joe' OR `name` != 'Fred' ) AND `enabled` = 1
+```php
+$items = User::where_any_is(
+    [
+        ['name' => 'Joe'],
+        ['name' => 'Fred'],
+    ], '!=')
+    ->where('enabled', 1)
+    ->find_many();
+    // SELECT * FROM `user` WHERE (`name` != 'Joe' OR `name` != 'Fred' ) AND `enabled` = 1
+```
 
 Adding some AND comparisons inside the OR
 
-	<?php
-	$items = User::where_any_is(
-        array(
-            array('name' => 'Joe'),
-            array('name' => 'Fred', 'age' => 20),
-		)
-		)->find_many();
-        // SELECT * FROM `user` WHERE (( `name` = 'Joe' ) OR ( `name` = 'Fred' AND `age` = '20' ))
+```php
+$items = User::where_any_is(
+    [
+        ['name' => 'Joe'],
+        ['name' => 'Fred', 'age' => 20],
+    ])->find_many();
+    // SELECT * FROM `user` WHERE (( `name` = 'Joe' ) OR ( `name` = 'Fred' AND `age` = '20' ))
+```
 
 Overriding the comparison for one data type:
 
-	<?php
-	$items = User::where_any_is(
-        array(
-            array('name' => 'Joe', 'age' => 10),
-            array('name' => 'Fred', 'age' => 20),
-		), array('age' => '>')
-		)->find_many();
-        // SELECT * FROM `user` WHERE (( `name` = 'Joe' AND `age` > '10' ) OR ( `name` = 'Fred' AND `age` > '20' ))
+```php
+$items = User::where_any_is(
+    [
+        ['name' => 'Joe', 'age' => 10],
+        ['name' => 'Fred', 'age' => 20],
+    ], array('age' => '>')
+    )->find_many();
+    // SELECT * FROM `user` WHERE (( `name` = 'Joe' AND `age` > '10' ) OR ( `name` = 'Fred' AND `age` > '20' ))
+```
 
 Overriding the comparison for all data types:
 
-	<?php
-	$items = User::where_any_is(
-        array(
-            array('score' => '5', 'age' => 10),
-            array('score' => '15', 'age' => 20),
-		), '>')->find_many();
-        // SELECT * FROM `user` WHERE (( `score` > '5' AND `age` > '10' ) OR ( `score` > '15' AND `age` > '20' ))
+```php
+$items = User::where_any_is(
+    [
+        ['score' => '5', 'age' => 10],
+        ['score' => '15', 'age' => 20],
+    ], '>')->find_many();
+    // SELECT * FROM `user` WHERE (( `score` > '5' AND `age` > '10' ) OR ( `score` > '15' AND `age` > '20' ))
+```
 
 You can use NULL values in comparisons:
 
-	<?php
-	$items = User::where_any_is(
-        array(
-            array('name' => 'Joe', 'age' => NULL),
-            array('name' => NULL, 'age' => 20),
-		))->find_many();
-	// SELECT * FROM `user` WHERE (( `name` = 'Joe' AND `age` IS NULL ) OR ( `name` IS NULL AND `age` = '20' ))
+```php
+$items = User::where_any_is(
+    [
+        ['name' => 'Joe', 'age' => NULL],
+        ['name' => NULL, 'age' => 20],
+    ])->find_many();
+// SELECT * FROM `user` WHERE (( `name` = 'Joe' AND `age` IS NULL ) OR ( `name` IS NULL AND `age` = '20' ))
 
 They also work with the `!=` operator:
 
-	<?php
-	$items = User::where_any_is(
-        array(
-            array('name' => 'Joe', 'age' => NULL),
-            array('name' => NULL, 'age' => 20),
-		), '!=')
-		->find_many();
-        // SELECT * FROM `user` WHERE (( `name` != 'Joe' AND `age` IS NOT NULL ) OR ( `name` IS NOT NULL AND `age` != '20' ))
+```php
+$items = User::where_any_is(
+    [
+        ['name' => 'Joe', 'age' => NULL],
+        ['name' => NULL, 'age' => 20],
+    ], '!=')
+    ->find_many();
+    // SELECT * FROM `user` WHERE (( `name` != 'Joe' AND `age` IS NOT NULL ) OR ( `name` IS NOT NULL AND `age` != '20' ))
+```
 
 Pass an array to convert it into an IN or NOT IN (depending on the operator):
 
-	<?php
-	$items = User::where_any_is(
-        array(
-            array('name' => 'Joe', 'age' => array(18, 19)),
-            array('name' => array('Bob', 'Jack'), 'age' => 20),
-		), array( 'age' => '!=')
-		)->find_many();
-        // SELECT * FROM `user` WHERE (( `name` = 'Joe' AND `age` NOT IN ('18', '19') ) OR ( `name` IN ('Bob', 'Jack') AND `age` != '20' ))
+```php
+$items = User::where_any_is(
+    [
+        [
+            'name' => 'Joe',
+            'age' => [18, 19],
+        ],
+        [
+            'name' => ['Bob', 'Jack'],
+            'age' => 20,
+        ],
+    ], array( 'age' => '!=')
+    )->find_many();
+    // SELECT * FROM `user` WHERE (( `name` = 'Joe' AND `age` NOT IN ('18', '19') ) OR ( `name` IN ('Bob', 'Jack') AND `age` != '20' ))
+```
 
 Optionally apply a where, use this to avoid breaking long chains. Can also be used for order:
 
-	<?php
-	$min_age = 5;
-	$order = true;
-	$items = User::where('class', 'Test')
-			->onlyif(false, function($q) { // Will skip this filter
-				return $q->where_lt('age', 10);
-			})
-			->onlyif($min_age > 0, function($q) use ($min_age) { // Will apply this filter only when min_age is greater than 0
-				return $q->where_gt('age', $min_age);
-			})
-			->onlyif($order, function($q) {
-				return $q->order_by_asc('age);
-			})
-			->find_many();
-	// SELECT * FROM `user` WHERE
-	// `class` = 'Test'
-	// AND `age` > 5;
+```php
+$min_age = 5;
+$order = true;
+$items = User::where('class', 'Test')
+        ->onlyif(false, function($q) { // Will skip this filter
+            return $q->where_lt('age', 10);
+        })
+        ->onlyif($min_age > 0, function($q) use ($min_age) { // Will apply this filter only when min_age is greater than 0
+            return $q->where_gt('age', $min_age);
+        })
+        ->onlyif($order, function($q) {
+            return $q->order_by_asc('age);
+        })
+        ->find_many();
+// SELECT * FROM `user` WHERE `class` = 'Test' AND `age` > 5;
+```
 
-
-## Setting the order of results
+### Setting the order of results
 
 Ordering results are set in order of priority, and can be defined multiple times for sub-ordering.
 
 order_by_asc()
 
-	<?php
-	$items = User::order_by_asc('name')
-		->find_many();
-        // SELECT * FROM `user` ORDER BY `name` ASC
+```php
+$items = User::order_by_asc('name')
+    ->find_many();
+    // SELECT * FROM `user` ORDER BY `name` ASC
+```
 
 order_by_desc()
 
-	<?php
-	$items = User::order_by_desc('name')
-		->find_many();
-        // SELECT * FROM `user` ORDER BY `name` DESC
+```php
+$items = User::order_by_desc('name')
+    ->find_many();
+    // SELECT * FROM `user` ORDER BY `name` DESC
+```
 
 Combining two order types
 
-	<?php
-	$items = User::order_by_desc('name')
-		->order_by_asc('id')
-		->find_many();
-        // SELECT * FROM `user` ORDER BY `name` DESC, `id` ASC
+```php
+$items = User::order_by_desc('name')
+    ->order_by_asc('id')
+    ->find_many();
+    // SELECT * FROM `user` ORDER BY `name` DESC, `id` ASC
+```
 
 order_by_expr()
 
-	<?php
-	$items = User::order_by_expr('name+0')
-		->find_many();
-        // SELECT * FROM `user` ORDER BY name+0
+```php
+$items = User::order_by_expr('name+0')
+    ->find_many();
+    // SELECT * FROM `user` ORDER BY name+0
+```
 
 ### Clearing previous order declarations
 
 If an order declaration is already made (e.g. from a filter or previous code) that you want to over-ride, you can clear it:
 
-	<?php
-	$items = User::order_by_desc('name')
-		->order_by_clear() // Clears out the name order from above
-		->order_by_asc('id')
-		->find_many();
-        // SELECT * FROM `user` ORDER BY `id` ASC
+```php
+$items = User::order_by_desc('name')
+    ->order_by_clear() // Clears out the name order from above
+    ->order_by_asc('id')
+    ->find_many();
+    // SELECT * FROM `user` ORDER BY `id` ASC
+```
 
 ### Clearing previous where and having declarations
 
@@ -261,40 +282,44 @@ If an where or having declaration is already made (e.g. from a filter or previou
 
 For where:
 
-	<?php
-	$items = User::where('name', 'Fred')
-		->clear_where() // Clears out all where declarations
-		->where('name', 'Joe')
-		->find_many();
-        // SELECT * FROM `user` WHERE `name` = 'Joe'
+```php
+$items = User::where('name', 'Fred')
+    ->clear_where() // Clears out all where declarations
+    ->where('name', 'Joe')
+    ->find_many();
+    // SELECT * FROM `user` WHERE `name` = 'Joe'
+```
 
 Similarly for having:
 
-	<?php
-	$items = User::group_by('name')
-		->having('name', 'Fred')
-		->clear_having() // Clears out all having declarations
-		->having('name', 'Joe')
-		->find_one();
-        // SELECT * FROM `user` GROUP BY `name` HAVING `name` = 'Joe' LIMIT 1
+```php
+$items = User::group_by('name')
+    ->having('name', 'Fred')
+    ->clear_having() // Clears out all having declarations
+    ->having('name', 'Joe')
+    ->find_one();
+    // SELECT * FROM `user` GROUP BY `name` HAVING `name` = 'Joe' LIMIT 1
+```
 
-## Get raw SELECT query
+### Get raw SELECT query
 
 Sometimes you may want to build a raw SELECT query for use, e.g. to send to a reporting module that directly connects to the database.
 Instead of calling `find_many()` call `get_select_query()` and it will give you the raw SELECT ready to send to the database server.
 
-# Default filtering
+## Default filtering
 
 In some cases a default filter is very useful.
 For example an `is_deleted` field that flags a record as deleted in the database but the fields are never returned in queries.
 To set up default filtering, create a function in the model. For example:
 
-	<?php
-	class Car extends Model {
-		public static function _defaultFilter($query) {
-			return $query->where('car.is_deleted', 0);
-		}
-	}
+```php
+class Car extends Model
+{
+    public static function _defaultFilter($query) {
+        return $query->where('car.is_deleted', 0);
+    }
+}
+```
 
 Any queries that attempt to load results from the car table will filter based on the `is_deleted` column.
 It's recommended to include the table name in the default filter as it will be needed for any joins.
@@ -303,23 +328,25 @@ Don't forget to create an index on columns that have a default filter!
 
 To override the default filtering, use the `clear_where()` function, for example:
 
-	<?php
-	$count = Car::clear_where()->count();
-	// Gets the number of all cars, deleted or not
-	$count = Car::count();
-	// Gets only the cars that are not deleted
+```php
+$count = Car::clear_where()->count();
+// Gets the number of all cars, deleted or not
+$count = Car::count();
+// Gets only the cars that are not deleted
+```
 
-# First and Last items in a result
+## First and Last items in a result
 
 When using `foreach` to iterate through a list of results, there are two functions you can use to determine if the result is the first or last item.
 This is very handy when outputting data and you want the first or last to be slightly different from the others.
 
-	<?php
-	foreach ($items as $item) {
-		if ($item->isFirstResult()) {
-			// This is the first item in the list
-		}
-		if ($item->isLastResult()) {
-			// This is the last item in the list
-		}
-	}
+```php
+foreach ($items as $item) {
+    if ($item->isFirstResult()) {
+        // This is the first item in the list
+    }
+    if ($item->isLastResult()) {
+        // This is the last item in the list
+    }
+}
+```

@@ -2,12 +2,13 @@
 
 use Granada\ORM;
 
-class ORMTest extends PHPUnit_Framework_TestCase {
-
+class ORMTest extends \PHPUnit\Framework\TestCase
+{
     /**
      * @before
      */
-    protected function beforeTest() {
+    protected function beforeTest()
+    {
         // Enable logging
         ORM::configure('logging', true);
 
@@ -19,48 +20,54 @@ class ORMTest extends PHPUnit_Framework_TestCase {
     /**
      * @after
      */
-    protected function afterTest() {
+    protected function afterTest()
+    {
         ORM::reset_config();
         ORM::reset_db();
     }
 
-    public function testStaticAtrributes() {
+    public function testStaticAtrributes()
+    {
         $this->assertEquals('0', ORM::CONDITION_FRAGMENT);
         $this->assertEquals('1', ORM::CONDITION_VALUES);
     }
 
-    public function testForTable() {
+    public function testForTable()
+    {
         $result = ORM::for_table('test');
         $this->assertTrue(is_a($result, 'Granada\ORM'));
     }
 
-    public function testCreate() {
+    public function testCreate()
+    {
         $model = ORM::for_table('test')->create();
         $this->assertTrue(is_a($model, 'Granada\ORM'));
         $this->assertTrue($model->is_new());
     }
 
-    public function testIsNew() {
+    public function testIsNew()
+    {
         $model = ORM::for_table('test')->create();
         $this->assertTrue($model->is_new());
 
-        $model = ORM::for_table('test')->create(array('test' => 'test'));
+        $model = ORM::for_table('test')->create(['test' => 'test']);
         $this->assertTrue($model->is_new());
     }
 
-    public function testIsDirty() {
+    public function testIsDirty()
+    {
         $model = ORM::for_table('test')->create();
         $this->assertFalse($model->is_dirty('test'));
         $this->assertFalse($model->is_any_dirty());
 
-        $model = ORM::for_table('test')->create(array('test' => 'test'));
+        $model = ORM::for_table('test')->create(['test' => 'test']);
         $this->assertTrue($model->is_dirty('test'));
         $this->assertTrue($model->is_any_dirty());
-
     }
 
-    public function testIsDirtySimilarFloats() {
-        $model = ORM::for_table('test')->create();
+    public function testIsDirtySimilarFloats()
+    {
+        $model       = ORM::for_table('test')->create();
         $model->test = 5.2;
         $this->assertTrue($model->is_dirty('test'));
         $model->save();
@@ -70,7 +77,8 @@ class ORMTest extends PHPUnit_Framework_TestCase {
         $model->save();
     }
 
-    public function testIsDirtyIntegerType() {
+    public function testIsDirtyIntegerType()
+    {
         $model = ORM::for_table('test')->create([
             'age' => 5,
         ]);
@@ -80,7 +88,8 @@ class ORMTest extends PHPUnit_Framework_TestCase {
         $this->assertFalse($model->is_dirty('age'));
     }
 
-    public function testIsDirtyIntegerTypePrefixZero() {
+    public function testIsDirtyIntegerTypePrefixZero()
+    {
         $model = ORM::for_table('test')->create([
             'age' => 5,
         ]);
@@ -91,8 +100,9 @@ class ORMTest extends PHPUnit_Framework_TestCase {
         $this->assertFalse($model->is_dirty('age'));
     }
 
-    public function testIsDirtyExactString() {
-        $model = ORM::for_table('test')->create();
+    public function testIsDirtyExactString()
+    {
+        $model       = ORM::for_table('test')->create();
         $model->test = '5';
         $this->assertTrue($model->is_dirty('test'));
         $model->save();
@@ -107,8 +117,9 @@ class ORMTest extends PHPUnit_Framework_TestCase {
         $model->save();
     }
 
-    public function testIsDirtySetNull() {
-        $model = ORM::for_table('test')->create();
+    public function testIsDirtySetNull()
+    {
+        $model       = ORM::for_table('test')->create();
         $model->test = 5;
         $this->assertTrue($model->is_dirty('test'));
         $model->save();
@@ -124,9 +135,10 @@ class ORMTest extends PHPUnit_Framework_TestCase {
         $this->assertFalse($model->is_dirty('test'));
     }
 
-    public function testArrayAccess() {
-        $value = 'test';
-        $model = ORM::for_table('test')->create();
+    public function testArrayAccess()
+    {
+        $value         = 'test';
+        $model         = ORM::for_table('test')->create();
         $model['test'] = $value;
         $this->assertTrue(isset($model['test']));
         $this->assertEquals($model['test'], $value);
@@ -134,13 +146,15 @@ class ORMTest extends PHPUnit_Framework_TestCase {
         $this->assertFalse(isset($model['test']));
     }
 
-    public function testFindResultSet() {
+    public function testFindResultSet()
+    {
         $result_set = ORM::for_table('test')->find_result_set();
         $this->assertTrue(is_a($result_set, 'Granada\ResultSet'));
         $this->assertSame(count($result_set), 5);
     }
 
-    public function testFindResultSetByDefault() {
+    public function testFindResultSetByDefault()
+    {
         ORM::configure('return_result_sets', true);
 
         $result_set = ORM::for_table('test')->find_many();
@@ -153,13 +167,15 @@ class ORMTest extends PHPUnit_Framework_TestCase {
         $this->assertSame(count($result_set), 5);
     }
 
-    public function testGetLastPdoStatement() {
+    public function testGetLastPdoStatement()
+    {
         ORM::for_table('widget')->where('name', 'Fred')->find_one();
         $statement = ORM::get_last_statement();
         $this->assertTrue(is_a($statement, 'MockPDOStatement'));
     }
 
-    public function testSaveInsideLoop() {
+    public function testSaveInsideLoop()
+    {
         $cars = ORM::for_table('car')->find_many();
         foreach ($cars as $car) {
             $car->name = 'ABC';
@@ -168,5 +184,4 @@ class ORMTest extends PHPUnit_Framework_TestCase {
             $this->assertEquals($expected, ORM::get_last_query());
         }
     }
-
 }

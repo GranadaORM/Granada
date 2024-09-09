@@ -1,16 +1,17 @@
 <?php
+
 use Granada\Orm;
 use Granada\Model;
 
-class MultipleConnectionsTest extends PHPUnit_Framework_TestCase {
-
-    const ALTERNATE = 'alternate';
+class MultipleConnectionsTest extends \PHPUnit\Framework\TestCase
+{
+    public const ALTERNATE = 'alternate';
 
     /**
      * @before
      */
-    protected function beforeTest() {
-
+    protected function beforeTest()
+    {
         // Set up the dummy database connection
         ORM::set_db(new MockPDO('sqlite::memory:'));
         ORM::set_db(new MockDifferentPDO('sqlite::memory:'), self::ALTERNATE);
@@ -23,7 +24,8 @@ class MultipleConnectionsTest extends PHPUnit_Framework_TestCase {
     /**
      * @after
      */
-    protected function afterTest() {
+    protected function afterTest()
+    {
         ORM::configure('logging', false);
         ORM::configure('logging', false, self::ALTERNATE);
 
@@ -31,8 +33,9 @@ class MultipleConnectionsTest extends PHPUnit_Framework_TestCase {
         ORM::set_db(null, self::ALTERNATE);
     }
 
-    public function testMultipleConnections() {
-        $simple = Model::factory('Simple')->find_one(1);
+    public function testMultipleConnections()
+    {
+        $simple    = Model::factory('Simple')->find_one(1);
         $statement = ORM::get_last_statement();
         $this->assertInstanceOf('MockPDOStatement', $statement);
 
@@ -41,15 +44,15 @@ class MultipleConnectionsTest extends PHPUnit_Framework_TestCase {
         $statement = ORM::get_last_statement();
         $this->assertInstanceOf('MockDifferentPDOStatement', $statement);
 
-        $temp = Model::factory('Simple', self::ALTERNATE)->find_one(1);
+        $temp      = Model::factory('Simple', self::ALTERNATE)->find_one(1);
         $statement = ORM::get_last_statement();
         $this->assertInstanceOf('MockDifferentPDOStatement', $statement);
     }
 
-    public function testCustomConnectionName() {
-        $person3 = Model::factory('ModelWithCustomConnection')->find_one(1);
+    public function testCustomConnectionName()
+    {
+        $person3   = Model::factory('ModelWithCustomConnection')->find_one(1);
         $statement = ORM::get_last_statement();
         $this->assertInstanceOf('MockDifferentPDOStatement', $statement);
     }
-
 }
