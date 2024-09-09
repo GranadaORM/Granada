@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "bmewburn.vscode-intelephense-client",
+    "EditorConfig.EditorConfig",
+    "Jota0222.multi-formatter",
+    "junstyle.php-cs-fixer"
+  ]
+}

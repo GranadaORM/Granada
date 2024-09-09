@@ -1,14 +1,16 @@
 <?php
+
 use Granada\ORM;
 
-class CacheTest extends PHPUnit_Framework_TestCase {
-
-    const ALTERNATE = 'alternate'; // Used as name of alternate connection
+class CacheTest extends \PHPUnit\Framework\TestCase
+{
+    public const ALTERNATE = 'alternate'; // Used as name of alternate connection
 
     /**
      * @before
      */
-    protected function beforeTest() {
+    protected function beforeTest()
+    {
         // Set up the dummy database connections
         ORM::set_db(new MockPDO('sqlite::memory:'));
         ORM::set_db(new MockDifferentPDO('sqlite::memory:'), self::ALTERNATE);
@@ -23,13 +25,15 @@ class CacheTest extends PHPUnit_Framework_TestCase {
     /**
      * @after
      */
-    protected function afterTest() {
+    protected function afterTest()
+    {
         ORM::reset_config();
         ORM::reset_db();
     }
 
     // Test caching. This is a bit of a hack.
-    public function testQueryGenerationOnlyOccursOnce() {
+    public function testQueryGenerationOnlyOccursOnce()
+    {
         ORM::for_table('widget')->where('name', 'Fred')->where('age', 17)->find_one();
         ORM::for_table('widget')->where('name', 'Bob')->where('age', 42)->find_one();
         $expected = ORM::get_last_query();
@@ -37,7 +41,8 @@ class CacheTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
-    public function testQueryGenerationOnlyOccursOnceWithMultipleConnections() {
+    public function testQueryGenerationOnlyOccursOnceWithMultipleConnections()
+    {
         // Test caching with multiple connections (also a bit of a hack)
         ORM::for_table('widget', self::ALTERNATE)->where('name', 'Steve')->where('age', 80)->find_one();
         ORM::for_table('widget', self::ALTERNATE)->where('name', 'Tom')->where('age', 120)->find_one();

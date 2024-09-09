@@ -1,11 +1,11 @@
 <?php
 
 use Granada\ORM;
-use Granada\ResultSet;
 
-class ConfigTest53 extends PHPUnit_Framework_TestCase {
-
-    public function setUp() {
+class ConfigTest53 extends \PHPUnit\Framework\TestCase
+{
+    public function beforeTest()
+    {
         // Enable logging
         ORM::configure('logging', true);
 
@@ -16,15 +16,17 @@ class ConfigTest53 extends PHPUnit_Framework_TestCase {
         ORM::configure('id_column', 'primary_key');
     }
 
-    public function tearDown() {
+    public function afterTest()
+    {
         ORM::configure('logging', false);
         ORM::set_db(null);
 
         ORM::configure('id_column', 'id');
     }
 
-    public function testLoggerCallback() {
-        ORM::configure('logger', function($log_string) {
+    public function testLoggerCallback()
+    {
+        ORM::configure('logger', function ($log_string) {
             return $log_string;
         });
         $function = ORM::get_config('logger');
@@ -35,5 +37,4 @@ class ConfigTest53 extends PHPUnit_Framework_TestCase {
 
         ORM::configure('logger', null);
     }
-
 }

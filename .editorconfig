@@ -13,6 +13,11 @@ indent_style = spaces
 indent_size = 4
 insert_final_newline = true
 
+[*.md]
+indent_style = spaces
+indent_size = 4
+insert_final_newline = true
+
 [vendor/**]
 ; Use editor default (possible autodetection).
 indent_style =

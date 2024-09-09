@@ -3,12 +3,13 @@
 use Granada\ORM;
 use Granada\ResultSet;
 
-class ResultSetTest extends PHPUnit_Framework_TestCase {
-
+class ResultSetTest extends \PHPUnit\Framework\TestCase
+{
     /**
      * @before
      */
-    protected function beforeTest() {
+    protected function beforeTest()
+    {
         // Enable logging
         ORM::configure('logging', true);
 
@@ -20,89 +21,99 @@ class ResultSetTest extends PHPUnit_Framework_TestCase {
     /**
      * @after
      */
-    protected function afterTest() {
+    protected function afterTest()
+    {
         ORM::reset_config();
         ORM::reset_db();
     }
 
-    public function testGet() {
+    public function testGet()
+    {
         $ResultSet = new ResultSet();
         $this->assertTrue(is_array($ResultSet->get_results()));
     }
 
-    public function testConstructor() {
-        $result_set = array('item' => new stdClass);
-        $ResultSet = new ResultSet($result_set);
+    public function testConstructor()
+    {
+        $result_set = ['item' => new stdClass()];
+        $ResultSet  = new ResultSet($result_set);
         $this->assertSame($ResultSet->get_results(), $result_set);
     }
 
-    public function testSetResultsAndGetResults() {
-        $result_set = array('item' => new stdClass);
-        $ResultSet = new ResultSet();
+    public function testSetResultsAndGetResults()
+    {
+        $result_set = ['item' => new stdClass()];
+        $ResultSet  = new ResultSet();
         $ResultSet->set_results($result_set);
         $this->assertSame($ResultSet->get_results(), $result_set);
     }
 
-    public function testAsArray() {
-        $result_set = array('item' => new stdClass);
-        $ResultSet = new ResultSet();
+    public function testAsArray()
+    {
+        $result_set = ['item' => new stdClass()];
+        $ResultSet  = new ResultSet();
         $ResultSet->set_results($result_set);
         $this->assertSame($ResultSet->as_array(), $result_set);
     }
 
-    public function testCount() {
-        $result_set = array('item' => new stdClass);
-        $ResultSet = new ResultSet($result_set);
+    public function testCount()
+    {
+        $result_set = ['item' => new stdClass()];
+        $ResultSet  = new ResultSet($result_set);
         $this->assertSame($ResultSet->count(), 1);
         $this->assertSame(count($ResultSet), 1);
     }
 
-    public function testGetIterator() {
-        $result_set = array('item' => new stdClass);
-        $ResultSet = new ResultSet($result_set);
+    public function testGetIterator()
+    {
+        $result_set = ['item' => new stdClass()];
+        $ResultSet  = new ResultSet($result_set);
         $this->assertTrue(is_a($ResultSet->getIterator(), 'ArrayIterator'));
     }
 
-    public function testForeach() {
-        $result_set = array('item' => new stdClass);
-        $ResultSet = new ResultSet($result_set);
-        $return_array = array();
-        foreach($ResultSet as $key => $record) {
+    public function testForeach()
+    {
+        $result_set   = ['item' => new stdClass()];
+        $ResultSet    = new ResultSet($result_set);
+        $return_array = [];
+        foreach ($ResultSet as $key => $record) {
             $return_array[$key] = $record;
         }
         $this->assertSame($result_set, $return_array);
     }
 
-    public function testIsFirstAndLast() {
-        $result_set = array(
-			'item1' => new stdClass,
-			'item2' => new stdClass,
-			'item3' => new stdClass,
-			);
+    public function testIsFirstAndLast()
+    {
+        $result_set = [
+            'item1' => new stdClass(),
+            'item2' => new stdClass(),
+            'item3' => new stdClass(),
+        ];
         $ResultSet = new ResultSet($result_set);
-        foreach($ResultSet as $key => $record) {
+        foreach ($ResultSet as $key => $record) {
             $return_array[$key] = $record;
-			if ($key == 'item1') {
-				$this->assertSame(true, $record->_isFirstResult);
-				$this->assertSame(false, $record->_isLastResult);
-			}
-			if ($key == 'item2') {
-				$this->assertSame(false, $record->_isFirstResult);
-				$this->assertSame(false, $record->_isLastResult);
-			}
-			if ($key == 'item3') {
-				$this->assertSame(false, $record->_isFirstResult);
-				$this->assertSame(true, $record->_isLastResult);
-			}
+            if ($key == 'item1') {
+                $this->assertSame(true, $record->_isFirstResult);
+                $this->assertSame(false, $record->_isLastResult);
+            }
+            if ($key == 'item2') {
+                $this->assertSame(false, $record->_isFirstResult);
+                $this->assertSame(false, $record->_isLastResult);
+            }
+            if ($key == 'item3') {
+                $this->assertSame(false, $record->_isFirstResult);
+                $this->assertSame(true, $record->_isLastResult);
+            }
         }
     }
 
-    public function testCallingMethods() {
-        $result_set = array('item' => ORM::for_table('test'), 'item2' => ORM::for_table('test'));
-        $ResultSet = new ResultSet($result_set);
+    public function testCallingMethods()
+    {
+        $result_set = ['item' => ORM::for_table('test'), 'item2' => ORM::for_table('test')];
+        $ResultSet  = new ResultSet($result_set);
         $ResultSet->set('field', 'value')->set('field2', 'value');
 
-        foreach($ResultSet as $record) {
+        foreach ($ResultSet as $record) {
             $this->assertTrue(isset($record->field));
             $this->assertSame($record->field, 'value');
 
@@ -110,5 +121,4 @@ class ResultSetTest extends PHPUnit_Framework_TestCase {
             $this->assertSame($record->field2, 'value');
         }
     }
-
 }

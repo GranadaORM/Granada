@@ -27,13 +27,14 @@
         }
     ],
     "scripts": {
+        "phpstan": "nice phpstan --memory-limit=10240M analyze -c phpstan.neon",
         "test": "phpunit"
     },
     "replace": {
         "surt/granada": "*"
     },
     "require": {
-        "php": ">=5.6.0"
+        "php": ">=8.1"
     },
     "suggest": {
 		"granadaorm/builder": "Automatically build model classes from the database schema",
@@ -43,6 +44,7 @@
         "psr-4": {"Granada\\": "src/Granada/"}
     },
     "require-dev": {
-        "phpunit/phpunit": "^5.6|^7.3|^9.0"
+        "phpstan/phpstan": "^1.11",
+        "phpunit/phpunit": "^9.0"
     }
 }

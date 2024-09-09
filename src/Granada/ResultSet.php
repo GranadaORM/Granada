@@ -1,4 +1,6 @@
-<?php namespace Granada;
+<?php
+
+namespace Granada;
 
 use ArrayAccess;
 use Countable;
@@ -11,18 +13,20 @@ use ArrayIterator;
  *
  * @method integer id() Get the id of this record
  */
-class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
+class ResultSet implements ArrayAccess, Countable, IteratorAggregate
+{
     /**
      * The current result set as an array
      * @var array
      */
-    protected $_results = array();
+    protected $_results = [];
 
     /**
      * Optionally set the contents of the result set by passing in array
      * @param array $results
      */
-    public function __construct(array $results = array()) {
+    public function __construct(array $results = [])
+    {
         $this->set_results($results);
     }
 
@@ -30,7 +34,8 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * Set the contents of the result set by passing in array
      * @param array $results
      */
-    public function set_results(array $results) {
+    public function set_results(array $results)
+    {
         $this->_results = $results;
     }
 
@@ -38,7 +43,8 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * Get the current result set as an array
      * @return array
      */
-    public function get_results() {
+    public function get_results()
+    {
         return $this->_results;
     }
 
@@ -46,7 +52,8 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * Determine if the result set is empty
      * @return boolean
      */
-    public function has_results() {
+    public function has_results()
+    {
         return !empty($this->_results);
     }
 
@@ -54,7 +61,8 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * Get the current result set as an array
      * @return array
      */
-    public function as_array() {
+    public function as_array()
+    {
         return $this->get_results();
     }
 
@@ -62,11 +70,13 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * Get the current result set as an array
      * @return string
      */
-    public function as_json() {
-        $result = array();
-        foreach($this->_results as $key=>$value){
+    public function as_json()
+    {
+        $result = [];
+        foreach ($this->_results as $key => $value) {
             $result[] = $value->as_array();
         }
+
         return json_encode($result);
     }
 
@@ -74,7 +84,8 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * Get the array keys (primary keys of the results)
      * @return array
      */
-    public function keys(){
+    public function keys()
+    {
         return array_keys($this->_results);
     }
 
@@ -82,8 +93,10 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * Merge the resultSet with an array
      * @return ResultSet
      */
-    public function merge() {
+    public function merge()
+    {
         array_push($this->_results, $this->_results);
+
         return $this;
     }
 
@@ -91,7 +104,8 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * Get the first element of the result set
      * @return Model
      */
-    public function first(){
+    public function first()
+    {
         return reset($this->_results);
     }
 
@@ -99,7 +113,8 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * Get the last element of the result set
      * @return Model
      */
-    public function last(){
+    public function last()
+    {
         return end($this->_results);
     }
 
@@ -107,23 +122,44 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * Push an element on the result set
      * @return ResultSet
      */
-    public function add($value){
+    public function add($value)
+    {
         array_push($this->_results, $value);
+
         return $this;
     }
 
-    public function rewind() { return reset($this->_results); }
-    public function current() { return current($this->_results); }
-    public function key() { return key($this->_results); }
-    public function next() { return next($this->_results); }
-    public function valid() { return isset($this->_results[$this->id()]); }
+    public function rewind()
+    {
+        return reset($this->_results);
+    }
+
+    public function current()
+    {
+        return current($this->_results);
+    }
+
+    public function key()
+    {
+        return key($this->_results);
+    }
+
+    public function next()
+    {
+        return next($this->_results);
+    }
+
+    public function valid()
+    {
+        return isset($this->_results[$this->id()]);
+    }
 
     /**
      * Get the number of records in the result set
      * @return int
      */
-    #[\ReturnTypeWillChange]
-    public function count() {
+    public function count(): int
+    {
         return count($this->_results);
     }
 
@@ -132,16 +168,17 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * over the result set.
      * @return \ArrayIterator
      */
-    #[\ReturnTypeWillChange]
-    public function getIterator() {
+    public function getIterator(): \ArrayIterator
+    {
         // Set first/last flags
-        $count = count($this->_results);
+        $count         = count($this->_results);
         $result_number = 0;
         foreach ($this->_results as $idx => $result) {
             $result_number++;
             $this->_results[$idx]->_isFirstResult = (1 === $result_number);
-            $this->_results[$idx]->_isLastResult = ($count === $result_number);
+            $this->_results[$idx]->_isLastResult  = ($count === $result_number);
         }
+
         return new ArrayIterator($this->_results);
     }
 
@@ -150,8 +187,8 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * @param int|string $offset
      * @return bool
      */
-    #[\ReturnTypeWillChange]
-    public function offsetExists($offset) {
+    public function offsetExists($offset): bool
+    {
         return isset($this->_results[$offset]);
     }
 
@@ -160,8 +197,8 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * @param int|string $offset
      * @return mixed
      */
-    #[\ReturnTypeWillChange]
-    public function offsetGet($offset) {
+    public function offsetGet($offset): mixed
+    {
         return $this->_results[$offset];
     }
 
@@ -170,14 +207,11 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * @param int|string|null $offset
      * @param mixed $value
      */
-    #[\ReturnTypeWillChange]
-    public function offsetSet($offset, $value) {
-        if (is_null($offset))
-        {
+    public function offsetSet($offset, $value): void
+    {
+        if (is_null($offset)) {
             $this->_results[] = $value;
-        }
-        else
-        {
+        } else {
             $this->_results[$offset] = $value;
         }
     }
@@ -186,11 +220,10 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * ArrayAccess
      * @param int|string $offset
      */
-    #[\ReturnTypeWillChange]
-    public function offsetUnset($offset) {
+    public function offsetUnset($offset): void
+    {
         unset($this->_results[$offset]);
     }
-
 
     /**
      * Call a method on all models in a result set. This allows for method
@@ -201,10 +234,12 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate {
      * @param array $params
      * @return ResultSet
      */
-    public function __call($method, $params = array()) {
-        foreach($this->_results as $model) {
-            call_user_func_array(array($model, $method), $params);
+    public function __call($method, $params = [])
+    {
+        foreach ($this->_results as $model) {
+            call_user_func_array([$model, $method], $params);
         }
+
         return $this;
     }
 }
