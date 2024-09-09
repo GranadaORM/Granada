@@ -72,20 +72,20 @@ $results = User::with('avatar', 'posts')->find_many();
 will use 3 querys to fetch the users and the relationships:
 
 ```sql
-  SELECT * FROM user
-  SELECT * FROM avatar WHERE user_id IN (....)
-  SELECT * FROM posts WHERE user_id IN (....)
+SELECT * FROM user
+SELECT * FROM avatar WHERE user_id IN (....)
+SELECT * FROM posts WHERE user_id IN (....)
 ```
 
 It is possible to get the relationships results for each result, this way
 
 ```php
-  foreach($results as $result){
-      echo $result->avatar->img;
-      foreach($result->posts as $post){
-         echo $post->title;
-      }
-  }
+foreach($results as $result){
+    echo $result->avatar->img;
+    foreach($result->posts as $post){
+        echo $post->title;
+    }
+}
 ```
 
 ### Lazy loading
@@ -93,10 +93,10 @@ It is possible to get the relationships results for each result, this way
 Triying to access to a not fetched relationship will call and return it
 
 ```php
-  $results = User::find_many();
-  foreach($results as $result){
-      echo $result->avatar->img;
-  }
+$results = User::find_many();
+foreach($results as $result){
+    echo $result->avatar->img;
+}
 ```
 
 Notice that if there is no result for `avatar` on the above example it will throw a `Notice: Trying to get property of non-object...`
