@@ -70,6 +70,43 @@ class ORMTest extends PHPUnit_Framework_TestCase {
         $model->save();
     }
 
+    public function testIsDirtyIntegerType() {
+        $model = ORM::for_table('test')->create([
+            'age' => 5,
+        ]);
+        $model->save();
+        $this->assertSame(5, $model->age);
+        $model->age = '5';
+        $this->assertFalse($model->is_dirty('age'));
+    }
+
+    public function testIsDirtyIntegerTypePrefixZero() {
+        $model = ORM::for_table('test')->create([
+            'age' => 5,
+        ]);
+        $model->save();
+        $this->assertFalse($model->is_dirty('age'));
+
+        $model->age = '05';
+        $this->assertFalse($model->is_dirty('age'));
+    }
+
+    public function testIsDirtyExactString() {
+        $model = ORM::for_table('test')->create();
+        $model->test = '5';
+        $this->assertTrue($model->is_dirty('test'));
+        $model->save();
+
+        $this->assertSame('5', $model->test);
+        $this->assertFalse($model->is_dirty('test'));
+        $model->test = '05';
+        $this->assertTrue($model->is_dirty('test'));
+        $model->save();
+
+        $this->assertSame('05', $model->test);
+        $model->save();
+    }
+
     public function testIsDirtySetNull() {
         $model = ORM::for_table('test')->create();
         $model->test = 5;

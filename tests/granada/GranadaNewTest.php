@@ -632,6 +632,75 @@ class GranadaNewTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(2, $car->manufactor_id);
     }
 
+    public function testDirtyNumericString() {
+        $manufactor = Model::factory('Manufactor')->find_one(1);
+
+        $this->assertSame('Manufactor1', $manufactor->name);
+        $this->assertSame(false, $manufactor->is_dirty('name'));
+        $this->assertSame(false, $manufactor->is_any_dirty());
+
+        $manufactor->name = '1';
+        $this->assertSame(true, $manufactor->is_dirty('name'));
+        $this->assertSame(true, $manufactor->is_any_dirty());
+
+        $manufactor->save();
+        $this->assertSame(false, $manufactor->is_dirty('name'));
+        $this->assertSame(false, $manufactor->is_any_dirty());
+        $this->assertSame('1', $manufactor->name);
+
+        $manufactor = Model::factory('Manufactor')->find_one(1);
+        $this->assertSame('1', $manufactor->name);
+
+        $manufactor->name = '01';
+        $this->assertSame(true, $manufactor->is_dirty('name'));
+        $this->assertSame(true, $manufactor->is_any_dirty());
+        $manufactor->save();
+
+        $manufactor = Model::factory('Manufactor')->find_one(1);
+        $this->assertSame(false, $manufactor->is_dirty('name'));
+        $this->assertSame(false, $manufactor->is_any_dirty());
+        $this->assertSame('01', $manufactor->name);
+    }
+
+    public function testDirtyNumericInteger() {
+        $car = Model::factory('Car')->find_one(1);
+
+        $this->assertSame(1, $car->manufactor_id);
+        $this->assertSame(false, $car->is_dirty('manufactor_id'));
+        $this->assertSame(false, $car->is_any_dirty());
+
+        $car->manufactor_id = '1';
+        $this->assertSame(false, $car->is_dirty('manufactor_id'));
+        $this->assertSame(false, $car->is_any_dirty());
+
+        $car->save();
+        $car = Model::factory('Car')->find_one(1);
+
+        $car->manufactor_id = '001';
+        $this->assertSame(false, $car->is_dirty('manufactor_id'));
+        $this->assertSame(false, $car->is_any_dirty());
+
+        $car->save();
+        $car = Model::factory('Car')->find_one(1);
+
+        $this->assertSame(false, $car->is_dirty('manufactor_id'));
+        $this->assertSame(false, $car->is_any_dirty());
+        $this->assertSame(1, $car->manufactor_id);
+
+        $car = Model::factory('Car')->find_one(1);
+        $this->assertSame(1, $car->manufactor_id);
+
+        $car->manufactor_id = '01';
+        $this->assertSame(false, $car->is_dirty('manufactor_id'));
+        $this->assertSame(false, $car->is_any_dirty());
+        $car->save();
+
+        $car = Model::factory('Car')->find_one(1);
+        $this->assertSame(false, $car->is_dirty('manufactor_id'));
+        $this->assertSame(false, $car->is_any_dirty());
+        $this->assertSame(1, $car->manufactor_id);
+    }
+
     public function testCleanValue() {
         $car = Model::factory('Car')->find_one(1);
 

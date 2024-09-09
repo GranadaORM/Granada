@@ -2084,6 +2084,10 @@ class ORM implements ArrayAccess {
             $set_as_dirty = $this->is_new() || $expr;
             if (is_float($value)) {
                 $set_as_dirty = abs($oldval - $value) > 0.00000000000001;
+            } else if (is_string($oldval)) {
+                if ($oldval !== $value) {
+                    $set_as_dirty = true;
+                }
             } else if ($oldval != $value) {
                 $set_as_dirty = true;
             }
