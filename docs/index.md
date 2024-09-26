@@ -301,6 +301,19 @@ $items = User::group_by('name')
     // SELECT * FROM `user` GROUP BY `name` HAVING `name` = 'Joe' LIMIT 1
 ```
 
+### Getting all fields when previously selected fields
+
+If a situation where a field to select is already specified, and you want all fields, just select('*') and the `*` goes to the front of the list:
+
+```php
+$items = User::select('name')
+    ->select('*')
+    ->find_one();
+    // SELECT *, `name` FROM `user` LIMIT 1
+```
+
+For some databases (e.g. Mysql) the `*` must be at the start of the list
+
 ### Get raw SELECT query
 
 Sometimes you may want to build a raw SELECT query for use, e.g. to send to a reporting module that directly connects to the database.

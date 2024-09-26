@@ -675,6 +675,21 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testSelectAsteriskColumn()
+    {
+        ORM::for_table('widget')->select('name')->find_many();
+        $expected = 'SELECT `name` FROM `widget`';
+        $this->assertEquals($expected, ORM::get_last_query());
+
+        ORM::for_table('widget')->select('name')->select('*')->find_many();
+        $expected = 'SELECT *, `name` FROM `widget`';
+        $this->assertEquals($expected, ORM::get_last_query());
+
+        ORM::for_table('widget')->select('*')->find_many();
+        $expected = 'SELECT * FROM `widget`';
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
     public function testSimpleResultColumn()
     {
         ORM::for_table('widget')->select('name')->find_many();
