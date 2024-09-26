@@ -958,8 +958,15 @@ class ORM implements ArrayAccess
     {
         $columns = array_map('trim', explode(',', $column));
         foreach ($columns as $column) {
-            $column = $this->_quote_identifier($column);
-            $this->_add_result_column($column, $alias);
+            if ($column == '*') {
+                if (!$this->_using_default_result_columns) {
+                    // Put the * to the front of the list
+                    $this->_result_columns = array_merge(['*'], $this->_result_columns);
+                }
+            } else {
+                $column = $this->_quote_identifier($column);
+                $this->_add_result_column($column, $alias);
+            }
         }
 
         return $this;
