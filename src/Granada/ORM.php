@@ -1260,6 +1260,24 @@ class ORM implements ArrayAccess
     }
 
     /**
+     * Cleare all WHERE clauses that reference column
+     * @param string $column
+     * @return ORM
+     */
+    public function remove_where($column)
+    {
+        $new_conditions = [];
+        foreach ($this->_where_conditions as $idx => $where_condition) {
+            if (strpos($where_condition[self::CONDITION_FRAGMENT], '`' . $column . '`') === false) {
+                $new_conditions[] = $where_condition;
+            }
+        }
+        $this->_where_conditions = $new_conditions;
+
+        return $this;
+    }
+
+    /**
      * Clear / Reset the WHERE clause(s)
      * @return ORM
      */

@@ -301,6 +301,16 @@ $items = User::group_by('name')
     // SELECT * FROM `user` GROUP BY `name` HAVING `name` = 'Joe' LIMIT 1
 ```
 
+If you only want to remove a single where that was previously set, you can remove it:
+
+```php
+$items = User::where('name', 'Fred')
+    ->where('age', 10)
+    ->remove_where('name')
+    ->find_many();
+    // SELECT * FROM `user` WHERE `age` = 10
+```
+
 ### Getting all fields when previously selected fields
 
 If a situation where a field to select is already specified, and you want all fields, just select('*') and the `*` goes to the front of the list:

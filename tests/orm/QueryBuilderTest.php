@@ -132,6 +132,13 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testRemoveWhereClause()
+    {
+        ORM::for_table('widget')->where('name', 'Fred')->where('age', 10)->remove_where('name')->find_one();
+        $expected = "SELECT * FROM `widget` WHERE `age` = '10' LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
     public function testOptionalWhereClauses()
     {
         ORM::for_table('widget')
