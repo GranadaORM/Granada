@@ -224,6 +224,25 @@ class ORM implements ArrayAccess
             }
             self::$_config[$connection_name][$key] = $value;
         }
+
+        if ($key == 'connection_string') {
+            self::_setup_default_driver_options();
+        }
+    }
+
+    private static function _setup_default_driver_options($connection_name = self::DEFAULT_CONNECTION)
+    {
+        if (self::$_config[$connection_name]['driver_options']) {
+            return;
+        }
+
+        if (substr(self::$_config[$connection_name]['connection_string'], 0, 6) == 'mysql:') {
+            // Set default connection mode for MySQL to be SSL without verifying certificate
+            self::$_config[$connection_name]['driver_options'] = [
+                PDO::MYSQL_ATTR_SSL_CA                 => true,
+                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
+            ];
+        }
     }
 
     /**
