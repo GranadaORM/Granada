@@ -1624,6 +1624,23 @@ class ORM implements ArrayAccess
     }
 
     /**
+     * Add a WHERE ... NOT IN OR ... IS NULL clause to your query
+     * @param string $column_name
+     * @param string[] $values
+     */
+    public function where_not_in_or_null($column_name, $values)
+    {
+        if ($values) {
+            $column_name  = $this->_quote_identifier($column_name);
+            $placeholders = $this->_create_placeholders($values);
+
+            return $this->where_raw('( ' . $column_name . ' NOT IN (' . $placeholders . ') OR ' . $column_name . ' IS NULL )', $values);
+        }
+
+        return $this;
+    }
+
+    /**
      * Add a WHERE column IS NULL clause to your query
      * @param string $column_name
      */

@@ -104,6 +104,54 @@ $items = User::where('class', 'Test')
 // AND `id` IN (SELECT user_id FROM class_enrolment WHERE class_id=$class_id);
 ```
 
+Also available is the option to put the variable name in the called function. For example:
+
+```php
+$items = User::where_class('Test')
+    ->where_age_gt(5)
+    ->where_age_lt(10)
+    ->where_friends_gte(2)
+    ->where_friends_lte(4)
+    ->where_enabled_not_equal(1)
+    ->where_first_name_like('%red%')
+    ->where_first_name_not_like('%blue%')
+    ->where_date_completed_null()
+    ->where_date_commenced_not_null()
+    ->find_many();
+```
+
+This is useful when using IDE and you put in docblocks to inform the IDE of the functions existing.
+For example:
+
+```php
+/**
+ * @method static where_enabled($value) Add WHERE enabled = "$value"
+ * @method static where_enabled_not_equal($value) Add WHERE enabled != "$value"
+ * @method static where_enabled_like($value) Add WHERE enabled LIKE "$value"
+ * @method static where_enabled_not_like($value) Add WHERE enabled NOT LIKE "$value"
+ * @method static where_enabled_gt($value) Add WHERE enabled > "$value"
+ * @method static where_enabled_lt($value) Add WHERE enabled < "$value"
+ * @method static where_enabled_gte($value) Add WHERE enabled >= "$value"
+ * @method static where_enabled_lte($value) Add WHERE enabled <= "$value"
+ */
+```
+
+
+### Some built-in OR filters
+
+To reduce complexity of the OR filtering (below) a few shortened filters are available to check whether a field is NULL as well.
+
+For example:
+
+```php
+$items = User::where_lt_or_null('age', 5)
+    ->where_gt_or_null('age', 10)
+    ->where_gte_or_null('friends', 2)
+    ->where_lte_or_null('friends', 4)
+    ->where_not_in_or_null('age', [3, 4, 5])
+    ->find_many();
+```
+
 ### Using OR in filters
 
 Since the default is to reduce results by using AND's, we use the `where_any_is()` function to add a group of filters that are OR'd together.

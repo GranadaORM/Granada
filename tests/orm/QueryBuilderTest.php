@@ -298,6 +298,13 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testWhereNotInOrNull()
+    {
+        ORM::for_table('widget')->where_not_in_or_null('name', ['Fred', 'Joe'])->find_many();
+        $expected = "SELECT * FROM `widget` WHERE ( `name` NOT IN ('Fred', 'Joe') OR `name` IS NULL )";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
     public function testWhereNotInNoItems()
     {
         ORM::for_table('widget')->where_not_in('name', [])->find_many();

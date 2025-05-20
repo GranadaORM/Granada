@@ -341,7 +341,13 @@ class Wrapper extends ORM
             return call_user_func_array([$this->_class_name, 'filter_' . $method], $parameters);
         } elseif (substr($method, 0, 6) == 'where_') {
             $tablename = $this->_table_name . '.';
-            $end12     = substr($method, -12);
+            $end15     = substr($method, -15);
+            if ($end15 == '_not_in_or_null') {
+                $varname = substr($method, 6, -15);
+
+                return $this->where_not_in_or_null($tablename . $varname, $parameters[0]);
+            }
+            $end12 = substr($method, -12);
             if ($end12 == '_lte_or_null') {
                 $varname = substr($method, 6, -12);
 
