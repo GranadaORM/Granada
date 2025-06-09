@@ -136,6 +136,26 @@ For example:
  */
 ```
 
+### Subselects for in and not in
+
+Instead of doing multiple queries or raw queries to perform a subselect, you can send a filter to the list instead of an array and it will use a subselect at the database.
+
+For example, instead of:
+
+```php
+$items = User::where_id_in(
+    Invoice::where_is_paid(false)->find_pairs('user_id', 'user_id')
+)->find_many();
+// SELECT user_id FROM invoice WHERE is_paid = 0
+// SELECT * FROM user WHERE id IN (1,2,3,4,5,6,7,8,9,10)
+
+// Do instead
+$items = User::where_id_in(
+    Invoice::where_is_paid(false)->select('user_id')
+)->find_many();
+
+// SELECT * FROM user WHERE id IN (SELECT user_id FROM invoice WHERE is_paid = 0)
+```
 
 ### Some built-in OR filters
 

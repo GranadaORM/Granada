@@ -1600,7 +1600,12 @@ class ORM implements ArrayAccess
         if (!$values) {
             return $this->_add_where('0');
         }
-        $column_name  = $this->_quote_identifier($column_name);
+        $column_name = $this->_quote_identifier($column_name);
+
+        if (is_a($values, \Granada\Orm\Wrapper::class)) {
+            return $this->_add_where("{$column_name} IN ({$values->get_select_query()})");
+        }
+
         $placeholders = $this->_create_placeholders($values);
 
         return $this->_add_where("{$column_name} IN ({$placeholders})", $values);
@@ -1614,7 +1619,12 @@ class ORM implements ArrayAccess
     public function where_not_in($column_name, $values)
     {
         if ($values) {
-            $column_name  = $this->_quote_identifier($column_name);
+            $column_name = $this->_quote_identifier($column_name);
+
+            if (is_a($values, \Granada\Orm\Wrapper::class)) {
+                return $this->_add_where("{$column_name} NOT IN ({$values->get_select_query()})");
+            }
+
             $placeholders = $this->_create_placeholders($values);
 
             return $this->_add_where("{$column_name} NOT IN ({$placeholders})", $values);

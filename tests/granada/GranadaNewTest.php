@@ -557,6 +557,24 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertSame("SELECT * FROM `part` WHERE ( `part`.`name` NOT IN ('5', '6') OR `part`.`name` IS NULL )", ORM::get_last_query());
     }
 
+    public function testSubSelectIn()
+    {
+        Car::where_manufactor_id_in(
+            Manufactor::where_name('Manufactor2')->select('id')
+        )->find_many();
+
+        $this->assertSame("SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`manufactor_id` IN (SELECT `id` FROM `manufactor` WHERE `manufactor`.`name` = 'Manufactor2')", ORM::get_last_query());
+    }
+
+    public function testSubSelectNotIn()
+    {
+        Car::where_manufactor_id_not_in(
+            Manufactor::where_name('Manufactor2')->select('id')
+        )->find_many();
+
+        $this->assertSame("SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`manufactor_id` NOT IN (SELECT `id` FROM `manufactor` WHERE `manufactor`.`name` = 'Manufactor2')", ORM::get_last_query());
+    }
+
     public function testVarnameEqual()
     {
         $this->assertSame(
