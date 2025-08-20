@@ -46,7 +46,7 @@ use ArrayAccess;
  */
 
 /**
- * Model base class. Your mod el objects should extend
+ * Model base class. Your model objects should extend
  * this class. A minimal subclass would look like:
  *
  * class Widget extends Model {
@@ -687,3 +687,4 @@ class Granada implements ArrayAccess
         }
     }
 }
+
