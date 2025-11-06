@@ -450,7 +450,7 @@ class Granada implements ArrayAccess
      */
     public function __isset($property)
     {
-        return array_key_exists($property, $this->relationships) || $this->orm->__isset($property) || method_exists($this, $method = 'get_' . $property) || method_exists($this, $method = 'missing_' . $property);
+        return array_key_exists($property, $this->relationships) || $this->orm->__isset($property) || method_exists($this, 'get_' . $property) || method_exists($this, 'missing_' . $property) || method_exists($this, $property);
     }
 
     /**
@@ -687,4 +687,5 @@ class Granada implements ArrayAccess
         }
     }
 }
+
 
