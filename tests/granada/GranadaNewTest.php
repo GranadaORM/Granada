@@ -842,4 +842,11 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         ];
         $this->assertEquals($expected, $cars);
     }
+
+    public function testIsset()
+    {
+        $car = Model::factory('Car')->find_one();
+        $this->assertSame(true, isset($car->manufactor));
+        $this->assertSame('Manufactor1', $car->manufactor->name ?? 'Blank');
+    }
 }
