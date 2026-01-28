@@ -192,7 +192,10 @@ class Wrapper extends ORM
         $result = $this->_create_model_instance(parent::find_one($id));
         if ($result) {
             // set result on an result set for the eager load to work
-            $key     = (isset($result->{$this->_instance_id_column}) && $this->_associative_results) ? $result->id() : 0;
+            $has_id_column = isset($this->_instance_id_column);
+            $associative_results = $this->_associative_results;
+            $row_id = $result->id();
+            $key = ($has_id_column && $associative_results) ? $row_id : 0;
             $results = [$key => $result];
             Eager::hydrate($this, $results, self::$_config[$this->_connection_name]['return_result_sets']);
             // return the result as element, not result set
@@ -240,10 +243,14 @@ class Wrapper extends ORM
     protected function _get_instances($rows)
     {
         $instances = [];
+        $has_id_column = isset($this->_instance_id_column);
+        $associative_results = $this->_associative_results;
+
         foreach ($rows as $current_key => $current_row) {
             $row             = $this->_create_instance_from_row($current_row);
             $row             = $this->_create_model_instance($row);
-            $key             = (isset($row->{$this->_instance_id_column}) && $this->_associative_results && $row->id()) ? $row->id() : $current_key;
+            $id = $row->id();
+            $key = ($has_id_column && $associative_results && $id) ? $id : $current_key;
             $instances[$key] = $row;
         }
 
