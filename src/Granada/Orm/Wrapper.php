@@ -26,6 +26,35 @@ class Wrapper extends ORM
     public $relationships = [];
 
     /**
+     * static lookup tables for __call method suffix patterns
+     */
+    private static $_where_suffixes = [
+        '_not_in_or_null' => ['length' => 15, 'method' => 'where_not_in_or_null', 'timezone' => false],
+        '_lte_or_null' => ['length' => 12, 'method' => 'where_lte_or_null', 'timezone' => true],
+        '_gte_or_null' => ['length' => 12, 'method' => 'where_gte_or_null', 'timezone' => true],
+        '_lt_or_null' => ['length' => 11, 'method' => 'where_lt_or_null', 'timezone' => true],
+        '_gt_or_null' => ['length' => 11, 'method' => 'where_gt_or_null', 'timezone' => true],
+        '_not_equal' => ['length' => 10, 'method' => 'where_not_equal', 'timezone' => true],
+        '_not_like' => ['length' => 9, 'method' => 'where_not_like', 'timezone' => true],
+        '_not_null' => ['length' => 9, 'method' => 'where_not_null', 'timezone' => false],
+        '_not_in' => ['length' => 7, 'method' => 'where_not_in', 'timezone' => false],
+        '_like' => ['length' => 5, 'method' => 'where_like', 'timezone' => true],
+        '_null' => ['length' => 5, 'method' => 'where_null', 'timezone' => false],
+        '_gte' => ['length' => 4, 'method' => 'where_gte', 'timezone' => true],
+        '_lte' => ['length' => 4, 'method' => 'where_lte', 'timezone' => true],
+        '_gt' => ['length' => 3, 'method' => 'where_gt', 'timezone' => true],
+        '_lt' => ['length' => 3, 'method' => 'where_lt', 'timezone' => true],
+        '_in' => ['length' => 3, 'method' => 'where_in', 'timezone' => false],
+    ];
+
+    private static $_order_by_suffixes = [
+        '_natural_desc' => ['length' => 13, 'method' => '_order_by_natural_desc', 'direction' => 'desc'],
+        '_natural_asc' => ['length' => 12, 'method' => '_order_by_natural_asc', 'direction' => 'asc'],
+        '_desc' => ['length' => 5, 'method' => 'order_by_desc'],
+        '_asc' => ['length' => 4, 'method' => 'order_by_asc'],
+    ];
+
+    /**
      * Set the name of the class which the wrapped
      * methods should return instances of.
      * @param string $class_name
@@ -335,142 +364,105 @@ class Wrapper extends ORM
      */
     public function __call($method, $parameters)
     {
+        // Check for filter methods first (as they override)
         if (method_exists($this->_class_name, 'filter_' . $method)) {
             array_unshift($parameters, $this);
 
             return call_user_func_array([$this->_class_name, 'filter_' . $method], $parameters);
-        } elseif (substr($method, 0, 6) == 'where_') {
-            $tablename = $this->_table_name . '.';
-            $end15     = substr($method, -15);
-            if ($end15 == '_not_in_or_null') {
-                $varname = substr($method, 6, -15);
+        }
 
-                return $this->where_not_in_or_null($tablename . $varname, $parameters[0]);
-            }
-            $end12 = substr($method, -12);
-            if ($end12 == '_lte_or_null') {
-                $varname = substr($method, 6, -12);
-
-                return $this->where_lte_or_null($tablename . $varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
-            }
-            if ($end12 == '_gte_or_null') {
-                $varname = substr($method, 6, -12);
-
-                return $this->where_gte_or_null($tablename . $varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
-            }
-            $end11 = substr($method, -11);
-            if ($end11 == '_lt_or_null') {
-                $varname = substr($method, 6, -11);
-
-                return $this->where_lt_or_null($tablename . $varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
-            }
-            if ($end11 == '_gt_or_null') {
-                $varname = substr($method, 6, -11);
-
-                return $this->where_gt_or_null($tablename . $varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
-            }
-            $end10 = substr($method, -10);
-            if ($end10 == '_not_equal') {
-                $varname = substr($method, 6, -10);
-
-                return $this->where_not_equal($tablename . $varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
-            }
-            $end9 = substr($method, -9);
-            if ($end9 == '_not_like') {
-                $varname = substr($method, 6, -9);
-
-                return $this->where_not_like($tablename . $varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
-            }
-            if ($end9 == '_not_null') {
-                $varname = substr($method, 6, -9);
-
-                return $this->where_not_null($tablename . $varname);
-            }
-            $end7 = substr($method, -7);
-            if ($end7 == '_not_in') {
-                $varname = substr($method, 6, -7);
-
-                return $this->where_not_in($tablename . $varname, $parameters[0]);
-            }
-            $end5 = substr($method, -5);
-            if ($end5 == '_like') {
-                $varname = substr($method, 6, -5);
-
-                return $this->where_like($tablename . $varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
-            }
-            if ($end5 == '_null') {
-                $varname = substr($method, 6, -5);
-
-                return $this->where_null($tablename . $varname);
-            }
-            $end4 = substr($method, -4);
-            if ($end4 == '_gte') {
-                $varname = substr($method, 6, -4);
-
-                return $this->where_gte($tablename . $varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
-            }
-            if ($end4 == '_lte') {
-                $varname = substr($method, 6, -4);
-
-                return $this->where_lte($tablename . $varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
-            }
-            $end3 = substr($method, -3);
-            if ($end3 == '_gt') {
-                $varname = substr($method, 6, -3);
-
-                return $this->where_gt($tablename . $varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
-            }
-            if ($end3 == '_lt') {
-                $varname = substr($method, 6, -3);
-
-                return $this->where_lt($tablename . $varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
-            }
-            if ($end3 == '_in') {
-                $varname = substr($method, 6, -3);
-
-                return $this->where_in($tablename . $varname, $parameters[0]);
-            }
-            $varname = substr($method, 6);
-
-            return $this->where_equal($tablename . $varname, $this->adjustTimezoneForWhere($varname, $parameters[0]));
-        } elseif ($method == 'order_by_rand') {
+        // Handle special order_by methods
+        if ($method === 'order_by_rand') {
             return $this->order_by_expr('RAND()');
-        } elseif ($method == 'order_by_list') {
+        }
+
+        if ($method === 'order_by_list') {
             if ($parameters[1]) {
                 return $this->order_by_expr('FIELD(`' . $parameters[0] . '`,' . implode(',', $parameters[1]) . ')');
             }
 
             return $this;
-        } elseif (substr($method, 0, 9) == 'order_by_') {
-            if (substr($method, -13) == '_natural_desc') {
-                $varname = substr($method, 9, -13);
-
-                return $this->order_by_expr($expression = 'LENGTH(`' . $varname . '`), `' . $varname . '` DESC');
-            }
-            if (substr($method, -12) == '_natural_asc') {
-                $varname = substr($method, 9, -12);
-
-                return $this->order_by_expr($expression = 'LENGTH(`' . $varname . '`), `' . $varname . '` ASC');
-            }
-            if (substr($method, -5) == '_desc') {
-                $varname = substr($method, 9, -5);
-
-                return $this->order_by_desc($varname);
-            }
-            if (substr($method, -4) == '_asc') {
-                $varname = substr($method, 9, -4);
-
-                return $this->order_by_asc($varname);
-            }
-            $varname = substr($method, 9);
-
-            return $this->order_by_asc($varname);
         }
+
+        // Handle where_*
+        if (str_starts_with($method, 'where_')) {
+            return $this->_handleWhereMethod($method, $parameters);
+        }
+
+        // Handle order_by_*
+        if (str_starts_with($method, 'order_by_')) {
+            return $this->_handleOrderByMethod($method, $parameters);
+        }
+
+        // Fallback: convert camelCase to snake_case and check if method exists
         $underscore_method = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $method));
         if (method_exists($this, $underscore_method)) {
             return call_user_func_array([$this, $underscore_method], $parameters);
         }
 
         throw new Exception(" no static $method found or static method 'filter_$method' not defined in " . $this->_class_name);
+    }
+
+    /**
+     * Performance optimized handler for where_* methods
+     */
+    private function _handleWhereMethod($method, $parameters)
+    {
+        $tablename = $this->_table_name . '.';
+        $method_name = substr($method, 6);
+
+        foreach (self::$_where_suffixes as $suffix => $config) {
+            if (str_ends_with($method_name, $suffix)) {
+                $varname = substr($method_name, 0, -$config['length']);
+                $column_name = $tablename . $varname;
+
+                $target_method = $config['method'];
+                $needs_timezone = $config['timezone'] ?? false;
+
+                if ($needs_timezone && isset($parameters[0])) {
+                    $parameters[0] = $this->adjustTimezoneForWhere($varname, $parameters[0]);
+                }
+
+                if (isset($parameters[0])) {
+                    return call_user_func([$this, $target_method], $column_name, $parameters[0]);
+                } else {
+                    return call_user_func([$this, $target_method], $column_name);
+                }
+            }
+        }
+
+        $varname = $method_name;
+        $column_name = $tablename . $varname;
+
+        $adjusted_value = isset($parameters[0]) ? $this->adjustTimezoneForWhere($varname, $parameters[0]) : null;
+        return $this->where_equal($column_name, $adjusted_value);
+    }
+
+    /**
+     * Performance optimized handler for order_by_* methods
+     */
+    private function _handleOrderByMethod($method, $parameters)
+    {
+        $method_name = substr($method, 9);
+
+        foreach (self::$_order_by_suffixes as $suffix => $config) {
+            if (str_ends_with($method_name, $suffix)) {
+                $varname = substr($method_name, 0, -$config['length']);
+                $target_method = $config['method'];
+
+                if ($target_method === '_order_by_natural_desc') {
+                    return $this->order_by_expr('LENGTH(`' . $varname . '`), `' . $varname . '` DESC');
+                }
+                if ($target_method === '_order_by_natural_asc') {
+                    return $this->order_by_expr('LENGTH(`' . $varname . '`), `' . $varname . '` ASC');
+                }
+
+                return call_user_func([$this, $target_method], $varname);
+            }
+        }
+
+        $varname = $method_name;
+
+        return $this->order_by_asc($varname);
     }
 }
