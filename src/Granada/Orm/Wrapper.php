@@ -288,9 +288,9 @@ class Wrapper extends ORM
      *
      * @return Wrapper
      */
-    public function with()
+    public function with(...$args)
     {
-        $this->relationships = array_merge($this->relationships, func_get_args());
+        array_push($this->relationships, ...$args);
 
         return $this;
     }
