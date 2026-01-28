@@ -73,11 +73,10 @@ class Wrapper extends ORM
      * after the name of the filter will be passed to the called
      * filter function as arguments after the ORM class.
      */
-    public function filter()
+    public function filter($filter_function, ...$args)
     {
-        $args            = func_get_args();
-        $filter_function = array_shift($args);
         array_unshift($args, $this);
+
         if (method_exists($this->_class_name, $filter_function)) {
             return call_user_func_array([$this->_class_name, $filter_function], $args);
         }
