@@ -172,8 +172,8 @@ class Wrapper extends ORM
     public function insert($rows, $ignore = false)
     {
         ORM::get_db()->beginTransaction();
+        $class = $this->_class_name;
         foreach ($rows as $row) {
-            $class = $this->_class_name;
             $class::create($row)->save($ignore);
         }
         ORM::get_db()->commit();
