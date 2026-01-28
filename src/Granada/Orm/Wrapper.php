@@ -346,10 +346,14 @@ class Wrapper extends ORM
         return $output;
     }
 
+    private static $_has_timezone_adjustment_cache = [];
+
     public function adjustTimezoneForWhere($varname, $parameters)
     {
         $classname = $this->_class_name;
-        if (method_exists($classname, 'adjustTimezoneForWhere')) {
+        self::$_has_timezone_adjustment_cache[$classname] ??= method_exists($classname, 'adjustTimezoneForWhere');
+
+        if (self::$_has_timezone_adjustment_cache[$classname]) {
             return (new $classname())->adjustTimezoneForWhere($varname, $parameters);
         }
 
