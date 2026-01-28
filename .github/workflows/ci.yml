@@ -1,6 +1,6 @@
 name: CI
 
-# to run locally: act -P ubuntu-latest=shivammathur/node:latest
+# to run locally: act -P ubuntu-latest=shivammathur/setup-php@v2 -j shivammathur/node:latest -W ci.yml
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 
 jobs:
   php-tests:
+    needs: code-style
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -18,7 +19,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -32,4 +32,3 @@ jobs:
 
       - name: Execute tests
         run: vendor/bin/phpunit
-
