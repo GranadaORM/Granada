@@ -1,6 +1,14 @@
 <?php
 
 return (new PhpCsFixer\Config())
+   ->setFinder(PhpCsFixer\Finder::create()
+        ->in(__DIR__)
+        ->exclude('vendor')
+        ->exclude('.github')
+        ->name('*.php')
+        ->ignoreDotFiles(true)
+        ->ignoreVCS(true)
+    )
     ->setRiskyAllowed(true)
     ->setRules([
         '@PER-CS'                 => true,

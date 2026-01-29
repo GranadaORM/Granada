@@ -291,8 +291,8 @@ class ORM implements ArrayAccess
     protected static function _setup_db($connection_name = self::DEFAULT_CONNECTION)
     {
         if (
-            !array_key_exists($connection_name, self::$_db) ||
-            !is_object(self::$_db[$connection_name])
+            !array_key_exists($connection_name, self::$_db)
+            || !is_object(self::$_db[$connection_name])
         ) {
             self::_setup_db_config($connection_name);
 
@@ -1982,8 +1982,8 @@ class ORM implements ArrayAccess
         $result_columns = join(', ', $this->_result_columns);
 
         if (
-            !is_null($this->_limit) &&
-            self::$_config[$this->_connection_name]['limit_clause_style'] === ORM::LIMIT_STYLE_TOP_N
+            !is_null($this->_limit)
+            && self::$_config[$this->_connection_name]['limit_clause_style'] === ORM::LIMIT_STYLE_TOP_N
         ) {
             $fragment .= "TOP {$this->_limit} ";
         }
@@ -2082,8 +2082,8 @@ class ORM implements ArrayAccess
     {
         $fragment = '';
         if (
-            !is_null($this->_limit) &&
-            self::$_config[$this->_connection_name]['limit_clause_style'] == ORM::LIMIT_STYLE_LIMIT
+            !is_null($this->_limit)
+            && self::$_config[$this->_connection_name]['limit_clause_style'] == ORM::LIMIT_STYLE_LIMIT
         ) {
             if (self::$_db[$this->_connection_name]->getAttribute(PDO::ATTR_DRIVER_NAME) == 'firebird') {
                 $fragment = 'ROWS';
@@ -2161,8 +2161,8 @@ class ORM implements ArrayAccess
         $quote_character = self::$_config[$this->_connection_name]['identifier_quote_character'];
 
         // double up any identifier quotes to escape them
-        return $quote_character .
-            str_replace(
+        return $quote_character
+            . str_replace(
                 $quote_character,
                 $quote_character . $quote_character,
                 $part

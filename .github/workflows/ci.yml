@@ -7,8 +7,44 @@ on:
   pull_request:
 
 jobs:
+  code-style:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, pdo, sqlite, pdo_sqlite
+          coverage: none
+
+      - name: Run composer install
+        run: composer install
+
+      - name: Check code style
+        run: |
+          vendor/bin/php-cs-fixer fix --verbose
+        shell: bash
+
+      - name: Commit code style fixes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config --global user.name "PHP CS Fixer"
+            git config --global user.email "php-cs-fixer@github.com"
+            git add -A
+            git commit -m "Auto-fix PHP code style [ci skip]"
+            git push
+          fi
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+
   php-tests:
-    needs: code-style
+    needs: [code-style]
     runs-on: ubuntu-latest
     strategy:
       matrix:
