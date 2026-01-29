@@ -30,28 +30,28 @@ class Wrapper extends ORM
      */
     private static $_where_suffixes = [
         '_not_in_or_null' => ['length' => 15, 'method' => 'where_not_in_or_null', 'timezone' => false],
-        '_lte_or_null' => ['length' => 12, 'method' => 'where_lte_or_null', 'timezone' => true],
-        '_gte_or_null' => ['length' => 12, 'method' => 'where_gte_or_null', 'timezone' => true],
-        '_lt_or_null' => ['length' => 11, 'method' => 'where_lt_or_null', 'timezone' => true],
-        '_gt_or_null' => ['length' => 11, 'method' => 'where_gt_or_null', 'timezone' => true],
-        '_not_equal' => ['length' => 10, 'method' => 'where_not_equal', 'timezone' => true],
-        '_not_like' => ['length' => 9, 'method' => 'where_not_like', 'timezone' => true],
-        '_not_null' => ['length' => 9, 'method' => 'where_not_null', 'timezone' => false],
-        '_not_in' => ['length' => 7, 'method' => 'where_not_in', 'timezone' => false],
-        '_like' => ['length' => 5, 'method' => 'where_like', 'timezone' => true],
-        '_null' => ['length' => 5, 'method' => 'where_null', 'timezone' => false],
-        '_gte' => ['length' => 4, 'method' => 'where_gte', 'timezone' => true],
-        '_lte' => ['length' => 4, 'method' => 'where_lte', 'timezone' => true],
-        '_gt' => ['length' => 3, 'method' => 'where_gt', 'timezone' => true],
-        '_lt' => ['length' => 3, 'method' => 'where_lt', 'timezone' => true],
-        '_in' => ['length' => 3, 'method' => 'where_in', 'timezone' => false],
+        '_lte_or_null'    => ['length' => 12, 'method' => 'where_lte_or_null', 'timezone' => true],
+        '_gte_or_null'    => ['length' => 12, 'method' => 'where_gte_or_null', 'timezone' => true],
+        '_lt_or_null'     => ['length' => 11, 'method' => 'where_lt_or_null', 'timezone' => true],
+        '_gt_or_null'     => ['length' => 11, 'method' => 'where_gt_or_null', 'timezone' => true],
+        '_not_equal'      => ['length' => 10, 'method' => 'where_not_equal', 'timezone' => true],
+        '_not_like'       => ['length' => 9, 'method' => 'where_not_like', 'timezone' => true],
+        '_not_null'       => ['length' => 9, 'method' => 'where_not_null', 'timezone' => false],
+        '_not_in'         => ['length' => 7, 'method' => 'where_not_in', 'timezone' => false],
+        '_like'           => ['length' => 5, 'method' => 'where_like', 'timezone' => true],
+        '_null'           => ['length' => 5, 'method' => 'where_null', 'timezone' => false],
+        '_gte'            => ['length' => 4, 'method' => 'where_gte', 'timezone' => true],
+        '_lte'            => ['length' => 4, 'method' => 'where_lte', 'timezone' => true],
+        '_gt'             => ['length' => 3, 'method' => 'where_gt', 'timezone' => true],
+        '_lt'             => ['length' => 3, 'method' => 'where_lt', 'timezone' => true],
+        '_in'             => ['length' => 3, 'method' => 'where_in', 'timezone' => false],
     ];
 
     private static $_order_by_suffixes = [
         '_natural_desc' => ['length' => 13, 'method' => '_order_by_natural_desc', 'direction' => 'desc'],
-        '_natural_asc' => ['length' => 12, 'method' => '_order_by_natural_asc', 'direction' => 'asc'],
-        '_desc' => ['length' => 5, 'method' => 'order_by_desc'],
-        '_asc' => ['length' => 4, 'method' => 'order_by_asc'],
+        '_natural_asc'  => ['length' => 12, 'method' => '_order_by_natural_asc', 'direction' => 'asc'],
+        '_desc'         => ['length' => 5, 'method' => 'order_by_desc'],
+        '_asc'          => ['length' => 4, 'method' => 'order_by_asc'],
     ];
 
     /**
@@ -192,11 +192,11 @@ class Wrapper extends ORM
         $result = $this->_create_model_instance(parent::find_one($id));
         if ($result) {
             // set result on an result set for the eager load to work
-            $has_id_column = isset($this->_instance_id_column);
+            $has_id_column       = isset($this->_instance_id_column);
             $associative_results = $this->_associative_results;
-            $row_id = $result->id();
-            $key = ($has_id_column && $associative_results) ? $row_id : 0;
-            $results = [$key => $result];
+            $row_id              = $result->id();
+            $key                 = ($has_id_column && $associative_results) ? $row_id : 0;
+            $results             = [$key => $result];
             Eager::hydrate($this, $results, self::$_config[$this->_connection_name]['return_result_sets']);
             // return the result as element, not result set
             $result = $results[$key];
@@ -242,15 +242,15 @@ class Wrapper extends ORM
      */
     protected function _get_instances($rows)
     {
-        $instances = [];
-        $has_id_column = isset($this->_instance_id_column);
+        $instances           = [];
+        $has_id_column       = isset($this->_instance_id_column);
         $associative_results = $this->_associative_results;
 
         foreach ($rows as $current_key => $current_row) {
             $row             = $this->_create_instance_from_row($current_row);
             $row             = $this->_create_model_instance($row);
-            $id = $row->id();
-            $key = ($has_id_column && $associative_results && $id) ? $id : $current_key;
+            $id              = $row->id();
+            $key             = ($has_id_column && $associative_results && $id) ? $id : $current_key;
             $instances[$key] = $row;
         }
 
@@ -418,15 +418,15 @@ class Wrapper extends ORM
      */
     private function _handleWhereMethod($method, $parameters)
     {
-        $tablename = $this->_table_name . '.';
+        $tablename   = $this->_table_name . '.';
         $method_name = substr($method, 6);
 
         foreach (self::$_where_suffixes as $suffix => $config) {
             if (str_ends_with($method_name, $suffix)) {
-                $varname = substr($method_name, 0, -$config['length']);
+                $varname     = substr($method_name, 0, -$config['length']);
                 $column_name = $tablename . $varname;
 
-                $target_method = $config['method'];
+                $target_method  = $config['method'];
                 $needs_timezone = $config['timezone'] ?? false;
 
                 if ($needs_timezone && isset($parameters[0])) {
@@ -435,16 +435,17 @@ class Wrapper extends ORM
 
                 if (isset($parameters[0])) {
                     return call_user_func([$this, $target_method], $column_name, $parameters[0]);
-                } else {
-                    return call_user_func([$this, $target_method], $column_name);
                 }
+
+                    return call_user_func([$this, $target_method], $column_name);
             }
         }
 
-        $varname = $method_name;
+        $varname     = $method_name;
         $column_name = $tablename . $varname;
 
         $adjusted_value = isset($parameters[0]) ? $this->adjustTimezoneForWhere($varname, $parameters[0]) : null;
+
         return $this->where_equal($column_name, $adjusted_value);
     }
 
@@ -457,7 +458,7 @@ class Wrapper extends ORM
 
         foreach (self::$_order_by_suffixes as $suffix => $config) {
             if (str_ends_with($method_name, $suffix)) {
-                $varname = substr($method_name, 0, -$config['length']);
+                $varname       = substr($method_name, 0, -$config['length']);
                 $target_method = $config['method'];
 
                 if ($target_method === '_order_by_natural_desc') {

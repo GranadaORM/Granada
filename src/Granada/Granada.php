@@ -358,12 +358,12 @@ class Granada implements ArrayAccess
         $join_table_name       = self::_get_table_name(self::$auto_prefix_models . $join_class_name);
 
         // Get ID column names
-        $base_table_id_column = (is_null($key_in_base_table)) ?
-            self::_get_id_column_name($base_class_name) :
-            $key_in_base_table;
-        $associated_table_id_column = (is_null($key_in_associated_table)) ?
-            self::_get_id_column_name(self::$auto_prefix_models . $associated_class_name) :
-            $key_in_associated_table;
+        $base_table_id_column = (is_null($key_in_base_table))
+            ? self::_get_id_column_name($base_class_name)
+            : $key_in_base_table;
+        $associated_table_id_column = (is_null($key_in_associated_table))
+            ? self::_get_id_column_name(self::$auto_prefix_models . $associated_class_name)
+            : $key_in_associated_table;
 
         // Get the column names for each side of the join table
         $key_to_base_table       = self::_build_foreign_key_name($key_to_base_table, $base_table_name);
@@ -687,5 +687,3 @@ class Granada implements ArrayAccess
         }
     }
 }
-
-
