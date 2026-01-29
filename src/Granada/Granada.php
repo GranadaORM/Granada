@@ -413,7 +413,7 @@ class Granada implements ArrayAccess
      */
     public function __get($property)
     {
-        $class = static::class;
+        $class  = static::class;
         $result = $this->orm->get($property);
 
         if ($result !== null) {
@@ -467,7 +467,7 @@ class Granada implements ArrayAccess
             return true;
         }
 
-        $class = static::class;
+        $class          = static::class;
         $prefix_methods = ['get_', 'missing_', ''];
         foreach ($prefix_methods as $prefix) {
             $method = $prefix . $property;
