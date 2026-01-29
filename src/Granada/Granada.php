@@ -121,14 +121,7 @@ class Granada implements ArrayAccess
     public $_isFirstResult = false;
     public $_isLastResult  = false;
 
-    private function has_method(string $method): bool
-    {
-        static $method_exists_cache = [];
-        $class                      = static::class;
-        $method_exists_cache[$class][$method] ??= method_exists($this, $method);
-
-        return $method_exists_cache[$class][$method];
-    }
+    private static $_has_method = [];
 
     /**
      * Retrieve the value of a static property on a class. If the
@@ -420,11 +413,13 @@ class Granada implements ArrayAccess
      */
     public function __get($property)
     {
+        $class = static::class;
         $result = $this->orm->get($property);
 
         if ($result !== null) {
             $method = 'get_' . $property;
-            if ($this->has_method($method)) {
+            self::$_has_method[$class][$method] ??= method_exists($this, $method);
+            if (self::$_has_method[$class][$method]) {
                 return $this->$method($result);
             }
 
@@ -432,7 +427,8 @@ class Granada implements ArrayAccess
         }
 
         $method = 'missing_' . $property;
-        if ($this->has_method($method)) {
+        self::$_has_method[$class][$method] ??= method_exists($this, $method);
+        if (self::$_has_method[$class][$method]) {
             return $this->$method();
         }
 
@@ -441,8 +437,9 @@ class Granada implements ArrayAccess
         }
 
         $method = $property;
-        if ($this->has_method($method)) {
-            if ($property != self::_get_id_column_name(static::class)) {
+        self::$_has_method[$class][$method] ??= method_exists($this, $method);
+        if (self::$_has_method[$class][$method]) {
+            if ($property != self::_get_id_column_name($class)) {
                 $relation = $this->$property();
 
                 return $this->relationships[$property] = (in_array($this->relating, ['has_one', 'belongs_to'])) ? $relation->find_one() : $relation->find_many();
@@ -470,10 +467,12 @@ class Granada implements ArrayAccess
             return true;
         }
 
+        $class = static::class;
         $prefix_methods = ['get_', 'missing_', ''];
         foreach ($prefix_methods as $prefix) {
             $method = $prefix . $property;
-            if ($this->has_method($method)) {
+            self::$_has_method[$class][$method] ??= method_exists($this, $method);
+            if (self::$_has_method[$class][$method]) {
                 return true;
             }
         }
