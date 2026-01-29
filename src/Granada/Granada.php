@@ -121,6 +121,14 @@ class Granada implements ArrayAccess
     public $_isFirstResult = false;
     public $_isLastResult  = false;
 
+    private function has_method(string $method): bool
+    {
+        static $method_exists_cache = [];
+        $class = static::class;
+        $method_exists_cache[$class][$method] ??= method_exists($this, $method);
+        return $method_exists_cache[$class][$method];
+    }
+
     /**
      * Retrieve the value of a static property on a class. If the
      * class or the property does not exist, returns the default
@@ -414,23 +422,30 @@ class Granada implements ArrayAccess
         $result = $this->orm->get($property);
 
         if ($result !== null) {
-            if (method_exists($this, $method = 'get_' . $property)) {
+            $method = 'get_' . $property;
+            if ($this->has_method($method)) {
                 return $this->$method($result);
             }
 
             return $result;
-        } elseif (method_exists($this, $method = 'missing_' . $property)) {
+        }
+
+        $method = 'missing_' . $property;
+        if ($this->has_method($method)) {
             return $this->$method();
-        } elseif (array_key_exists($property, $this->relationships)) {
+        }
+
+        if (array_key_exists($property, $this->relationships)) {
             return $this->relationships[$property];
-        } elseif (method_exists($this, $property)) {
-            if ($property != self::_get_id_column_name(get_class($this))) {
+        }
+
+        $method = $property;
+        if ($this->has_method($method)) {
+            if ($property != self::_get_id_column_name(static::class)) {
                 $relation = $this->$property();
 
                 return $this->relationships[$property] = (in_array($this->relating, ['has_one', 'belongs_to'])) ? $relation->find_one() : $relation->find_many();
             }
-
-            return null;
         }
 
         return null;
@@ -450,7 +465,19 @@ class Granada implements ArrayAccess
      */
     public function __isset($property)
     {
-        return array_key_exists($property, $this->relationships) || $this->orm->__isset($property) || method_exists($this, 'get_' . $property) || method_exists($this, 'missing_' . $property) || method_exists($this, $property);
+        if (array_key_exists($property, $this->relationships)) {
+            return true;
+        }
+
+        $prefix_methods = ['get_', 'missing_', ''];
+        foreach ($prefix_methods as $prefix) {
+            $method = $prefix . $property;
+            if ($this->has_method($method)) {
+                return true;
+            }
+        }
+
+        return $this->orm->__isset($property);
     }
 
     /**
