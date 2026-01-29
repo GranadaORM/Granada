@@ -124,8 +124,9 @@ class Granada implements ArrayAccess
     private function has_method(string $method): bool
     {
         static $method_exists_cache = [];
-        $class = static::class;
+        $class                      = static::class;
         $method_exists_cache[$class][$method] ??= method_exists($this, $method);
+
         return $method_exists_cache[$class][$method];
     }
 
