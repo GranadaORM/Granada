@@ -979,8 +979,11 @@ class ORM implements ArrayAccess
         foreach ($columns as $column) {
             if ($column == '*') {
                 if (!$this->_using_default_result_columns) {
-                    // Put the * to the front of the list
-                    $this->_result_columns = array_merge(['*'], $this->_result_columns);
+                    // Check if we are already selecting '*'
+                    if (($this->_result_columns[\array_key_first($this->_result_columns)] ?? '') != '*') {
+                        // Put the * to the front of the list
+                        $this->_result_columns = array_merge(['*'], $this->_result_columns);
+                    }
                 }
             } else {
                 $column = $this->_quote_identifier($column);
