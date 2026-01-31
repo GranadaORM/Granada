@@ -121,8 +121,6 @@ class Granada implements ArrayAccess
     public $_isFirstResult = false;
     public $_isLastResult  = false;
 
-    private static $_has_method = [];
-
     /**
      * Retrieve the value of a static property on a class. If the
      * class or the property does not exist, returns the default
@@ -418,8 +416,7 @@ class Granada implements ArrayAccess
 
         if ($result !== null) {
             $method = 'get_' . $property;
-            self::$_has_method[$class][$method] ??= method_exists($this, $method);
-            if (self::$_has_method[$class][$method]) {
+            if(method_exists($this, $method)) {
                 return $this->$method($result);
             }
 
@@ -427,8 +424,7 @@ class Granada implements ArrayAccess
         }
 
         $method = 'missing_' . $property;
-        self::$_has_method[$class][$method] ??= method_exists($this, $method);
-        if (self::$_has_method[$class][$method]) {
+        if(method_exists($this, $method)){
             return $this->$method();
         }
 
@@ -437,8 +433,7 @@ class Granada implements ArrayAccess
         }
 
         $method = $property;
-        self::$_has_method[$class][$method] ??= method_exists($this, $method);
-        if (self::$_has_method[$class][$method]) {
+        if(method_exists($this, $method)){
             if ($property != self::_get_id_column_name($class)) {
                 $relation = $this->$property();
 
@@ -471,8 +466,7 @@ class Granada implements ArrayAccess
         $prefix_methods = ['get_', 'missing_', ''];
         foreach ($prefix_methods as $prefix) {
             $method = $prefix . $property;
-            self::$_has_method[$class][$method] ??= method_exists($this, $method);
-            if (self::$_has_method[$class][$method]) {
+            if(method_exists($this, $method)){
                 return true;
             }
         }
