@@ -465,7 +465,6 @@ class Granada implements ArrayAccess
         return true;
         }
 
-        $class          = static::class;
         $prefix_methods = ['get_', 'missing_', ''];
         foreach ($prefix_methods as $prefix) {
             $method = $prefix . $property;
