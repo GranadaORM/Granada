@@ -467,7 +467,7 @@ class Granada implements ArrayAccess
 
         $prefix_methods = ['get_', 'missing_', ''];
         foreach ($prefix_methods as $prefix) {
-            if (method_exists($this, $prefix.$property)) {
+            if (method_exists($this, $prefix . $property)) {
                 return true;
             }
         }
