@@ -461,6 +461,7 @@ class Granada implements ArrayAccess
         if (array_key_exists($property, $this->relationships)) {
             return true;
         }
+        if ($this->orm->__isset($property)) return true;
 
         $class          = static::class;
         $prefix_methods = ['get_', 'missing_', ''];
@@ -471,7 +472,7 @@ class Granada implements ArrayAccess
             }
         }
 
-        return $this->orm->__isset($property);
+        return false;
     }
 
     /**
