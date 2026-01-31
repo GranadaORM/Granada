@@ -416,7 +416,7 @@ class Granada implements ArrayAccess
 
         if ($result !== null) {
             $method = 'get_' . $property;
-            if(method_exists($this, $method)) {
+            if (method_exists($this, $method)) {
                 return $this->$method($result);
             }
 
@@ -424,7 +424,7 @@ class Granada implements ArrayAccess
         }
 
         $method = 'missing_' . $property;
-        if(method_exists($this, $method)){
+        if (method_exists($this, $method)) {
             return $this->$method();
         }
 
@@ -433,7 +433,7 @@ class Granada implements ArrayAccess
         }
 
         $method = $property;
-        if(method_exists($this, $method)){
+        if (method_exists($this, $method)) {
             if ($property != self::_get_id_column_name($class)) {
                 $relation = $this->$property();
 
@@ -466,7 +466,7 @@ class Granada implements ArrayAccess
         $prefix_methods = ['get_', 'missing_', ''];
         foreach ($prefix_methods as $prefix) {
             $method = $prefix . $property;
-            if(method_exists($this, $method)){
+            if (method_exists($this, $method)) {
                 return true;
             }
         }
