@@ -462,7 +462,7 @@ class Granada implements ArrayAccess
             return true;
         }
         if ($this->orm->__isset($property)) {
-        return true;
+            return true;
         }
 
         $prefix_methods = ['get_', 'missing_', ''];
