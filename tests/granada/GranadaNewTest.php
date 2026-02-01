@@ -527,6 +527,24 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertSame('SELECT * FROM `part` ORDER BY LENGTH(`name`), `name` DESC', ORM::get_last_query());
     }
 
+    public function testVarnameNotEqual()
+    {
+        Part::where_name_not_equal(5)->find_many();
+        $this->assertSame("SELECT * FROM `part` WHERE `part`.`name` != '5'", ORM::get_last_query());
+    }
+
+    public function testVarnameNotNull()
+    {
+        Part::where_name_not_null()->find_many();
+        $this->assertSame('SELECT * FROM `part` WHERE `part`.`name` IS NOT NULL', ORM::get_last_query());
+    }
+
+    public function testVarnameNotEqualNull()
+    {
+        Part::where_name_not_equal(null)->find_many();
+        $this->assertSame('SELECT * FROM `part` WHERE `part`.`name` IS NOT NULL', ORM::get_last_query());
+    }
+
     public function testVarnameLtOrNULL()
     {
         Part::where_name_lt_or_null(5)->find_many();

@@ -433,11 +433,11 @@ class Wrapper extends ORM
                     $parameters[0] = $this->adjustTimezoneForWhere($varname, $parameters[0]);
                 }
 
-                if (isset($parameters[0])) {
+                if (count($parameters)) {
                     return call_user_func([$this, $target_method], $column_name, $parameters[0]);
                 }
 
-                    return call_user_func([$this, $target_method], $column_name);
+                return call_user_func([$this, $target_method], $column_name);
             }
         }
 
