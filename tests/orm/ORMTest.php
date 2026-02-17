@@ -184,4 +184,14 @@ class ORMTest extends \PHPUnit\Framework\TestCase
             $this->assertEquals($expected, ORM::get_last_query());
         }
     }
+
+    public function testDuplicateFilters()
+    {
+        $cars_query = ORM::for_table('car')
+            ->where('name', 'ABC')
+            ->where('name', 'ABC')
+            ->get_select_query();
+
+        $this->assertSame("SELECT * FROM `car` WHERE `name` = 'ABC'", $cars_query);
+    }
 }

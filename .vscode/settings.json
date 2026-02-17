@@ -4,6 +4,7 @@
   "intelephense.environment.shortOpenTag": false,
   "intelephense.format.braces": "per",
   "intelephense.phpdoc.useFullyQualifiedNames": true,
+  "intelephense.inlayHint.parameterNames": false,
   "php.suggest.basic": false,
   "prettier.enable": false,
   "files.exclude": {
