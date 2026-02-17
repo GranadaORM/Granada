@@ -961,7 +961,9 @@ class ORM implements ArrayAccess
             $this->_result_columns               = [$expr];
             $this->_using_default_result_columns = false;
         } else {
-            $this->_result_columns[] = $expr;
+            if (!in_array($expr, $this->_result_columns)) {
+                $this->_result_columns[] = $expr;
+            }
         }
 
         return $this;
@@ -1245,10 +1247,15 @@ class ORM implements ArrayAccess
         if (!is_array($values)) {
             $values = [$values];
         }
-        array_push($this->$conditions_class_property_name, [
+        $filter = [
             self::CONDITION_FRAGMENT => $fragment,
             self::CONDITION_VALUES   => $values,
-        ]);
+        ];
+        if (in_array($filter, $this->$conditions_class_property_name)) {
+            // Condition already exists, de-dupe
+            return $this;
+        }
+        array_push($this->$conditions_class_property_name, $filter);
 
         return $this;
     }
