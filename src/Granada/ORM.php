@@ -961,7 +961,9 @@ class ORM implements ArrayAccess
             $this->_result_columns               = [$expr];
             $this->_using_default_result_columns = false;
         } else {
-            $this->_result_columns[] = $expr;
+            if (!in_array($expr, $this->_result_columns)) {
+                $this->_result_columns[] = $expr;
+            }
         }
 
         return $this;

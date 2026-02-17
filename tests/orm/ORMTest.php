@@ -194,4 +194,15 @@ class ORMTest extends \PHPUnit\Framework\TestCase
 
         $this->assertSame("SELECT * FROM `car` WHERE `name` = 'ABC'", $cars_query);
     }
+
+    public function testDuplicateSelect()
+    {
+        $cars_query = ORM::for_table('car')
+            ->select('id')
+            ->select('name')
+            ->select('id')
+            ->get_select_query();
+
+        $this->assertSame("SELECT `id`, `name` FROM `car`", $cars_query);
+    }
 }
