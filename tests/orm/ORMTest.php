@@ -203,6 +203,6 @@ class ORMTest extends \PHPUnit\Framework\TestCase
             ->select('id')
             ->get_select_query();
 
-        $this->assertSame("SELECT `id`, `name` FROM `car`", $cars_query);
+        $this->assertSame('SELECT `id`, `name` FROM `car`', $cars_query);
     }
 }
