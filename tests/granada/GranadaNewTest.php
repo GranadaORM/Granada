@@ -134,6 +134,38 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($expected, $pairs);
     }
 
+    public function testfindPairsNull()
+    {
+        // Add a null named car
+        $car = Model::factory('Car')->create([
+            'id'         => 70,
+            'is_deleted' => 0,
+        ]);
+        $car->save();
+
+        // Test id => name
+        $pairs    = Car::find_pairs('id', 'name');
+        $expected = [
+            '1'  => 'Car1',
+            '2'  => 'Car2',
+            '3'  => 'Car3',
+            '4'  => 'Car4',
+            '6'  => 'Car6',
+            '70' => null,
+        ];
+
+        // test name => id
+        $pairs    = Car::find_pairs('name', 'id');
+        $expected = [
+            'Car1' => 1,
+            'Car2' => 2,
+            'Car3' => 3,
+            'Car4' => 4,
+            'Car6' => 6,
+        ];
+        $this->assertEquals($expected, $pairs);
+    }
+
     public function testfindPairsOrdered()
     {
         $pairs    = Car::order_by_desc('id')->find_pairs();
