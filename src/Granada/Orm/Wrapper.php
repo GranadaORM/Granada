@@ -344,7 +344,7 @@ class Wrapper extends ORM
 
         $output = [];
         foreach ($assoc as $row) {
-            if (isset($row[$key_field]) and isset($row[$val_field])) {
+            if (isset($row[$key_field]) and array_key_exists($val_field, $row)) {
                 $output[$row[$key_field]] = $row[$val_field];
             }
         }
