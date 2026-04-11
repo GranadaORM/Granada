@@ -36,7 +36,7 @@ jobs:
             git config --global user.email "php-cs-fixer@github.com"
             git add -A
             git commit -m "Auto-fix PHP code style [ci skip]"
-            git push
+            git push origin HEAD:${{ github.head_ref || github.ref_name }}
           fi
         shell: bash
         env:
