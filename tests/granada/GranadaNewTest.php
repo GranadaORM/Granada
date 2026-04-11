@@ -146,11 +146,11 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         // Test id => name
         $pairs    = Car::find_pairs('id', 'name');
         $expected = [
-            '1' => 'Car1',
-            '2' => 'Car2',
-            '3' => 'Car3',
-            '4' => 'Car4',
-            '6' => 'Car6',
+            '1'  => 'Car1',
+            '2'  => 'Car2',
+            '3'  => 'Car3',
+            '4'  => 'Car4',
+            '6'  => 'Car6',
             '70' => null,
         ];
 
