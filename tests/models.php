@@ -71,6 +71,7 @@ class Car extends Model
     public function missingonce_expensiveProperty()
     {
         $this->missingonceCallCount++;
+
         return 'expensive value';
     }
 
