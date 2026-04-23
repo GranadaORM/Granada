@@ -426,6 +426,82 @@ $count = Car::count();
 // Gets only the cars that are not deleted
 ```
 
+## Property Access Methods
+
+When accessing a property on a model (e.g. `$model->property`), Granada checks several method prefixes in order to resolve the value.
+
+### `get_` prefix — Transform an existing value
+
+If the property exists in the database (not null), and a `get_{property}` method exists, the raw database value is passed to the method and the return value is used. This is recalculated every time the property is accessed.
+
+```php
+class Car extends Model {
+    public function get_brand($value) {
+        return ucfirst(strtolower($value));
+    }
+}
+
+$car = Model::factory('Car')->find_one(1);
+echo $car->brand; // e.g. Toyota
+```
+
+### `missing_` prefix — Compute when not in the database
+
+If the property does not exist in the database (null), and a `missing_{property}` method exists, the method is called with no arguments. The result is **recalculated every time** the property is accessed.
+
+```php
+class Car extends Model {
+    public function missing_nameNow() {
+        return $this->name . '-' . microtime(true);
+    }
+}
+
+$car = Model::factory('Car')->find_one(1);
+echo $car->nameNow; // includes current time
+sleep(1);
+echo $car->nameNow; // will be different
+```
+
+Use `missing_` for lightweight computations that should reflect the current state of the model on every access.
+
+### `missingonce_` prefix — Compute once and memoize
+
+If the property does not exist in the database (null), and a `missingonce_{property}` method exists, the method is called on the **first access only**. The result is memoized and returned on all subsequent accesses within the same object lifecycle.
+
+This is ideal for expensive operations such as database queries that you do not expect to change within the current request.
+
+```php
+class User extends Model {
+    public function missingonce_orderCount() {
+        return Order::where('user_id', $this->id)->count();
+    }
+}
+
+$user = Model::factory('User')->find_one(1);
+echo $user->orderCount; // Queries the database
+echo $user->orderCount; // Returns the memoized value (no query)
+```
+
+Do not have both `missing_` and `missingonce_` methods exist for the same property. Order of priority may change.
+
+### Relationships as properties
+
+If a method matching the property name exists on the model and it returns a relationship (e.g. `has_one`, `has_many`, `belongs_to`), the related model(s) are lazy-loaded on first access and memoized for subsequent access.
+
+```php
+class Car extends Model {
+    public function manufactor() {
+        return $this->belongs_to('Manufactor');
+    }
+}
+
+$car = Model::factory('Car')->find_one(1);
+echo $car->manufactor->name; // Lazy-loaded on first access
+echo $car->manufactor->name; // No database query
+```
+
+See the Relationships section below for more detail.
+
 ## First and Last items in a result
 
 When using `foreach` to iterate through a list of results, there are two functions you can use to determine if the result is the first or last item.

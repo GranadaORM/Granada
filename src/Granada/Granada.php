@@ -403,11 +403,13 @@ class Granada implements ArrayAccess
 
     /**
      * Magic getter method, allows $model->property access to data.
-     * Added: check for
-     *      get_{property_name} method defined in model and not null
-     *      missing_{property_name} method is null or undefined in model
-     *      fetched relationships
-     *      not loaded relationship. "lazy load" if method exists
+     *
+     * Resolution order:
+     *      1. get_{property_name} method defined in model (if ORM value is not null)
+     *      2. Stored relationships / memoized missingonce_ values
+     *      3. missing_{property_name} method (recalculated each access)
+     *      4. missingonce_{property_name} method (computed once, memoized in relationships)
+     *      5. Lazy-loaded relationship if a method matching the property name exists
      */
     public function __get($property)
     {
@@ -425,13 +427,18 @@ class Granada implements ArrayAccess
             return $result;
         }
 
+        if (array_key_exists($property, $this->relationships)) {
+            return $this->relationships[$property];
+        }
+
         $method = 'missing_' . $property;
         if ($_has_method[$class][$method] ??= method_exists($this, $method)) {
             return $this->$method();
         }
 
-        if (array_key_exists($property, $this->relationships)) {
-            return $this->relationships[$property];
+        $method = 'missingonce_' . $property;
+        if ($_has_method[$class][$method] ??= method_exists($this, $method)) {
+            return $this->relationships[$property] = $this->$method();
         }
 
         $method = $property;
@@ -467,7 +474,7 @@ class Granada implements ArrayAccess
             return true;
         }
 
-        $prefix_methods = ['get_', 'missing_', ''];
+        $prefix_methods = ['get_', 'missing_', 'missingonce_', ''];
         foreach ($prefix_methods as $prefix) {
             if (method_exists($this, $prefix . $property)) {
                 return true;

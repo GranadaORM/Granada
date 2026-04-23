@@ -31,6 +31,9 @@ class Part extends Model
     }
 }
 
+/**
+ * @property string $someProperty
+ */
 class Car extends Model
 {
     public function manufactor()
@@ -61,6 +64,19 @@ class Car extends Model
     public function missing_someProperty()
     {
         return 'This property is missing';
+    }
+
+    public $missingonceCallCount = 0;
+
+    public function missingonce_expensiveProperty()
+    {
+        $this->missingonceCallCount++;
+        return 'expensive value';
+    }
+
+    public function missingonce_anotherProperty()
+    {
+        return 'another value';
     }
 
     public function set_name($value)

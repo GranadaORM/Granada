@@ -893,4 +893,29 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(true, isset($car->manufactor));
         $this->assertSame('Manufactor1', $car->manufactor->name ?? 'Blank');
     }
+
+    public function testMissingOnceProperty()
+    {
+        $car = Model::factory('Car')->find_one(1);
+        $this->assertSame('expensive value', $car->expensiveProperty);
+    }
+
+    public function testMissingOncePropertyMemoized()
+    {
+        $car = Model::factory('Car')->find_one(1);
+        $this->assertSame(0, $car->missingonceCallCount);
+        $this->assertSame('expensive value', $car->expensiveProperty);
+        $this->assertSame(1, $car->missingonceCallCount);
+        $this->assertSame('expensive value', $car->expensiveProperty);
+        $this->assertSame(1, $car->missingonceCallCount);
+        $this->assertSame('expensive value', $car->expensiveProperty);
+        $this->assertSame(1, $car->missingonceCallCount);
+    }
+
+    public function testIssetMissingOnce()
+    {
+        $car = Model::factory('Car')->find_one(1);
+        $this->assertSame(true, isset($car->expensiveProperty));
+        $this->assertSame(true, isset($car->anotherProperty));
+    }
 }
