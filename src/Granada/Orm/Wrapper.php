@@ -195,7 +195,7 @@ class Wrapper extends ORM
             $has_id_column       = isset($this->_instance_id_column);
             $associative_results = $this->_associative_results;
             $row_id              = $result->id();
-            $key                 = ($has_id_column && $associative_results) ? $row_id : 0;
+            $key                 = ($has_id_column && $associative_results) ? ($row_id ?? '') : 0;
             $results             = [$key => $result];
             Eager::hydrate($this, $results, self::$_config[$this->_connection_name]['return_result_sets']);
             // return the result as element, not result set

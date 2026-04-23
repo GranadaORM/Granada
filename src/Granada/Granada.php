@@ -344,7 +344,7 @@ class Granada implements ArrayAccess
         if (is_null($join_class_name)) {
             $model      = explode('\\', $base_class_name);
             $model_name = end($model);
-            if (substr($model_name, 0, strlen(self::$auto_prefix_models)) == self::$auto_prefix_models) {
+            if (self::$auto_prefix_models && substr($model_name, 0, strlen(self::$auto_prefix_models)) == self::$auto_prefix_models) {
                 $model_name = substr($model_name, strlen(self::$auto_prefix_models), strlen($model_name));
             }
             $class_names = [$model_name, $associated_class_name];

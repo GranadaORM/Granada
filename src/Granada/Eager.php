@@ -136,7 +136,7 @@ class Eager
         $related = $relationship->where_in($relating_key, $keys)->find_many();
 
         // if parents is not a associative array
-        if (key(reset($parents)) === 0) {
+        if (array_key_first((array) $parents) === 0) {
             $results = [];
             foreach ($related as $key => $child) {
                 if (!isset($results[$child[$relating_key]])) {
@@ -175,7 +175,7 @@ class Eager
         $related = $relationship->where_in($relating_key, $keys)->find_many();
 
         // if parents is not a associative array
-        if (key(reset($parents)) === 0) {
+        if (array_key_first((array) $parents) === 0) {
             $results = [];
             foreach ($related as $key => $child) {
                 if (empty($results[$child[$relating_key]]) && $return_result_set) {
