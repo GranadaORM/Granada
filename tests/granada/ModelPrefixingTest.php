@@ -5,10 +5,7 @@ use Granada\Model;
 
 class ModelPrefixingTest extends \PHPUnit\Framework\TestCase
 {
-    /**
-     * @before
-     */
-    protected function beforeTest()
+    protected function setUp(): void
     {
         // Set up the dummy database connection
         ORM::set_db(new MockPDO('sqlite::memory:'));
@@ -19,10 +16,7 @@ class ModelPrefixingTest extends \PHPUnit\Framework\TestCase
         Model::$auto_prefix_models = null;
     }
 
-    /**
-     * @after
-     */
-    protected function afterTest()
+    protected function tearDown(): void
     {
         ORM::configure('logging', false);
         ORM::set_db(null);

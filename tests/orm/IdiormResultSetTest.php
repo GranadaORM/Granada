@@ -3,12 +3,9 @@
 use Granada\ORM;
 use Granada\ResultSet;
 
-class ResultSetTest extends \PHPUnit\Framework\TestCase
+class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
 {
-    /**
-     * @before
-     */
-    protected function beforeTest()
+    protected function setUp(): void
     {
         // Enable logging
         ORM::configure('logging', true);
@@ -18,10 +15,7 @@ class ResultSetTest extends \PHPUnit\Framework\TestCase
         ORM::set_db($db);
     }
 
-    /**
-     * @after
-     */
-    protected function afterTest()
+    protected function tearDown(): void
     {
         ORM::reset_config();
         ORM::reset_db();

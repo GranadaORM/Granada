@@ -7,10 +7,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 {
     public const ALTERNATE = 'alternate';
 
-    /**
-     * @before
-     */
-    protected function beforeTest()
+    protected function setUp(): void
     {
         // Set up the dummy database connection
         ORM::set_db(new MockPDO('sqlite::memory:'));
@@ -19,10 +16,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
         ORM::configure('logging', true);
     }
 
-    /**
-     * @after
-     */
-    protected function afterTest()
+    protected function tearDown(): void
     {
         ORM::configure('logging', false);
         ORM::set_db(null);

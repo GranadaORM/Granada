@@ -1,7 +1,8 @@
-<phpunit backupGlobals="true"
-         backupStaticAttributes="false"
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
+         backupGlobals="true"
          bootstrap="tests/bootstrap.php"
-         cacheTokens="false"
          colors="true">
     <testsuites>
         <testsuite name="ORM Test Suite">
@@ -11,12 +12,9 @@
             <directory suffix="Test.php">tests/granada</directory>
         </testsuite>
     </testsuites>
-    <filter>
-      <whitelist processUncoveredFilesFromWhitelist="true">
-        <directory suffix=".php">src</directory>
-      </whitelist>
-    </filter>
-    <logging>
-        <log type="coverage-clover" target="clover.xml" />
-    </logging>
+    <source>
+        <include>
+            <directory suffix=".php">src</directory>
+        </include>
+    </source>
 </phpunit>

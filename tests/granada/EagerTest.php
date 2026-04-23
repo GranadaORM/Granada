@@ -14,10 +14,7 @@ use Granada\Model;
  */
 class EagerTest extends \PHPUnit\Framework\TestCase
 {
-    /**
-     * @before
-     */
-    protected function beforeTest()
+    protected function setUp(): void
     {
         // The tests for eager loading requires a real database.
         // Set up SQLite in memory
@@ -30,10 +27,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         ORM::configure('logging', true);
     }
 
-    /**
-     * @after
-     */
-    protected function afterTest()
+    protected function tearDown(): void
     {
         ORM::configure('logging', false);
         ORM::set_db(null);

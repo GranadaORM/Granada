@@ -4,10 +4,7 @@ use Granada\ORM;
 
 class ConfigTest extends \PHPUnit\Framework\TestCase
 {
-    /**
-     * @before
-     */
-    protected function beforeTest()
+    protected function setUp(): void
     {
         // Enable logging
         ORM::configure('logging', true);
@@ -19,10 +16,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
         ORM::configure('id_column', 'primary_key');
     }
 
-    /**
-     * @after
-     */
-    protected function afterTest()
+    protected function tearDown(): void
     {
         ORM::reset_config();
         ORM::reset_db();

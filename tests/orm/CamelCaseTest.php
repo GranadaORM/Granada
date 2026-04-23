@@ -4,10 +4,7 @@ use Granada\ORM;
 
 class CamelCaseTest extends \PHPUnit\Framework\TestCase
 {
-    /**
-     * @before
-     */
-    protected function beforeTest()
+    protected function setUp(): void
     {
         // Enable logging
         ORM::configure('logging', true);
@@ -17,10 +14,7 @@ class CamelCaseTest extends \PHPUnit\Framework\TestCase
         ORM::setDb($db);
     }
 
-    /**
-     * @after
-     */
-    protected function afterTest()
+    protected function tearDown(): void
     {
         ORM::resetConfig();
         ORM::resetDb();
