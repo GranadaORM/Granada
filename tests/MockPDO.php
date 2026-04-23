@@ -35,6 +35,8 @@ class MockDifferentPDOStatement extends MockPDOStatement {}
  */
 class MockPDO extends PDO
 {
+    public $last_query;
+
     /**
      * Return a dummy PDO statement
      */
