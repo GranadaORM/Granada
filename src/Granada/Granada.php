@@ -416,7 +416,7 @@ class Granada implements ArrayAccess
         $class  = static::class;
         $result = $this->orm->get($property);
 
-        $_has_method = [];
+        static $_has_method = [];
 
         if ($result !== null) {
             $method = 'get_' . $property;
