@@ -114,6 +114,15 @@ class Granada implements ArrayAccess
     public $relating_table;
 
     /**
+     * The class name of the model being resolved via a relationship.
+     *
+     * Set by has_one() and belongs_to().
+     *
+     * @var string|null
+     */
+    public $relating_class;
+
+    /**
      * First and last result flags
      *
      * @var boolean
@@ -272,6 +281,7 @@ class Granada implements ArrayAccess
     {
         // Added: to determine eager load relationship parameters
         $this->relating = 'has_one';
+        $this->relating_class = self::$auto_prefix_models . $associated_class_name;
 
         return $this->_has_one_or_many($associated_class_name, $foreign_key_name, $foreign_key_name_in_current_models_table, $connection_name);
     }
@@ -300,6 +310,7 @@ class Granada implements ArrayAccess
     {
         // Added: to determine eager load relationship parameters
         $this->relating = 'belongs_to';
+        $this->relating_class = self::$auto_prefix_models . $associated_class_name;
 
         $associated_table_name = self::_get_table_name(self::$auto_prefix_models . $associated_class_name);
         $foreign_key_name      = self::_build_foreign_key_name($foreign_key_name, $associated_table_name);
@@ -446,7 +457,36 @@ class Granada implements ArrayAccess
             if ($property != self::_get_id_column_name($class)) {
                 $relation = $this->$property();
 
-                return $this->relationships[$property] = (in_array($this->relating, ['has_one', 'belongs_to'])) ? $relation->find_one() : $relation->find_many();
+                $relation_has_one = $this->relating == 'has_one';
+                $relation_belongs_to = $this->relating == 'belongs_to';
+                $relation_finds_one = $relation_has_one || $relation_belongs_to;
+
+                if ($relation_finds_one) {
+                    // Determine id of related item
+                    $related_id = $relation_belongs_to
+                        ? $this->orm->get($this->relating_key)
+                        : $this->id();
+
+                    if ($related_id !== null && $this->relating_class) {
+                        // We should cache this item
+                        $related_item = \Granada\LazyItemCache::get($this->relating_class, $related_id);
+
+                        if ($related_item === null) {
+                            $related_item = $relation->find_one();
+                            if ($related_item) {
+                                \Granada\LazyItemCache::set($this->relating_class, $related_id, $related_item);
+                            }
+                        }
+
+                        return $this->relationships[$property] = $related_item;
+                    }
+
+                    // No id, so doesn't exist
+                    return $this->relationships[$property] = null;
+                }
+
+                // Relation is many
+                return $this->relationships[$property] = $relation->find_many();
             }
         }
 
@@ -639,7 +679,13 @@ class Granada implements ArrayAccess
      */
     public function save($ignore = false)
     {
-        return $this->orm->save($ignore);
+        $result = $this->orm->save($ignore);
+
+        if ($this->id() !== null) {
+            \Granada\LazyItemCache::remove(get_class($this), $this->id());
+        }
+
+        return $result;
     }
 
     /**
