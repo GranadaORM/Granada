@@ -26,17 +26,19 @@ jobs:
 
       - name: Check code style
         run: |
-          vendor/bin/php-cs-fixer fix --verbose
+          vendor/bin/php-cs-fixer fix --verbose --dry-run
         shell: bash
 
       - name: Commit code style fixes
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
+          vendor/bin/php-cs-fixer fix --verbose
           if [ -n "$(git status --porcelain)" ]; then
             git config --global user.name "PHP CS Fixer"
             git config --global user.email "php-cs-fixer@github.com"
             git add -A
             git commit -m "Auto-fix PHP code style [ci skip]"
-            git push origin HEAD:${{ github.head_ref || github.ref_name }}
+            git push origin HEAD:${{ github.ref_name }}
           fi
         shell: bash
         env:
