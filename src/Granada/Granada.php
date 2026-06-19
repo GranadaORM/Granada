@@ -693,7 +693,13 @@ class Granada implements ArrayAccess
      */
     public function delete()
     {
-        return $this->orm->delete();
+        $result = $this->orm->delete();
+
+        if ($this->id() !== null) {
+            \Granada\LazyItemCache::remove(get_class($this), $this->id());
+        }
+
+        return $result;
     }
 
     /**

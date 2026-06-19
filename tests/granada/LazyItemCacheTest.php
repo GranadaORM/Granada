@@ -26,7 +26,7 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
     public function testBelongsToRelationIsCachedOnSecondAccess()
     {
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::find_one(1);
         $manufactor1 = $car->manufactor;
         $manufactor2 = $car->manufactor;
 
@@ -35,10 +35,10 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
     public function testBelongsToRelationCachedAcrossDifferentParentInstances()
     {
-        $car1 = Model::factory('Car')->find_one(1);
+        $car1 = Car::find_one(1);
         $manufactor1 = $car1->manufactor;
 
-        $car2 = Model::factory('Car')->find_one(2);
+        $car2 = Car::find_one(2);
         $manufactor2 = $car2->manufactor;
 
         $this->assertSame($manufactor1, $manufactor2);
@@ -46,10 +46,10 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
     public function testBelongsToDifferentIdsReturnDifferentInstances()
     {
-        $car1 = Model::factory('Car')->find_one(1);
+        $car1 = Car::find_one(1);
         $manufactor1 = $car1->manufactor;
 
-        $car3 = Model::factory('Car')->find_one(3);
+        $car3 = Car::find_one(3);
         $manufactor2 = $car3->manufactor;
 
         $this->assertNotSame($manufactor1, $manufactor2);
@@ -57,7 +57,7 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
     public function testHasOneRelationIsCachedOnSecondAccess()
     {
-        $owner = Model::factory('Owner')->find_one(1);
+        $owner = Owner::find_one(1);
         $car1 = $owner->car;
         $car2 = $owner->car;
 
@@ -66,7 +66,7 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
     public function testHasManyRelationNotCachedInLazyItemCache()
     {
-        $manufactor = Model::factory('Manufactor')->find_one(1);
+        $manufactor = Manufactor::find_one(1);
         $manufactor->cars;
 
         $this->assertEquals(0, LazyItemCache::size());
@@ -74,7 +74,7 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
     public function testHasManyThroughRelationNotCachedInLazyItemCache()
     {
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::find_one(1);
         $car->parts;
 
         $this->assertEquals(0, LazyItemCache::size());
@@ -82,7 +82,7 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
     public function testClearLazyItemCacheForcesRequery()
     {
-        $car1 = Model::factory('Car')->find_one(1);
+        $car1 = Car::find_one(1);
         $manufactor1 = $car1->manufactor;
 
         $this->assertEquals(1, LazyItemCache::size());
@@ -91,7 +91,7 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
         $this->assertEquals(0, LazyItemCache::size());
 
-        $car2 = Model::factory('Car')->find_one(2);
+        $car2 = Car::find_one(2);
         $manufactor2 = $car2->manufactor;
 
         $this->assertNotSame($manufactor1, $manufactor2);
@@ -102,19 +102,19 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
     {
         LazyItemCache::setMax(2);
 
-        $car_1 = Model::factory('Car')->find_one(1);
+        $car_1 = Car::find_one(1);
         $car_1->manufactor;
 
-        $car_2 = Model::factory('Car')->find_one(2);
+        $car_2 = Car::find_one(2);
         $car_2->manufactor;
 
-        $car_3 = Model::factory('Car')->find_one(3);
+        $car_3 = Car::find_one(3);
         $car_3->manufactor;
 
         $this->assertEquals(2, LazyItemCache::size());
 
         LazyItemCache::clear();
-        $car_4 = Model::factory('Car')->find_one(4);
+        $car_4 = Car::find_one(4);
         $manufactor4 = $car_4->manufactor;
 
         $this->assertNotNull($manufactor4);
@@ -124,12 +124,12 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertEquals(0, LazyItemCache::size());
 
-        $car_1 = Model::factory('Car')->find_one(1);
+        $car_1 = Car::find_one(1);
         $car_1->manufactor;
 
         $this->assertEquals(1, LazyItemCache::size());
 
-        $car_3 = Model::factory('Car')->find_one(3);
+        $car_3 = Car::find_one(3);
         $car_3->manufactor;
 
         $this->assertEquals(2, LazyItemCache::size());
@@ -137,7 +137,7 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
     public function testRelatingClassSetOnHasOne()
     {
-        $owner = Model::factory('Owner')->find_one(1);
+        $owner = Owner::find_one(1);
         $owner->car;
 
         $this->assertEquals('has_one', $owner->relating);
@@ -146,7 +146,7 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
     public function testRelatingClassSetOnBelongsTo()
     {
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::find_one(1);
         $car->manufactor;
 
         $this->assertEquals('belongs_to', $car->relating);
@@ -155,7 +155,7 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
     public function testBelongsToWithCustomFkColumnCached()
     {
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::find_one(1);
         $owner1 = $car->owner;
         $owner2 = $car->owner;
 
@@ -164,10 +164,10 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
     public function testOwnerRelationshipIsCachedAcrossCars()
     {
-        $car4 = Model::factory('Car')->find_one(4);
+        $car4 = Car::find_one(4);
         $owner1 = $car4->owner;
 
-        $car6 = Model::factory('Car')->find_one(6);
+        $car6 = Car::find_one(6);
         $owner2 = $car6->owner;
 
         $this->assertSame($owner1, $owner2);
@@ -175,7 +175,7 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
     public function testSaveInvalidatesCacheEntry()
     {
-        $car1 = Model::factory('Car')->find_one(1);
+        $car1 = Car::find_one(1);
         $manufactor1 = $car1->manufactor;
         $this->assertEquals('Manufactor1', $manufactor1->name);
         $this->assertEquals(1, LazyItemCache::size());
@@ -185,7 +185,7 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
         $this->assertEquals(0, LazyItemCache::size());
 
-        $car2 = Model::factory('Car')->find_one(2);
+        $car2 = Car::find_one(2);
         $manufactor2 = $car2->manufactor;
 
         $this->assertEquals('UpdatedManufactor', $manufactor2->name);
@@ -194,7 +194,7 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
     public function testBelongsToWithNullFkReturnsNull()
     {
-        $car = Model::factory('Car')->create([
+        $car = Car::create([
             'name'          => 'NoMfg',
             'manufactor_id' => null,
             'owner_id'      => null,
@@ -203,5 +203,22 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
         $this->assertNull($car->manufactor);
         $this->assertNull($car->owner);
         $this->assertEquals(0, LazyItemCache::size());
+    }
+
+    public function testDeleteInvalidatesCacheEntry()
+    {
+        $car_1 = Car::find_one(1);
+        $manufactor = $car_1->manufactor;
+        $this->assertEquals('Manufactor1', $manufactor->name);
+        $this->assertEquals(1, LazyItemCache::size());
+
+        $manufactor->delete();
+
+        $this->assertEquals(0, LazyItemCache::size());
+
+        $car_2 = Car::find_one(2);
+        $manufactor2 = $car_2->manufactor;
+
+        $this->assertNull($manufactor2);
     }
 }
