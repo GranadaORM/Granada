@@ -1,7 +1,6 @@
 <?php
 
 use Granada\ORM;
-use Granada\Model;
 use Granada\LazyItemCache;
 
 class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
