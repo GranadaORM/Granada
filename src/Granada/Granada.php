@@ -280,7 +280,7 @@ class Granada implements ArrayAccess
     protected function has_one($associated_class_name, $foreign_key_name = null, $foreign_key_name_in_current_models_table = null, $connection_name = null)
     {
         // Added: to determine eager load relationship parameters
-        $this->relating = 'has_one';
+        $this->relating       = 'has_one';
         $this->relating_class = self::$auto_prefix_models . $associated_class_name;
 
         return $this->_has_one_or_many($associated_class_name, $foreign_key_name, $foreign_key_name_in_current_models_table, $connection_name);
@@ -309,7 +309,7 @@ class Granada implements ArrayAccess
     protected function belongs_to($associated_class_name, $foreign_key_name = null, $foreign_key_name_in_associated_models_table = null, $connection_name = null)
     {
         // Added: to determine eager load relationship parameters
-        $this->relating = 'belongs_to';
+        $this->relating       = 'belongs_to';
         $this->relating_class = self::$auto_prefix_models . $associated_class_name;
 
         $associated_table_name = self::_get_table_name(self::$auto_prefix_models . $associated_class_name);
@@ -457,9 +457,9 @@ class Granada implements ArrayAccess
             if ($property != self::_get_id_column_name($class)) {
                 $relation = $this->$property();
 
-                $relation_has_one = $this->relating == 'has_one';
+                $relation_has_one    = $this->relating == 'has_one';
                 $relation_belongs_to = $this->relating == 'belongs_to';
-                $relation_finds_one = $relation_has_one || $relation_belongs_to;
+                $relation_finds_one  = $relation_has_one || $relation_belongs_to;
 
                 if ($relation_finds_one) {
                     // Determine id of related item
