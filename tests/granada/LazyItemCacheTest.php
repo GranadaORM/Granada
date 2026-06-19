@@ -221,4 +221,16 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
         $this->assertNull($manufactor2);
     }
+
+    public function testDeleteManyClearsCache()
+    {
+        $car_1 = Car::find_one(1);
+        $manufactor = $car_1->manufactor;
+        $this->assertNotNull($manufactor);
+        $this->assertEquals(1, LazyItemCache::size());
+
+        Manufactor::where('id', 10)->delete_many();
+
+        $this->assertEquals(0, LazyItemCache::size());
+    }
 }

@@ -2621,7 +2621,10 @@ class ORM implements ArrayAccess
             ]);
         }
 
-        return self::_execute($query, $this->_values, $this->_connection_name);
+        $result = self::_execute($query, $this->_values, $this->_connection_name);
+        \Granada\LazyItemCache::clear();
+
+        return $result;
     }
 
     // --------------------- //
