@@ -8,6 +8,8 @@ include __DIR__ . '/../src/Granada/Orm/Str.php';
 
 include __DIR__ . '/../src/Granada/Granada.php';
 
+include __DIR__ . '/../src/Granada/LazyItemCache.php';
+
 include __DIR__ . '/../src/Granada/Eager.php';
 
 include __DIR__ . '/../src/Granada/Model.php';
