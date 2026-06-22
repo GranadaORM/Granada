@@ -296,6 +296,7 @@ class Eager
             case 'belongs_to':
                 $relationship->select(Granada::_get_id_column_name($model->relating_class));
                 break;
+
             case 'has_one':
             case 'has_many':
                 $relationship->select($model->relating_key);

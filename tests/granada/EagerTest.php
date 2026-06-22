@@ -400,7 +400,6 @@ class EagerTest extends \PHPUnit\Framework\TestCase
                 ->with_manufactor(fn($q) => $q->select('name'))
         )->find_one(1);
 
-
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `owner` WHERE `id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT `id`, `manufactor_id`, `owner_id` FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1')";
