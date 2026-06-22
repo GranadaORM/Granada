@@ -394,6 +394,13 @@ class Wrapper extends ORM
             return $this;
         }
 
+        // Handle with_* eager loading
+        if (str_starts_with($method, 'with_')) {
+            $this->relationships[] = [substr($method, 5) => $parameters[0] ?? null];
+
+            return $this;
+        }
+
         // Handle where_*
         if (str_starts_with($method, 'where_')) {
             return $this->_handleWhereMethod($method, $parameters);

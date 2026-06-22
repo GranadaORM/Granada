@@ -997,6 +997,17 @@ class ORM implements ArrayAccess
     }
 
     /**
+     * Reset result columns to default (SELECT *).
+     */
+    public function clear_select()
+    {
+        $this->_result_columns               = ['*'];
+        $this->_using_default_result_columns = true;
+
+        return $this;
+    }
+
+    /**
      * Add an unquoted expression to the list of columns returned
      * by the SELECT query. The second optional argument is
      * the alias to return the column as.

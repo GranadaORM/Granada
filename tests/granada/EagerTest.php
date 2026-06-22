@@ -278,6 +278,164 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $this->assertInstanceOf('Granada\Model', $car);
     }
 
+    public function testWithMagicBelongsToSelect()
+    {
+        $car = Car::with_manufactor(fn($q) => $q->select('id, name'))->find_one(1);
+
+        $expectedSql   = [];
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT `id`, `name` FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
+
+        $fullQueryLog = ORM::get_query_log();
+        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
+
+        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals('Manufactor1', $car->manufactor->name);
+    }
+
+    public function testWithMagicBelongsToSelectAndOrderBy()
+    {
+        Car::with_manufactor(fn($q) => $q->select('id, name')->order_by_desc('name'))->find_many();
+
+        $expectedSql   = [];
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0'";
+        $expectedSql[] = "SELECT `id`, `name` FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1', '2') ORDER BY `name` DESC";
+
+        $fullQueryLog = ORM::get_query_log();
+        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
+
+        $this->assertEquals($expectedSql, $actualSql);
+    }
+
+    public function testWithMagicBelongsToAutoIncludeId()
+    {
+        $car = Car::with_owner(fn($q) => $q->select('name'))->find_one(1);
+
+        $expectedSql   = [];
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT `name`, `id` FROM `owner` WHERE `id` IN ('1')";
+
+        $fullQueryLog = ORM::get_query_log();
+        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
+
+        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals('Owner1', $car->owner->name);
+    }
+
+    public function testWithMagicHasManySelect()
+    {
+        $manufactor = Manufactor::with_cars(fn($q) => $q->select('id, name'))->find_one(1);
+
+        $expectedSql   = [];
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT `id`, `name`, `manufactor_id` FROM `car` WHERE `car`.`is_deleted` = '0' AND `enabled` = '1' AND `manufactor_id` IN ('1')";
+
+        $fullQueryLog = ORM::get_query_log();
+        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
+
+        $this->assertEquals($expectedSql, $actualSql);
+    }
+
+    public function testWithMagicHasOneSelect()
+    {
+        $owner = Owner::with_car(fn($q) => $q->select('id, name'))->find_one(1);
+
+        $expectedSql   = [];
+        $expectedSql[] = "SELECT * FROM `owner` WHERE `id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT `id`, `name`, `owner_id` FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1')";
+
+        $fullQueryLog = ORM::get_query_log();
+        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
+
+        $this->assertEquals($expectedSql, $actualSql);
+    }
+
+    public function testWithMagicHasManyThroughSelect()
+    {
+        $car = Car::with_parts(fn($q) => $q->select('part.id, part.name'))->find_one(1);
+
+        $expectedSql   = [];
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT `part`.`id`, `part`.`name`, `car_part`.`car_id` FROM `part` JOIN `car_part` ON `part`.`id` = `car_part`.`part_id` WHERE `car_part`.`car_id` IN ('1')";
+
+        $fullQueryLog = ORM::get_query_log();
+        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
+
+        $this->assertEquals($expectedSql, $actualSql);
+    }
+
+    public function testWithMagicNoCallback()
+    {
+        $car = Car::with_manufactor()->find_one(1);
+
+        $expectedSql   = [];
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
+
+        $fullQueryLog = ORM::get_query_log();
+        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
+
+        $this->assertEquals($expectedSql, $actualSql);
+    }
+
+    public function testWithMagicMixedWithExistingWith()
+    {
+        $car = Car::with_manufactor(fn($q) => $q->select('name'))->with('owner')->find_one(1);
+
+        $expectedSql   = [];
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT `name`, `id` FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `owner` WHERE `id` IN ('1')";
+
+        $fullQueryLog = ORM::get_query_log();
+        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 3);
+
+        $this->assertEquals($expectedSql, $actualSql);
+    }
+
+    public function testWithMagicNestedWithCallback()
+    {
+        $owner = Owner::with_car(
+            fn($q) => $q->select('id, manufactor_id')
+                ->with_manufactor(fn($q) => $q->select('name'))
+        )->find_one(1);
+
+
+        $expectedSql   = [];
+        $expectedSql[] = "SELECT * FROM `owner` WHERE `id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT `id`, `manufactor_id`, `owner_id` FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1')";
+        $expectedSql[] = "SELECT `name`, `id` FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
+
+        $this->assertNull($owner->car->enabled);
+        $this->assertNull($owner->car->manufactor->enabled);
+        $this->assertEquals('Manufactor1', $owner->car->manufactor->name);
+
+        $fullQueryLog = ORM::get_query_log();
+        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 3);
+
+        $this->assertEquals($expectedSql, $actualSql);
+    }
+
+    public function testWithMagicFindManySelect()
+    {
+        $cars = Car::with_manufactor(fn($q) => $q->select('id, name'))->find_many();
+
+        $expectedSql   = [];
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0'";
+        $expectedSql[] = "SELECT `id`, `name` FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1', '2')";
+
+        $fullQueryLog = ORM::get_query_log();
+        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
+
+        $this->assertEquals($expectedSql, $actualSql);
+
+        foreach ($cars as $car) {
+            $this->assertNotNull($car->manufactor);
+            $this->assertNotNull($car->manufactor->id);
+            $this->assertNotNull($car->manufactor->name);
+        }
+    }
+
     public function testLazyLoading()
     {
         $owner = Model::factory('Owner')->find_one(1);
