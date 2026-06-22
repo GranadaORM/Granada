@@ -102,6 +102,54 @@ foreach($results as $result){
 Notice that if there is no result for `avatar` on the above example it will throw a `Notice: Trying to get property of non-object...`
 Note:  Maybe worth the effort to create a NULL object for this use case and others.
 
+### Eager loading with query control
+
+Use `with_{relation}()` to eager-load a relationship and optionally configure the query via a callback:
+
+```php
+// Basic — equivalent to with('manufactor')
+$car = Car::with_manufactor()->find_one(1);
+
+// Limit columns selected
+$car = Car::with_manufactor(fn($q) => $q->select('id, name'))->find_one(1);
+// SELECT `id`, `name` FROM `manufactor` WHERE ...
+
+// Add ordering (has_many — multiple related records)
+$manufactor = Manufactor::with_cars(fn($q) => $q->select('id, name')->order_by_desc('name'))->find_one(1);
+// SELECT `id`, `name`, `manufactor_id` FROM `car` WHERE ... ORDER BY `name` DESC
+```
+
+Mix with the existing `with()` method:
+
+```php
+$car = Car::with_manufactor(fn($q) => $q->select('name'))->with('owner')->find_one(1);
+```
+
+Nested eager loading via `with_*` inside the callback:
+
+```php
+$owner = Owner::with_car(fn($q) => $q->select('id, manufactor_id')
+    ->with_manufactor(fn($q) => $q->select('name'))
+)->find_one(1);
+```
+
+**Auto-included columns.** You don't need to specify the columns the ORM uses for matching. They are added automatically:
+
+| Relationship type | Column auto-added |
+|---|---|
+| `belongs_to` | The related model's primary key |
+| `has_one`, `has_many` | The foreign key on the related table |
+
+If you already include these columns in your `select()`, they won't be added twice.
+
+**Column names.** Use comma-separated strings for multiple columns: `select('id, name')`. Do not use `select('id', 'name')` — the second argument is an alias.
+
+**has_many_through.** Qualify column names with the table because the query involves a join:
+
+```php
+$car = Car::with_parts(fn($q) => $q->select('part.id, part.name'))->find_one(1);
+```
+
 ### Chained relationships with arguments for eager loading
 
 It is possible to chain relationships and add arguments to the relationships calls

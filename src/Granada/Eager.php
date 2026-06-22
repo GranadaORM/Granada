@@ -25,17 +25,25 @@ class Eager
     {
         if (count($results) > 0) {
             foreach ($orm->relationships as $include) {
-                $relationship      = false;
-                $relationship_with = null;
-                $relationship_args = [];
+                $relationship       = false;
+                $relationship_with  = null;
+                $relationship_args  = [];
+                $relationship_query = null;
 
                 if (is_array($include)) {
                     $relationship = key($include);
-                    if (isset($include[$relationship]['with'])) {
-                        $relationship_with = $include[$relationship]['with'];
-                        unset($include[$relationship]['with']);
+                    $value        = $include[$relationship];
+
+                    if ($value instanceof \Closure) {
+                        $relationship_query = $value;
+                        $relationship_args  = [];
+                    } else {
+                        if (isset($value['with'])) {
+                            $relationship_with = $value['with'];
+                            unset($value['with']);
+                        }
+                        $relationship_args = $value;
                     }
-                    $relationship_args = $include[$relationship];
                 } else {
                     $relationship = $include;
                 }
@@ -47,9 +55,10 @@ class Eager
                 }
 
                 $relationship = [
-                    'name' => $relationship,
-                    'with' => $relationship_with,
-                    'args' => (array) $relationship_args,
+                    'name'  => $relationship,
+                    'with'  => $relationship_with,
+                    'args'  => (array) $relationship_args,
+                    'query' => $relationship_query,
                 ];
 
                 // check if relationship exists on the model
@@ -101,6 +110,15 @@ class Eager
     {
         if ($relationship = call_user_func_array([$model, $include['name']], $include['args'])) {
             $relationship->reset_relation();
+
+            if ($include['query'] instanceof \Closure) {
+                // Might have non-standard selects, we need to clear them to set a limited subset
+                $relationship->clear_select();
+                // Fetch the further filters from the callback
+                ($include['query'])($relationship);
+                // Add required columns as minimum to do the with relationahip
+                self::auto_include_required_columns($relationship, $model);
+            }
 
             if ($include['with']) {
                 $relationship->with($include['with']);
@@ -269,6 +287,20 @@ class Eager
             }
             // no associative result sets for has_many_through, so we can have multiple rows with the same primary_key
             $parents[$related]->relationships[$include][] = $child;
+        }
+    }
+
+    private static function auto_include_required_columns($relationship, $model)
+    {
+        switch ($model->relating) {
+            case 'belongs_to':
+                $relationship->select(Granada::_get_id_column_name($model->relating_class));
+                break;
+
+            case 'has_one':
+            case 'has_many':
+                $relationship->select($model->relating_key);
+                break;
         }
     }
 }
