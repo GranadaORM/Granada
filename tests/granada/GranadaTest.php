@@ -1,6 +1,6 @@
 <?php
 
-use Granada\Orm;
+use Granada\ORM;
 use Granada\Model;
 
 class GranadaTest extends \PHPUnit\Framework\TestCase
@@ -201,6 +201,14 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
         $book2    = Model::factory('BookTwo')->find_one(1);
         $authors2 = $book2->authors()->find_many();
         $expected = "SELECT `author`.* FROM `author` JOIN `author_book` ON `author`.`id` = `author_book`.`custom_author_id` WHERE `author_book`.`custom_book_id` = '1'";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testHasManyThroughWithCustomIdColumns()
+    {
+        $book     = Model::factory('BookThree')->find_one(1);
+        $authors  = $book->authors()->find_many();
+        $expected = "SELECT `author`.* FROM `author` JOIN `author_book_three` ON `author`.`id` = `author_book_three`.`author_id` WHERE `author_book_three`.`book_three_id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 }

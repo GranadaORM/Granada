@@ -12,16 +12,16 @@ namespace Granada\Orm;
  */
 class Str
 {
-    protected $subject;
-    protected $search;
-    protected $replace;
+    protected string $subject;
+    protected string $search;
+    protected string $replace;
 
     /**
      * Get an easy to use instance of the class
      * @param string $subject
      * @return \Granada\Orm\Str
      */
-    public static function value($subject)
+    public static function value(string $subject): self
     {
         return new self($subject);
     }
@@ -34,7 +34,7 @@ class Str
      * @param string $subject
      * @return string
      */
-    public static function str_replace_outside_quotes($search, $replace, $subject)
+    public static function str_replace_outside_quotes(string $search, string $replace, string $subject): string
     {
         return self::value($subject)->replace_outside_quotes($search, $replace);
     }
@@ -43,7 +43,7 @@ class Str
      * Set the base string object
      * @param string $subject
      */
-    public function __construct($subject)
+    public function __construct(string $subject)
     {
         $this->subject = (string) $subject;
     }
@@ -55,7 +55,7 @@ class Str
      * @param string $replace
      * @return string
      */
-    public function replace_outside_quotes($search, $replace)
+    public function replace_outside_quotes(string $search, string $replace): string
     {
         $this->search  = $search;
         $this->replace = $replace;
@@ -70,7 +70,7 @@ class Str
      * @link http://stackoverflow.com/a/13370709/461813 StackOverflow answer
      * @return string
      */
-    protected function _str_replace_outside_quotes()
+    protected function _str_replace_outside_quotes(): string
     {
         $re_valid = '/
                 # Validate string having embedded quoted substrings.
@@ -94,7 +94,7 @@ class Str
                 | ([^\'"\\\\]+)             # or $2: an unquoted chunk (no escapes).
                 /sx';
 
-        return preg_replace_callback($re_parse, [$this, '_str_replace_outside_quotes_cb'], $this->subject);
+        return preg_replace_callback($re_parse, $this->_str_replace_outside_quotes_cb(...), $this->subject);
     }
 
     /**
@@ -102,10 +102,10 @@ class Str
      * each occurrence of $this->search with $this->replace
      * @author Jeff Roberson <ridgerunner@fluxbb.org>
      * @link http://stackoverflow.com/a/13370709/461813 StackOverflow answer
-     * @param array $matches
+     * @param array<int, string> $matches
      * @return string
      */
-    protected function _str_replace_outside_quotes_cb($matches)
+    protected function _str_replace_outside_quotes_cb(array $matches): string
     {
         // Return quoted string chunks (in group $1) unaltered.
         if ($matches[1]) {

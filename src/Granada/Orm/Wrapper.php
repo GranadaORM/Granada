@@ -21,14 +21,16 @@ class Wrapper extends ORM
      * The wrapped find_one and find_many classes will
      * return an instance or instances of this class.
      */
-    protected $_class_name;
+    protected ?string $_class_name = null;
 
-    public $relationships = [];
+    /** @var array<string, mixed> */
+    public array $relationships = [];
 
     /**
      * static lookup tables for __call method suffix patterns
      */
-    private static $_where_suffixes = [
+    /** @var array<string, array{length: int, method: string, timezone: bool}> */
+    private static array $_where_suffixes = [
         '_not_in_or_null' => ['length' => 15, 'method' => 'where_not_in_or_null', 'timezone' => false],
         '_lte_or_null'    => ['length' => 12, 'method' => 'where_lte_or_null', 'timezone' => true],
         '_gte_or_null'    => ['length' => 12, 'method' => 'where_gte_or_null', 'timezone' => true],
@@ -47,7 +49,8 @@ class Wrapper extends ORM
         '_in'             => ['length' => 3, 'method' => 'where_in', 'timezone' => false],
     ];
 
-    private static $_order_by_suffixes = [
+    /** @var array<string, array{length: int, method: string, direction?: string}> */
+    private static array $_order_by_suffixes = [
         '_natural_desc' => ['length' => 13, 'method' => '_order_by_natural_desc', 'direction' => 'desc'],
         '_natural_asc'  => ['length' => 12, 'method' => '_order_by_natural_asc', 'direction' => 'asc'],
         '_desc'         => ['length' => 5, 'method' => 'order_by_desc'],
@@ -59,7 +62,7 @@ class Wrapper extends ORM
      * methods should return instances of.
      * @param string $class_name
      */
-    public function set_class_name($class_name)
+    public function set_class_name(string $class_name): void
     {
         $this->_class_name = $class_name;
     }
@@ -73,7 +76,7 @@ class Wrapper extends ORM
      * after the name of the filter will be passed to the called
      * filter function as arguments after the ORM class.
      */
-    public function filter($filter_function, ...$args)
+    public function filter(string $filter_function, ...$args): mixed
     {
         array_unshift($args, $this);
 
@@ -90,13 +93,13 @@ class Wrapper extends ORM
      *
      * A repeat of content in parent::for_table, so that
      * created class is Wrapper, not ORM
-     * @return Wrapper
+     * @return static
      */
-    public static function for_table($table_name, $connection_name = parent::DEFAULT_CONNECTION)
+    public static function for_table(string $table_name, string $connection_name = parent::DEFAULT_CONNECTION): static
     {
         self::_setup_db($connection_name);
 
-        return new self($table_name, [], $connection_name);
+        return new static($table_name, [], $connection_name);
     }
 
     /**
@@ -104,7 +107,7 @@ class Wrapper extends ORM
      * associated with this wrapper and populate
      * it with the supplied Idiorm instance.
      */
-    protected function _create_model_instance($orm)
+    protected function _create_model_instance(?self $orm): mixed
     {
         if (is_null($orm)) {
             return null;
@@ -120,7 +123,7 @@ class Wrapper extends ORM
     /**
      * Overload select_expr name
      */
-    public function select_raw($expr, $alias = null)
+    public function select_raw(string $expr, ?string $alias = null): static
     {
         return $this->select_expr($expr, $alias);
     }
@@ -128,7 +131,7 @@ class Wrapper extends ORM
     /**
      * Special method to query the table by its primary key
      */
-    public function where_id_in($ids)
+    public function where_id_in(array $ids): static
     {
         return $this->where_in($this->_get_id_column_name(), $ids);
     }
@@ -136,9 +139,9 @@ class Wrapper extends ORM
     /**
      * Create raw_join
      */
-    public function raw_join($join)
+    public function raw_join(string $join): static
     {
-        $this->_join_sources[] = "$join";
+        $this->_join_sources[] = $join;
 
         return $this;
     }
@@ -146,7 +149,7 @@ class Wrapper extends ORM
     /**
      * Add an unquoted expression to the list of columns to GROUP BY
      */
-    public function group_by_raw($expr)
+    public function group_by_raw(string $expr): static
     {
         $this->_group_by[] = $expr;
 
@@ -156,7 +159,7 @@ class Wrapper extends ORM
     /**
      * Add an unquoted expression as an ORDER BY clause
      */
-    public function order_by_raw($clause)
+    public function order_by_raw(string $clause): static
     {
         $this->_order_by[] = $clause;
 
@@ -168,7 +171,8 @@ class Wrapper extends ORM
      * Using an array with rows array(array('name'=>'value',...), array('name2'=>'value2',...),..)
      * or a array multiple
      */
-    public function insert($rows, $ignore = false)
+    /** @param array<int, array<string, mixed>> $rows */
+    public function insert(array $rows, bool $ignore = false): false|string
     {
         ORM::get_db()->beginTransaction();
         $class = $this->_class_name;
@@ -187,22 +191,23 @@ class Wrapper extends ORM
      * Added: hidrate the model instance before returning
      * @param integer $id
      */
-    public function find_one($id = null)
+    public function find_one(mixed $id = null)
     {
         $result = $this->_create_model_instance(parent::find_one($id));
-        if ($result) {
-            // set result on an result set for the eager load to work
-            $has_id_column       = isset($this->_instance_id_column);
-            $associative_results = $this->_associative_results;
-            $row_id              = $result->id();
-            $key                 = ($has_id_column && $associative_results) ? ($row_id ?? '') : 0;
-            $results             = [$key => $result];
-            Eager::hydrate($this, $results, self::$_config[$this->_connection_name]['return_result_sets']);
-            // return the result as element, not result set
-            $result = $results[$key];
+        if (!$result) {
+            return $result;
         }
 
-        return $result;
+        // set result on an result set for the eager load to work
+        $has_id_column       = isset($this->_instance_id_column);
+        $associative_results = $this->_associative_results;
+        $row_id              = $result->id();
+        $key                 = ($has_id_column && $associative_results) ? ($row_id ?? '') : 0;
+        $results             = [$key => $result];
+        Eager::hydrate($this, $results, (bool) self::$_config[$this->_connection_name]['return_result_sets']);
+
+        // return the result as element, not result set
+        return $results[$key];
     }
 
     /**
@@ -227,7 +232,7 @@ class Wrapper extends ORM
         }
 
         // Add eager relationships
-        return Eager::hydrate($this, $instances, self::$_config[$this->_connection_name]['return_result_sets']);
+        return Eager::hydrate($this, $instances, (bool) self::$_config[$this->_connection_name]['return_result_sets']);
     }
 
     /**
@@ -240,7 +245,7 @@ class Wrapper extends ORM
      * @param array $rows
      * @return array
      */
-    protected function _get_instances($rows)
+    protected function _get_instances(array $rows): array
     {
         $instances           = [];
         $has_id_column       = isset($this->_instance_id_column);
@@ -263,7 +268,7 @@ class Wrapper extends ORM
      * @param  string  $column
      * @return mixed
      */
-    public function pluck($column)
+    public function pluck(string $column): mixed
     {
         $result = $this->select($column)->find_one();
 
@@ -279,7 +284,7 @@ class Wrapper extends ORM
      * empty instance of the class associated with
      * this wrapper instead of the raw ORM class.
      */
-    public function create($data = null)
+    public function create(?array $data = null)
     {
         $model = $this->_create_model_instance(parent::create(null));
         if ($data !== null) {
@@ -292,9 +297,9 @@ class Wrapper extends ORM
     /**
      * Added: Set the eagerly loaded models on the queryable model.
      *
-     * @return Wrapper
+     * @return static
      */
-    public function with(...$args)
+    public function with(...$args): static
     {
         array_push($this->relationships, ...$args);
 
@@ -304,9 +309,9 @@ class Wrapper extends ORM
     /**
      * Added: Reset relation deletes the relationship "where" condition.
      *
-     * @return Wrapper
+     * @return static
      */
-    public function reset_relation()
+    public function reset_relation(): static
     {
         array_shift($this->_where_conditions);
 
@@ -316,27 +321,28 @@ class Wrapper extends ORM
     /**
      * Added: Return pairs as result array('keyrecord_value'=>'valuerecord_value',.....)
      */
-    public function find_pairs($key = false, $value = false)
+    public function find_pairs(false|string $key = false, false|string $value = false): array
     {
         $key   = ($key) ? $key : 'id';
         $value = ($value) ? $value : 'name';
-        if (count($this->_result_columns) == 2) {
+        if (count($this->_result_columns) === 2) {
             // The select fields have already been set
             return self::assoc_to_keyval($this->find_array(), $key, $value);
         }
 
-        return self::assoc_to_keyval($this->select_raw("$key,$value")->order_by_asc($value)->find_array(), $key, $value);
+        return self::assoc_to_keyval($this->select_raw($key . ',' . $value)->order_by_asc($value)->find_array(), $key, $value);
     }
 
     /**
-     * Converts a multi-dimensional associative array into an array of key => values with the provided field names
+     * Converts a multi-dimensional associative graarray into an array of key => values with the provided field names
      *
      * @param array $assoc the array to convert
      * @param string $key_field the field name of the key field
      * @param string $val_field the field name of the value field
      * @return array
      */
-    public static function assoc_to_keyval($assoc = null, $key_field = null, $val_field = null)
+    /** @param array<int, array<string, mixed>> $assoc */
+    public static function assoc_to_keyval(?array $assoc = null, ?string $key_field = null, ?string $val_field = null): array
     {
         if (empty($assoc) or empty($key_field) or empty($val_field)) {
             return [];
@@ -344,17 +350,20 @@ class Wrapper extends ORM
 
         $output = [];
         foreach ($assoc as $row) {
-            if (isset($row[$key_field]) and array_key_exists($val_field, $row)) {
-                $output[$row[$key_field]] = $row[$val_field];
+            if (!(isset($row[$key_field]) and array_key_exists($val_field, $row))) {
+                continue;
             }
+
+            $output[$row[$key_field]] = $row[$val_field];
         }
 
         return $output;
     }
 
-    private static $_has_timezone_adjustment_cache = [];
+    /** @var array<string, bool> */
+    private static array $_has_timezone_adjustment_cache = [];
 
-    public function adjustTimezoneForWhere($varname, $parameters)
+    public function adjustTimezoneForWhere(string $varname, mixed $parameters): mixed
     {
         $classname = $this->_class_name;
         self::$_has_timezone_adjustment_cache[$classname] ??= method_exists($classname, 'adjustTimezoneForWhere');
@@ -372,7 +381,7 @@ class Wrapper extends ORM
      * public static function filter_{filtermethodname} and call it from a static call
      * ModelName::filtermethodname->......
      */
-    public function __call($method, $parameters)
+    public function __call(string $method, array $parameters): mixed
     {
         // Check for filter methods first (as they override)
         if (method_exists($this->_class_name, 'filter_' . $method)) {
@@ -417,41 +426,44 @@ class Wrapper extends ORM
             return call_user_func_array([$this, $underscore_method], $parameters);
         }
 
-        throw new Exception(" no static $method found or static method 'filter_$method' not defined in " . $this->_class_name);
+        throw new Exception(" no static {$method} found or static method 'filter_{$method}' not defined in " . $this->_class_name);
     }
 
     /**
      * Performance optimized handler for where_* methods
      */
-    private function _handleWhereMethod($method, $parameters)
+    private function _handleWhereMethod(string $method, array $parameters): mixed
     {
-        $tablename   = $this->_table_name . '.';
-        $method_name = substr($method, 6);
+        $tablename       = $this->_table_name . '.';
+        $method_name     = substr($method, 6);
+        $adjust_timezone = isset($parameters[0]);
 
         foreach (self::$_where_suffixes as $suffix => $config) {
-            if (str_ends_with($method_name, $suffix)) {
-                $varname     = substr($method_name, 0, -$config['length']);
-                $column_name = $tablename . $varname;
-
-                $target_method  = $config['method'];
-                $needs_timezone = $config['timezone'] ?? false;
-
-                if ($needs_timezone && isset($parameters[0])) {
-                    $parameters[0] = $this->adjustTimezoneForWhere($varname, $parameters[0]);
-                }
-
-                if (count($parameters)) {
-                    return call_user_func([$this, $target_method], $column_name, $parameters[0]);
-                }
-
-                return call_user_func([$this, $target_method], $column_name);
+            if (!(str_ends_with($method_name, $suffix))) {
+                continue;
             }
+
+            $varname     = substr($method_name, 0, -$config['length']);
+            $column_name = $tablename . $varname;
+
+            $target_method  = $config['method'];
+            $needs_timezone = $config['timezone'];
+
+            if ($needs_timezone && $adjust_timezone) {
+                $parameters[0] = $this->adjustTimezoneForWhere($varname, $parameters[0]);
+            }
+
+            if (count($parameters)) {
+                return call_user_func([$this, $target_method], $column_name, $parameters[0]);
+            }
+
+            return call_user_func([$this, $target_method], $column_name);
         }
 
         $varname     = $method_name;
         $column_name = $tablename . $varname;
 
-        $adjusted_value = isset($parameters[0]) ? $this->adjustTimezoneForWhere($varname, $parameters[0]) : null;
+        $adjusted_value = $adjust_timezone ? $this->adjustTimezoneForWhere($varname, $parameters[0]) : null;
 
         return $this->where_equal($column_name, $adjusted_value);
     }
@@ -459,24 +471,26 @@ class Wrapper extends ORM
     /**
      * Performance optimized handler for order_by_* methods
      */
-    private function _handleOrderByMethod($method, $parameters)
+    private function _handleOrderByMethod(string $method, array $parameters): mixed
     {
         $method_name = substr($method, 9);
 
         foreach (self::$_order_by_suffixes as $suffix => $config) {
-            if (str_ends_with($method_name, $suffix)) {
-                $varname       = substr($method_name, 0, -$config['length']);
-                $target_method = $config['method'];
-
-                if ($target_method === '_order_by_natural_desc') {
-                    return $this->order_by_expr('LENGTH(`' . $varname . '`), `' . $varname . '` DESC');
-                }
-                if ($target_method === '_order_by_natural_asc') {
-                    return $this->order_by_expr('LENGTH(`' . $varname . '`), `' . $varname . '` ASC');
-                }
-
-                return call_user_func([$this, $target_method], $varname);
+            if (!(str_ends_with($method_name, $suffix))) {
+                continue;
             }
+
+            $varname       = substr($method_name, 0, -$config['length']);
+            $target_method = $config['method'];
+
+            if ($target_method === '_order_by_natural_desc') {
+                return $this->order_by_expr('LENGTH(`' . $varname . '`), `' . $varname . '` DESC');
+            }
+            if ($target_method === '_order_by_natural_asc') {
+                return $this->order_by_expr('LENGTH(`' . $varname . '`), `' . $varname . '` ASC');
+            }
+
+            return call_user_func([$this, $target_method], $varname);
         }
 
         $varname = $method_name;

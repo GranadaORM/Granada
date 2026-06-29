@@ -1,20 +1,6 @@
 <?php
 
-include __DIR__ . '/../src/Granada/ORM.php';
-
-include __DIR__ . '/../src/Granada/Orm/Wrapper.php';
-
-include __DIR__ . '/../src/Granada/Orm/Str.php';
-
-include __DIR__ . '/../src/Granada/Granada.php';
-
-include __DIR__ . '/../src/Granada/LazyItemCache.php';
-
-include __DIR__ . '/../src/Granada/Eager.php';
-
-include __DIR__ . '/../src/Granada/Model.php';
-
-include __DIR__ . '/../src/Granada/ResultSet.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 include __DIR__ . '/MockPDO.php';
 

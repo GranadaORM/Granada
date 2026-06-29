@@ -61,7 +61,7 @@ class Granada implements ArrayAccess
     // Default foreign key suffix used by relationship methods
     public const DEFAULT_FOREIGN_KEY_SUFFIX = '_id';
 
-    public static $resultSetClass = 'Granada\ResultSet';
+    public static string $resultSetClass = 'Granada\ResultSet';
 
     /**
      * Set a prefix for model names. This can be a namespace or any other
@@ -70,7 +70,7 @@ class Granada implements ArrayAccess
      * @example Model::$auto_prefix_models = '\MyProject\MyModels\'; //Namespaces
      * @var string
      */
-    public static $auto_prefix_models = null;
+    public static ?string $auto_prefix_models = null;
 
     /**
      * The ORM instance used by this model
@@ -88,21 +88,21 @@ class Granada implements ArrayAccess
      *
      * @var array
      */
-    public $relationships = [];
+    public array $relationships = [];
 
     /**
      * The relationship type the model is currently resolving.
      *
      * @var string
      */
-    public $relating;
+    public ?string $relating = null;
 
     /**
      * The foreign key of the "relating" relationship.
      *
      * @var string
      */
-    public $relating_key;
+    public null|array|string $relating_key = null;
 
     /**
      * The table name of the model being resolved.
@@ -111,7 +111,7 @@ class Granada implements ArrayAccess
      *
      * @var string
      */
-    public $relating_table;
+    public ?string $relating_table = null;
 
     /**
      * The class name of the model being resolved via a relationship.
@@ -120,15 +120,15 @@ class Granada implements ArrayAccess
      *
      * @var string|null
      */
-    public $relating_class;
+    public ?string $relating_class = null;
 
     /**
      * First and last result flags
      *
      * @var boolean
      */
-    public $_isFirstResult = false;
-    public $_isLastResult  = false;
+    public bool $_isFirstResult = false;
+    public bool $_isLastResult  = false;
 
     /**
      * Retrieve the value of a static property on a class. If the
@@ -136,7 +136,7 @@ class Granada implements ArrayAccess
      * value supplied as the third argument (which defaults to null).
      * @param string $property
      */
-    protected static function _get_static_property($class_name, $property, $default = null)
+    protected static function _get_static_property(string $class_name, string $property, mixed $default = null): mixed
     {
         if (!class_exists($class_name) || !property_exists($class_name, $property)) {
             return $default;
@@ -154,7 +154,7 @@ class Granada implements ArrayAccess
      * the _class_name_to_table_name method method.
      * @param string $class_name
      */
-    protected static function _get_table_name($class_name)
+    protected static function _get_table_name(string $class_name): string
     {
         $specified_table_name = self::_get_static_property($class_name, '_table');
         if (is_null($specified_table_name)) {
@@ -175,7 +175,7 @@ class Granada implements ArrayAccess
      * For example, CarTyre would be converted to car_tyre. And
      * Project\Models\CarTyre would be project_models_car_tyre.
      */
-    protected static function _class_name_to_table_name($class_name)
+    protected static function _class_name_to_table_name(string $class_name): string
     {
         return strtolower(preg_replace(
             ['/\\\\/', '/(?<=[a-z])([A-Z])/', '/__/'],
@@ -189,7 +189,7 @@ class Granada implements ArrayAccess
      * not set on the class, returns null.
      * @param string $class_name
      */
-    protected static function _get_id_column_name($class_name)
+    public static function _get_id_column_name(string $class_name): string
     {
         return self::_get_static_property($class_name, '_id_column', self::DEFAULT_ID_COLUMN);
     }
@@ -200,7 +200,7 @@ class Granada implements ArrayAccess
      * argument (the name of the table) with the default foreign key column
      * suffix appended.
      */
-    protected static function _build_foreign_key_name($specified_foreign_key_name, $table_name)
+    protected static function _build_foreign_key_name(?string $specified_foreign_key_name, string $table_name): string
     {
         if (!is_null($specified_foreign_key_name)) {
             return $specified_foreign_key_name;
@@ -219,12 +219,12 @@ class Granada implements ArrayAccess
      * its find_one or find_many methods are called.
      * @return Orm\Wrapper
      */
-    public static function factory($class_name, $connection_name = null)
+    public static function factory(string $class_name, ?string $connection_name = null): Orm\Wrapper
     {
         $class_name = self::$auto_prefix_models . $class_name;
         $table_name = self::_get_table_name($class_name);
 
-        if ($connection_name == null) {
+        if (!$connection_name) {
             $connection_name = self::_get_static_property(
                 $class_name,
                 '_connection_name',
@@ -246,7 +246,7 @@ class Granada implements ArrayAccess
      * only difference is whether find_one or find_many is used to complete
      * the method chain.
      */
-    protected function _has_one_or_many($associated_class_name, $foreign_key_name = null, $foreign_key_name_in_current_models_table = null, $connection_name = null)
+    protected function _has_one_or_many(string $associated_class_name, ?string $foreign_key_name = null, ?string $foreign_key_name_in_current_models_table = null, ?string $connection_name = null): Orm\Wrapper
     {
         $base_table_name  = self::_get_table_name(get_class($this));
         $foreign_key_name = self::_build_foreign_key_name($foreign_key_name, $base_table_name);
@@ -277,7 +277,7 @@ class Granada implements ArrayAccess
      * @param string $associated_class_name
      * @param string $foreign_key_name
      */
-    protected function has_one($associated_class_name, $foreign_key_name = null, $foreign_key_name_in_current_models_table = null, $connection_name = null)
+    protected function has_one(string $associated_class_name, ?string $foreign_key_name = null, ?string $foreign_key_name_in_current_models_table = null, ?string $connection_name = null): Orm\Wrapper
     {
         // Added: to determine eager load relationship parameters
         $this->relating       = 'has_one';
@@ -292,7 +292,7 @@ class Granada implements ArrayAccess
      * @param string $associated_class_name
      * @param string $foreign_key_name
      */
-    protected function has_many($associated_class_name, $foreign_key_name = null, $foreign_key_name_in_current_models_table = null, $connection_name = null)
+    protected function has_many(string $associated_class_name, ?string $foreign_key_name = null, ?string $foreign_key_name_in_current_models_table = null, ?string $connection_name = null): Orm\Wrapper
     {
         // Added: to determine eager load relationship parameters
         $this->relating = 'has_many';
@@ -306,7 +306,7 @@ class Granada implements ArrayAccess
      * @param string $associated_class_name
      * @param string $foreign_key_name
      */
-    protected function belongs_to($associated_class_name, $foreign_key_name = null, $foreign_key_name_in_associated_models_table = null, $connection_name = null)
+    protected function belongs_to(string $associated_class_name, ?string $foreign_key_name = null, ?string $foreign_key_name_in_associated_models_table = null, ?string $connection_name = null): Orm\Wrapper
     {
         // Added: to determine eager load relationship parameters
         $this->relating       = 'belongs_to';
@@ -342,7 +342,7 @@ class Granada implements ArrayAccess
      * @param string $key_to_base_table
      * @param string $key_to_associated_table
      */
-    protected function has_many_through($associated_class_name, $join_class_name = null, $key_to_base_table = null, $key_to_associated_table = null, $key_in_base_table = null, $key_in_associated_table = null, $connection_name = null)
+    protected function has_many_through(string $associated_class_name, ?string $join_class_name = null, ?string $key_to_base_table = null, ?string $key_to_associated_table = null, ?string $key_in_base_table = null, ?string $key_in_associated_table = null, ?string $connection_name = null): Orm\Wrapper
     {
         // Added: to determine eager load relationship parameters
         $this->relating = 'has_many_through';
@@ -355,12 +355,12 @@ class Granada implements ArrayAccess
         if (is_null($join_class_name)) {
             $model      = explode('\\', $base_class_name);
             $model_name = end($model);
-            if (self::$auto_prefix_models && substr($model_name, 0, strlen(self::$auto_prefix_models)) == self::$auto_prefix_models) {
+            if (self::$auto_prefix_models && str_starts_with($model_name, self::$auto_prefix_models)) {
                 $model_name = substr($model_name, strlen(self::$auto_prefix_models), strlen($model_name));
             }
             $class_names = [$model_name, $associated_class_name];
             sort($class_names, SORT_STRING);
-            $join_class_name = join('', $class_names);
+            $join_class_name = implode('', $class_names);
         }
 
         // Get table names for each class
@@ -369,12 +369,8 @@ class Granada implements ArrayAccess
         $join_table_name       = self::_get_table_name(self::$auto_prefix_models . $join_class_name);
 
         // Get ID column names
-        $base_table_id_column = (is_null($key_in_base_table))
-            ? self::_get_id_column_name($base_class_name)
-            : $key_in_base_table;
-        $associated_table_id_column = (is_null($key_in_associated_table))
-            ? self::_get_id_column_name(self::$auto_prefix_models . $associated_class_name)
-            : $key_in_associated_table;
+        $base_table_id_column       = $key_in_base_table       ?? self::_get_id_column_name($base_class_name);
+        $associated_table_id_column = $key_in_associated_table ?? self::_get_id_column_name(self::$auto_prefix_models . $associated_class_name);
 
         // Get the column names for each side of the join table
         $key_to_base_table       = self::_build_foreign_key_name($key_to_base_table, $base_table_name);
@@ -407,7 +403,7 @@ class Granada implements ArrayAccess
      * Set the wrapped ORM instance associated with this Model instance.
      * @param Orm\Wrapper $orm
      */
-    public function set_orm($orm)
+    public function set_orm(Orm\Wrapper $orm): void
     {
         $this->orm = $orm;
     }
@@ -422,7 +418,7 @@ class Granada implements ArrayAccess
      *      4. missingonce_{property_name} method (computed once, memoized in relationships)
      *      5. Lazy-loaded relationship if a method matching the property name exists
      */
-    public function __get($property)
+    public function __get(string $property): mixed
     {
         $class  = static::class;
         $result = $this->orm->get($property);
@@ -454,11 +450,11 @@ class Granada implements ArrayAccess
 
         $method = $property;
         if ($_has_method[$class][$method] ??= method_exists($this, $method)) {
-            if ($property != self::_get_id_column_name($class)) {
+            if ($property !== self::_get_id_column_name($class)) {
                 $relation = $this->$property();
 
-                $relation_has_one    = $this->relating == 'has_one';
-                $relation_belongs_to = $this->relating == 'belongs_to';
+                $relation_has_one    = $this->relating === 'has_one';
+                $relation_belongs_to = $this->relating === 'belongs_to';
                 $relation_finds_one  = $relation_has_one || $relation_belongs_to;
 
                 if ($relation_finds_one) {
@@ -497,7 +493,7 @@ class Granada implements ArrayAccess
      * Magic setter method, allows $model->property = 'value' access to data.
      * Added: use Model methods to determine if a relationship exists and populate it on $relationships instead of properties
      */
-    public function __set($property, $value)
+    public function __set(string $property, mixed $value): void
     {
         $this->set($property, $value);
     }
@@ -505,7 +501,7 @@ class Granada implements ArrayAccess
     /**
      * Magic isset method, allows isset($model->property) to work correctly.
      */
-    public function __isset($property)
+    public function __isset(string $property): bool
     {
         if (array_key_exists($property, $this->relationships)) {
             return true;
@@ -527,7 +523,7 @@ class Granada implements ArrayAccess
     /**
      * Getter method, allows $model->get('property') access to data
      */
-    public function get($property)
+    public function get(string $property): mixed
     {
         return $this->orm->get($property);
     }
@@ -536,7 +532,7 @@ class Granada implements ArrayAccess
      * Setter method, allows $model->set('property', 'value') access to data.
      * @param string|null $value
      */
-    public function set($property, $value = null)
+    public function set(array|string $property, mixed $value = null)
     {
         if (!is_array($property)) {
             $property = [$property => $value];
@@ -557,7 +553,7 @@ class Granada implements ArrayAccess
      * Setter method, allows $model->set_expr('property', 'value') access to data.
      * @param string|null $value
      */
-    public function set_expr($property, $value = null)
+    public function set_expr(string $property, mixed $value = null): void
     {
         $this->orm->set_expr($property, $value);
     }
@@ -567,7 +563,7 @@ class Granada implements ArrayAccess
      * @param int|string $offset
      * @return bool
      */
-    public function offsetExists($offset): bool
+    public function offsetExists(mixed $offset): bool
     {
         return $this->__isset($offset);
     }
@@ -577,7 +573,7 @@ class Granada implements ArrayAccess
      * @param int|string $offset
      * @return mixed
      */
-    public function offsetGet($offset): mixed
+    public function offsetGet(mixed $offset): mixed
     {
         return $this->__get($offset);
     }
@@ -587,7 +583,7 @@ class Granada implements ArrayAccess
      * @param int|string $offset
      * @param mixed $value
      */
-    public function offsetSet($offset, $value): void
+    public function offsetSet(mixed $offset, mixed $value): void
     {
         $this->__set($offset, $value);
     }
@@ -596,7 +592,7 @@ class Granada implements ArrayAccess
      * ArrayAccess
      * @param int|string $offset
      */
-    public function offsetUnset($offset): void
+    public function offsetUnset(mixed $offset): void
     {
         $this->orm->offsetUnset($offset);
     }
@@ -606,7 +602,7 @@ class Granada implements ArrayAccess
      * @param string $property
      * @return bool
      */
-    public function is_dirty($property)
+    public function is_dirty(string $property): bool
     {
         return $this->orm->is_dirty($property);
     }
@@ -615,7 +611,7 @@ class Granada implements ArrayAccess
      * Check whether the any fields have changed since the object was created or saved
      * @return bool
      */
-    public function is_any_dirty()
+    public function is_any_dirty(): bool
     {
         return $this->orm->is_any_dirty();
     }
@@ -623,7 +619,7 @@ class Granada implements ArrayAccess
     /**
      * Get the list of fields that need updating on next save
      */
-    public function list_dirty_fields()
+    public function list_dirty_fields(): array
     {
         return $this->orm->list_dirty_fields();
     }
@@ -632,7 +628,7 @@ class Granada implements ArrayAccess
      * Check whether the given field has not changed since the object was created or saved
      * @return bool
      */
-    public function is_clean($property)
+    public function is_clean(string $property): bool
     {
         return !$this->is_dirty($property);
     }
@@ -641,7 +637,7 @@ class Granada implements ArrayAccess
      * Get the value of this property the last time the object was created or saved
      * @return mixed
      */
-    public function clean_value($property)
+    public function clean_value(string $property): mixed
     {
         return $this->orm->clean_value($property);
     }
@@ -650,7 +646,7 @@ class Granada implements ArrayAccess
      * Get the values of this object the last time it was created or saved
      * @return array
      */
-    public function clean_values()
+    public function clean_values(): array
     {
         return $this->orm->clean_values();
     }
@@ -659,7 +655,7 @@ class Granada implements ArrayAccess
      * Check whether the model was the result of a call to create() or not
      * @return bool
      */
-    public function is_new()
+    public function is_new(): bool
     {
         return $this->orm->is_new();
     }
@@ -667,17 +663,15 @@ class Granada implements ArrayAccess
     /**
      * Wrapper for Idiorm's as_array method.
      */
-    public function as_array()
+    public function as_array(...$args): array
     {
-        $args = func_get_args();
-
-        return call_user_func_array([$this->orm, 'as_array'], $args);
+        return $this->orm->as_array(...$args);
     }
 
     /**
      * Save the data associated with this model instance to the database.
      */
-    public function save($ignore = false)
+    public function save(bool $ignore = false)
     {
         $result = $this->orm->save($ignore);
 
@@ -691,7 +685,7 @@ class Granada implements ArrayAccess
     /**
      * Delete the database row associated with this model instance.
      */
-    public function delete()
+    public function delete(): ?bool
     {
         $result = $this->orm->delete();
 
@@ -705,7 +699,7 @@ class Granada implements ArrayAccess
     /**
      * Get the database ID of this model instance.
      */
-    public function id()
+    public function id(): mixed
     {
         return $this->orm->id();
     }
@@ -714,7 +708,7 @@ class Granada implements ArrayAccess
      * Is this record the first result in a foreach()
      * @return boolean
      */
-    public function isFirstResult()
+    public function isFirstResult(): bool
     {
         return $this->_isFirstResult;
     }
@@ -723,7 +717,7 @@ class Granada implements ArrayAccess
      * Is this record the last result in a foreach()
      * @return boolean
      */
-    public function isLastResult()
+    public function isLastResult(): bool
     {
         return $this->_isLastResult;
     }
@@ -734,12 +728,12 @@ class Granada implements ArrayAccess
      * corresponding database table. If any keys are supplied which
      * do not match up with columns, the database will throw an error.
      */
-    public function hydrate($data)
+    public function hydrate(array $data): void
     {
         $this->orm->hydrate($data)->force_all_dirty();
     }
 
-    public function get_resultSetClass()
+    public function get_resultSetClass(): string
     {
         return static::$resultSetClass;
     }
@@ -753,7 +747,7 @@ class Granada implements ArrayAccess
      * @param Orm\Wrapper $query
      * @return Orm\Wrapper
      */
-    protected static function _defaultFilter($query)
+    protected static function _defaultFilter(Orm\Wrapper $query)
     {
         return $query;
     }
@@ -761,12 +755,10 @@ class Granada implements ArrayAccess
     /**
      * Calls static methods directly on the Orm\Wrapper
      */
-    public static function __callStatic($method, $parameters)
+    public static function __callStatic(string $method, array $parameters): mixed
     {
-        if (function_exists('get_called_class')) {
-            $model = self::factory(get_called_class());
+        $model = self::factory(get_called_class());
 
-            return call_user_func_array([$model, $method], $parameters);
-        }
+        return $model->$method(...$parameters);
     }
 }

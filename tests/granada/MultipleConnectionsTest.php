@@ -1,6 +1,6 @@
 <?php
 
-use Granada\Orm;
+use Granada\ORM;
 use Granada\Model;
 
 class MultipleConnectionsTest extends \PHPUnit\Framework\TestCase

@@ -50,6 +50,7 @@ use PDO;
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/** @implements ArrayAccess<string, mixed> */
 class ORM implements ArrayAccess
 {
     // ----------------------- //
@@ -71,7 +72,8 @@ class ORM implements ArrayAccess
     // ------------------------ //
 
     // Class configuration
-    protected static $_default_config = [
+    /** @var array<string, mixed> */
+    protected static array $_default_config = [
         'connection_string'           => 'sqlite::memory:',
         'id_column'                   => 'id',
         'id_column_overrides'         => [],
@@ -88,20 +90,22 @@ class ORM implements ArrayAccess
         'find_many_primary_id_as_key' => true,
     ];
 
-    // Map of configuration settings
-    protected static $_config = [];
+    protected static array $_config = [];
 
     // Map of database connections, instances of the PDO class
-    protected static $_db = [];
+    /** @var array<string, \PDO> */
+    protected static array $_db = [];
 
     // Last query run, only populated if logging is enabled
-    protected static $_last_query;
+    protected static ?string $_last_query = null;
 
     // Log of all queries run, mapped by connection key, only populated if logging is enabled
-    protected static $_query_log = [];
+    /** @var array<string, array<string, mixed>> */
+    protected static array $_query_log = [];
 
     // Query cache, only used if query caching is enabled
-    protected static $_query_cache = [];
+    /** @var array<string, mixed> */
+    protected static array $_query_cache = [];
 
     // Reference to previously used PDOStatement object to enable low-level access, if needed
     protected static $_last_statement = null;
@@ -111,82 +115,96 @@ class ORM implements ArrayAccess
     // --------------------------- //
 
     // Key name of the connections in self::$_db used by this instance
-    protected $_connection_name;
+    protected string $_connection_name;
 
     // The name of the table the current ORM instance is associated with
-    protected $_table_name;
+    protected string $_table_name;
 
     // Alias for the table to be used in SELECT queries
-    protected $_table_alias = null;
+    protected ?string $_table_alias = null;
 
     // Values to be bound to the query
-    protected $_values = [];
+    /** @var array<int, mixed> */
+    protected array $_values = [];
 
     // Columns to select in the result
-    protected $_result_columns = ['*'];
+    /** @var array<int, string> */
+    protected array $_result_columns = ['*'];
 
     // Are we using the default result column or have these been manually changed?
-    protected $_using_default_result_columns = true;
+    protected bool $_using_default_result_columns = true;
 
     // Join sources
-    protected $_join_sources = [];
+    /** @var array<int, string> */
+    protected array $_join_sources = [];
 
     // Should the query include a DISTINCT keyword?
-    protected $_distinct = false;
+    protected bool $_distinct = false;
 
     // Is this a raw query?
-    protected $_is_raw_query = false;
+    protected bool $_is_raw_query = false;
 
     // The raw query
-    protected $_raw_query = '';
+    protected string $_raw_query = '';
 
     // The raw query parameters
-    protected $_raw_parameters = [];
+    /** @var array<int, mixed> */
+    protected array $_raw_parameters = [];
 
     // Array of WHERE clauses
-    protected $_where_conditions       = [];
-    protected $_where_conditions_stash = [];
+    /** @var array<int, array<string, mixed>> */
+    protected array $_where_conditions = [];
+
+    /** @var array<int, array<string, mixed>> */
+    protected array $_where_conditions_stash = [];
 
     // LIMIT
-    protected $_limit = null;
+    protected ?int $_limit = null;
 
     // OFFSET
-    protected $_offset = null;
+    protected ?int $_offset = null;
 
     // ORDER BY
-    protected $_order_by = [];
+    /** @var array<int, string> */
+    protected array $_order_by = [];
 
     // GROUP BY
-    protected $_group_by = [];
+    /** @var array<int, string> */
+    protected array $_group_by = [];
 
     // HAVING
-    protected $_having_conditions = [];
+    /** @var array<int, array<string, mixed>> */
+    protected array $_having_conditions = [];
 
     // The data for a hydrated instance of the class
-    protected $_data = [];
+    /** @var array<string, mixed> */
+    protected array $_data = [];
 
     // Fields that have been modified during the
     // lifetime of the object
-    protected $_dirty_fields = [];
+    /** @var array<string, mixed> */
+    protected array $_dirty_fields = [];
 
     // The data as at hydration time, used for comparison of dirty fields
-    protected $_clean_data = [];
+    /** @var array<string, mixed> */
+    protected array $_clean_data = [];
 
     // Fields that are to be inserted in the DB raw
-    protected $_expr_fields = [];
+    /** @var array<string, mixed> */
+    protected array $_expr_fields = [];
 
     // Is this a new object (has create() been called)?
-    protected $_is_new = false;
+    protected bool $_is_new = false;
 
     // Name of the column to use as the primary key for
     // this instance only. Overrides the config settings.
-    protected $_instance_id_column = null;
+    protected ?string $_instance_id_column = null;
 
     // name of the ResultSet Object
-    public $resultSetClass = 'Granada\ResultSet';
+    public string $resultSetClass = 'Granada\ResultSet';
 
     // associative results flag
-    protected $_associative_results = true;
+    protected bool $_associative_results = true;
 
     // ---------------------- //
     // --- STATIC METHODS --- //
@@ -205,7 +223,7 @@ class ORM implements ArrayAccess
      * @param mixed $value
      * @param string $connection_name Which connection to use
      */
-    public static function configure($key, $value = null, $connection_name = self::DEFAULT_CONNECTION)
+    public static function configure(array|string $key, mixed $value = null, string $connection_name = self::DEFAULT_CONNECTION): void
     {
         self::_setup_db_config($connection_name); // ensures at least default config is set
 
@@ -225,18 +243,18 @@ class ORM implements ArrayAccess
             self::$_config[$connection_name][$key] = $value;
         }
 
-        if ($key == 'connection_string') {
+        if ($key === 'connection_string') {
             self::_setup_default_driver_options();
         }
     }
 
-    private static function _setup_default_driver_options($connection_name = self::DEFAULT_CONNECTION)
+    private static function _setup_default_driver_options(string $connection_name = self::DEFAULT_CONNECTION): void
     {
         if (self::$_config[$connection_name]['driver_options']) {
             return;
         }
 
-        if (substr(self::$_config[$connection_name]['connection_string'], 0, 6) == 'mysql:') {
+        if (str_starts_with(self::$_config[$connection_name]['connection_string'], 'mysql:')) {
             // Set default connection mode for MySQL to be SSL without verifying certificate
             self::$_config[$connection_name]['driver_options'] = [
                 PDO::MYSQL_ATTR_SSL_CA                 => true,
@@ -250,7 +268,7 @@ class ORM implements ArrayAccess
      * @param string $key
      * @param string $connection_name Which connection to use
      */
-    public static function get_config($key = null, $connection_name = self::DEFAULT_CONNECTION)
+    public static function get_config(?string $key = null, string $connection_name = self::DEFAULT_CONNECTION): mixed
     {
         if ($key) {
             return self::$_config[$connection_name][$key];
@@ -262,7 +280,7 @@ class ORM implements ArrayAccess
     /**
      * Delete all configs in _config array.
      */
-    public static function reset_config()
+    public static function reset_config(): void
     {
         self::$_config = [];
     }
@@ -275,44 +293,46 @@ class ORM implements ArrayAccess
      * this will normally be the first method called in a chain.
      * @param string $table_name
      * @param string $connection_name Which connection to use
-     * @return ORM
+     * @return static
      */
-    public static function for_table($table_name, $connection_name = self::DEFAULT_CONNECTION)
+    public static function for_table(string $table_name, string $connection_name = self::DEFAULT_CONNECTION): static
     {
         self::_setup_db($connection_name);
 
-        return new self($table_name, [], $connection_name);
+        return new static($table_name, [], $connection_name);
     }
 
     /**
      * Set up the database connection used by the class
      * @param string $connection_name Which connection to use
      */
-    protected static function _setup_db($connection_name = self::DEFAULT_CONNECTION)
+    protected static function _setup_db(string $connection_name = self::DEFAULT_CONNECTION): void
     {
         if (
-            !array_key_exists($connection_name, self::$_db)
-            || !is_object(self::$_db[$connection_name])
+            array_key_exists($connection_name, self::$_db)
+            && is_object(self::$_db[$connection_name])
         ) {
-            self::_setup_db_config($connection_name);
-
-            $db = new PDO(
-                self::$_config[$connection_name]['connection_string'],
-                self::$_config[$connection_name]['username'],
-                self::$_config[$connection_name]['password'],
-                self::$_config[$connection_name]['driver_options']
-            );
-
-            $db->setAttribute(PDO::ATTR_ERRMODE, self::$_config[$connection_name]['error_mode']);
-            self::set_db($db, $connection_name);
+            return;
         }
+
+        self::_setup_db_config($connection_name);
+
+        $db = new PDO(
+            self::$_config[$connection_name]['connection_string'],
+            self::$_config[$connection_name]['username'],
+            self::$_config[$connection_name]['password'],
+            is_array(self::$_config[$connection_name]['driver_options']) ? self::$_config[$connection_name]['driver_options'] : null
+        );
+
+        $db->setAttribute(PDO::ATTR_ERRMODE, self::$_config[$connection_name]['error_mode']);
+        self::set_db($db, $connection_name);
     }
 
     /**
      * Ensures configuration (mulitple connections) is at least set to default.
      * @param string $connection_name Which connection to use
      */
-    protected static function _setup_db_config($connection_name)
+    protected static function _setup_db_config(string $connection_name): void
     {
         if (!array_key_exists($connection_name, self::$_config)) {
             self::$_config[$connection_name] = self::$_default_config;
@@ -327,7 +347,7 @@ class ORM implements ArrayAccess
      * @param PDO $db
      * @param string $connection_name Which connection to use
      */
-    public static function set_db($db, $connection_name = self::DEFAULT_CONNECTION)
+    public static function set_db(?\PDO $db, string $connection_name = self::DEFAULT_CONNECTION): void
     {
         self::_setup_db_config($connection_name);
         self::$_db[$connection_name] = $db;
@@ -338,9 +358,8 @@ class ORM implements ArrayAccess
     /**
      * Close and delete all registered PDO objects in _db array.
      */
-    public static function reset_db()
+    public static function reset_db(): void
     {
-        self::$_db = null;
         self::$_db = [];
     }
 
@@ -351,7 +370,7 @@ class ORM implements ArrayAccess
      * this will do nothing.
      * @param string $connection_name Which connection to use
      */
-    protected static function _setup_identifier_quote_character($connection_name)
+    protected static function _setup_identifier_quote_character(string $connection_name): void
     {
         if (is_null(self::$_config[$connection_name]['identifier_quote_character'])) {
             self::$_config[$connection_name]['identifier_quote_character'] = self::_detect_identifier_quote_character($connection_name);
@@ -364,7 +383,7 @@ class ORM implements ArrayAccess
      * ORM::configure('limit_clause_style', 'top'), this will do nothing.
      * @param string $connection_name Which connection to use
      */
-    public static function _setup_limit_clause_style($connection_name)
+    public static function _setup_limit_clause_style(string $connection_name): void
     {
         if (is_null(self::$_config[$connection_name]['limit_clause_style'])) {
             self::$_config[$connection_name]['limit_clause_style'] = self::_detect_limit_clause_style($connection_name);
@@ -377,7 +396,7 @@ class ORM implements ArrayAccess
      * @param string $connection_name Which connection to use
      * @return string
      */
-    protected static function _detect_identifier_quote_character($connection_name)
+    protected static function _detect_identifier_quote_character(string $connection_name): string
     {
         switch (self::get_db($connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME)) {
             case 'pgsql':
@@ -402,7 +421,7 @@ class ORM implements ArrayAccess
      * @param string $connection_name Which connection to use
      * @return string Limit clause style keyword/constant
      */
-    protected static function _detect_limit_clause_style($connection_name)
+    protected static function _detect_limit_clause_style(string $connection_name): string
     {
         switch (self::get_db($connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME)) {
             case 'sqlsrv':
@@ -423,7 +442,7 @@ class ORM implements ArrayAccess
      * @param string $connection_name Which connection to use
      * @return PDO
      */
-    public static function get_db($connection_name = self::DEFAULT_CONNECTION)
+    public static function get_db(string $connection_name = self::DEFAULT_CONNECTION): \PDO
     {
         self::_setup_db($connection_name); // required in case this is called before Idiorm is instantiated
 
@@ -437,11 +456,11 @@ class ORM implements ArrayAccess
      * @example raw_execute('SELECT `name`, AVG(`order`) FROM `customer` GROUP BY `name` HAVING AVG(`order`) > 10')
      * @example raw_execute('INSERT OR REPLACE INTO `widget` (`id`, `name`) SELECT `id`, `name` FROM `other_table`')
      * @param string $query The raw SQL query
-     * @param array  $parameters Optional bound parameters
+     * @param array<int, mixed>  $parameters Optional bound parameters
      * @param string $connection_name Which connection to use
      * @return bool Success
      */
-    public static function raw_execute($query, $parameters = [], $connection_name = self::DEFAULT_CONNECTION)
+    public static function raw_execute(string $query, array $parameters = [], string $connection_name = self::DEFAULT_CONNECTION): ?bool
     {
         self::_setup_db($connection_name);
 
@@ -453,7 +472,7 @@ class ORM implements ArrayAccess
      * Useful for access to PDOStatement::rowCount() or error information
      * @return \PDOStatement
      */
-    public static function get_last_statement()
+    public static function get_last_statement(): mixed
     {
         return self::$_last_statement;
     }
@@ -467,7 +486,7 @@ class ORM implements ArrayAccess
      * @param string $connection_name Which connection to use
      * @return bool Response of PDOStatement::execute()
      */
-    protected static function _execute($query, $parameters = [], $connection_name = self::DEFAULT_CONNECTION)
+    protected static function _execute(string $query, array $parameters = [], string $connection_name = self::DEFAULT_CONNECTION): ?bool
     {
         self::_log_query($query, $parameters, $connection_name);
         $statement = self::get_db($connection_name)->prepare($query);
@@ -486,11 +505,11 @@ class ORM implements ArrayAccess
      * parameters to the database which takes care of the binding) but
      * doing it this way makes the logged queries more readable.
      * @param string $query
-     * @param array $parameters An array of parameters to be bound in to the query
+     * @param array<int, mixed> $parameters An array of parameters to be bound in to the query
      * @param string $connection_name Which connection to use
      * @return bool
      */
-    protected static function _log_query($query, $parameters, $connection_name)
+    protected static function _log_query(string $query, array $parameters, string $connection_name): bool
     {
         // If logging is not enabled, do nothing
         if (!self::$_config[$connection_name]['logging']) {
@@ -511,7 +530,7 @@ class ORM implements ArrayAccess
             $query = str_replace('%', '%%', $query);
 
             // Replace placeholders in the query for vsprintf
-            if (false !== strpos($query, "'") || false !== strpos($query, '"')) {
+            if (str_contains($query, "'") || str_contains($query, '"')) {
                 $query = Orm\Str::str_replace_outside_quotes('?', '%s', $query);
             } else {
                 $query = str_replace('?', '%s', $query);
@@ -542,7 +561,7 @@ class ORM implements ArrayAccess
      * @param null|string $connection_name Which connection to use
      * @return string
      */
-    public static function get_last_query($connection_name = null)
+    public static function get_last_query(?string $connection_name = null): ?string
     {
         if ($connection_name === null) {
             return self::$_last_query;
@@ -561,7 +580,7 @@ class ORM implements ArrayAccess
      * set to true. Otherwise, returned array will be empty.
      * @param string $connection_name Which connection to use
      */
-    public static function get_query_log($connection_name = self::DEFAULT_CONNECTION)
+    public static function get_query_log(string $connection_name = self::DEFAULT_CONNECTION): array
     {
         if (isset(self::$_query_log[$connection_name])) {
             return self::$_query_log[$connection_name];
@@ -572,9 +591,9 @@ class ORM implements ArrayAccess
 
     /**
      * Get a list of the available connection names
-     * @return array
+     * @return array<int, string>
      */
-    public static function get_connection_names()
+    public static function get_connection_names(): array
     {
         return array_keys(self::$_db);
     }
@@ -585,9 +604,10 @@ class ORM implements ArrayAccess
 
     /**
      * "Private" constructor; shouldn't be called directly.
-     * Use the ORM::for_table factory method instead.
+     * @param array<string, mixed> $data
+     * @param string $connection_name Which connection to use
      */
-    protected function __construct($table_name, $data = [], $connection_name = self::DEFAULT_CONNECTION)
+    protected function __construct(string $table_name, array $data = [], string $connection_name = self::DEFAULT_CONNECTION)
     {
         $this->_table_name = $table_name;
         $this->_data       = $data;
@@ -609,7 +629,7 @@ class ORM implements ArrayAccess
      * dirty so all will be saved to the database when
      * save() is called.
      */
-    public function create($data = null)
+    public function create(?array $data = null)
     {
         $this->_is_new = true;
         if (!is_null($data)) {
@@ -621,9 +641,9 @@ class ORM implements ArrayAccess
 
     /**
      * Set the ORM instance to return non associative results sets
-     * @return ORM instance
+     * @return static instance
      */
-    public function non_associative()
+    public function non_associative(): static
     {
         $this->_associative_results = false;
 
@@ -632,9 +652,9 @@ class ORM implements ArrayAccess
 
     /**
      * Set the ORM instance to return associative results sets
-     * @return ORM instance
+     * @return static instance
      */
-    public function associative()
+    public function associative(): static
     {
         $this->_associative_results = true;
 
@@ -643,9 +663,9 @@ class ORM implements ArrayAccess
 
     /**
      * Set the ORM instance to return associative (or not) results sets, as config dictates
-     * @return ORM instance
+     * @return static instance
      */
-    public function reset_associative()
+    public function reset_associative(): static
     {
         $this->_associative_results = self::$_config[$this->_connection_name]['find_many_primary_id_as_key'];
 
@@ -660,7 +680,7 @@ class ORM implements ArrayAccess
      * not normally be used in manually built queries. If you don't know why
      * you would want to use this, you should probably just ignore it.
      */
-    public function use_id_column($id_column)
+    public function use_id_column(?string $id_column): static
     {
         $this->_instance_id_column = $id_column;
 
@@ -670,8 +690,9 @@ class ORM implements ArrayAccess
     /**
      * Create an ORM instance from the given row (an associative
      * array of data fetched from the database)
+     * @param array<string, mixed> $row
      */
-    protected function _create_instance_from_row($row)
+    protected function _create_instance_from_row(array $row): static
     {
         $instance = static::for_table($this->_table_name, $this->_connection_name);
         $instance->use_id_column($this->_instance_id_column);
@@ -689,7 +710,7 @@ class ORM implements ArrayAccess
      * to this method. This will perform a primary key
      * lookup on the table.
      */
-    public function find_one($id = null)
+    public function find_one(mixed $id = null)
     {
         if (!is_null($id)) {
             $this->where_id_is($id);
@@ -724,7 +745,7 @@ class ORM implements ArrayAccess
      * Perform a find_many then map the results through a function
      * @param callable $func
      */
-    public function find_map($func)
+    public function find_map(callable $func): array
     {
         return array_map($func, $this->find_many()->as_array());
     }
@@ -734,7 +755,7 @@ class ORM implements ArrayAccess
      * @param string $connection_name
      * @return string
      */
-    public function get_select_query($connection_name = self::DEFAULT_CONNECTION)
+    public function get_select_query(string $connection_name = self::DEFAULT_CONNECTION): string
     {
         // Ensure logging works
         $before_log                                 = self::$_config[$connection_name]['logging'];
@@ -752,9 +773,9 @@ class ORM implements ArrayAccess
      * from your query, and execute it. Will return an array
      * of instances of the ORM class, or an empty array if
      * no rows were returned.
-     * @return array
+     * @return array<int|static, static>
      */
-    protected function _find_many($associative = true)
+    protected function _find_many(bool $associative = true): array
     {
         $rows = $this->_run();
 
@@ -765,17 +786,25 @@ class ORM implements ArrayAccess
      * Create instances of each row in the result and map
      * them to an associative array with the primary IDs as
      * the array keys.
-     * @param array $rows
+     * @param array<int, array<string, mixed>> $rows
      * @return array
      */
-    protected function _get_instances($rows)
+    protected function _get_instances(array $rows): array
     {
         $size      = count($rows);
         $instances = [];
         for ($i = 0; $i < $size; $i++) {
-            $row             = $this->_create_instance_from_row($rows[$i]);
-            $key             = (isset($row->{$this->_instance_id_column}) && $this->_associative_results && $row->id()) ? $row->id() : $i;
-            $instances[$key] = $row;
+            $row = $this->_create_instance_from_row($rows[$i]);
+            if (
+                isset($row->{$this->_instance_id_column})
+                && $this->_associative_results
+                && $row->id()
+            ) {
+                $instances[$row->id()] = $row;
+
+                continue;
+            }
+            $instances[$i] = $row;
         }
 
         return $instances;
@@ -787,7 +816,7 @@ class ORM implements ArrayAccess
      * containing instances of the ORM class.
      * @return \Granada\ResultSet
      */
-    public function find_result_set()
+    public function find_result_set(): ResultSet
     {
         $resultSetClass = $this->resultSetClass;
         if (is_a($resultSetClass, 'Granada\ResultSet', true)) {
@@ -805,7 +834,7 @@ class ORM implements ArrayAccess
      * or an empty array if no rows were returned.
      * @return array
      */
-    public function find_array()
+    public function find_array(): array
     {
         return $this->_run();
     }
@@ -815,7 +844,7 @@ class ORM implements ArrayAccess
      * Will return an integer representing the number of
      * rows returned.
      */
-    public function count($column = '*')
+    public function count(string $column = '*'): int
     {
         return $this->_call_aggregate_db_function(__FUNCTION__, $column);
     }
@@ -825,7 +854,7 @@ class ORM implements ArrayAccess
      * Will return the max value of the choosen column.
      * @param string $column
      */
-    public function max($column)
+    public function max(string $column): int
     {
         return $this->_call_aggregate_db_function(__FUNCTION__, $column);
     }
@@ -835,7 +864,7 @@ class ORM implements ArrayAccess
      * Will return the min value of the choosen column.
      * @param string $column
      */
-    public function min($column)
+    public function min(string $column): int
     {
         return $this->_call_aggregate_db_function(__FUNCTION__, $column);
     }
@@ -845,7 +874,7 @@ class ORM implements ArrayAccess
      * Will return the average value of the choosen column.
      * @param string $column
      */
-    public function avg($column)
+    public function avg(string $column): float|int
     {
         return $this->_call_aggregate_db_function(__FUNCTION__, $column);
     }
@@ -855,7 +884,7 @@ class ORM implements ArrayAccess
      * Will return the sum of the choosen column.
      * @param string $column
      */
-    public function sum($column)
+    public function sum(string $column): float|int
     {
         return $this->_call_aggregate_db_function(__FUNCTION__, $column);
     }
@@ -866,16 +895,16 @@ class ORM implements ArrayAccess
      * @param string $column The column to execute the aggregate query against
      * @return int
      */
-    protected function _call_aggregate_db_function($sql_function, $column)
+    protected function _call_aggregate_db_function(string $sql_function, string $column): float|int|string
     {
         $alias        = strtolower($sql_function);
         $sql_function = strtoupper($sql_function);
-        if ('*' != $column) {
+        if ($column !== '*') {
             $column = $this->_quote_identifier($column);
         }
         $result_columns        = $this->_result_columns;
         $this->_result_columns = [];
-        $this->select_expr("$sql_function($column)", $alias);
+        $this->select_expr("{$sql_function}({$column})", $alias);
         $result                = $this->find_one();
         $this->_result_columns = $result_columns;
 
@@ -899,7 +928,7 @@ class ORM implements ArrayAccess
      * This will usually be called only from inside the class,
      * but it's public in case you need to call it directly.
      */
-    public function hydrate($data = [])
+    public function hydrate(array $data = [])
     {
         $this->_data       = $data;
         $this->_clean_data = [];
@@ -911,7 +940,7 @@ class ORM implements ArrayAccess
      * Force the ORM to flag all the fields in the $data array
      * as "dirty" and therefore update them when save() is called.
      */
-    public function force_all_dirty()
+    public function force_all_dirty(): static
     {
         $this->_dirty_fields = $this->_data;
 
@@ -926,7 +955,7 @@ class ORM implements ArrayAccess
      * is called, all other query building methods will be ignored.
      * @param string $query
      */
-    public function raw_query($query, $parameters = [])
+    public function raw_query(string $query, array $parameters = []): static
     {
         $this->_is_raw_query   = true;
         $this->_raw_query      = $query;
@@ -939,7 +968,7 @@ class ORM implements ArrayAccess
      * Add an alias for the main table to be used in SELECT queries
      * @param string $alias
      */
-    public function table_alias($alias)
+    public function table_alias(string $alias): static
     {
         $this->_table_alias = $alias;
 
@@ -951,7 +980,7 @@ class ORM implements ArrayAccess
      * of columns returned by the SELECT query. The second optional
      * argument is the alias to return the expression as.
      */
-    protected function _add_result_column($expr, $alias = null)
+    protected function _add_result_column(string $expr, ?string $alias = null): static
     {
         if (!is_null($alias)) {
             $expr .= ' AS ' . $this->_quote_identifier($alias);
@@ -975,14 +1004,14 @@ class ORM implements ArrayAccess
      * the alias to return the column as.
      * @param string $alias
      */
-    public function select($column, $alias = null)
+    public function select(string $column_list, ?string $alias = null): static
     {
-        $columns = array_map('trim', explode(',', $column));
+        $columns = array_map('trim', explode(',', $column_list));
         foreach ($columns as $column) {
-            if ($column == '*') {
+            if ($column === '*') {
                 if (!$this->_using_default_result_columns) {
                     // Check if we are already selecting '*'
-                    if (($this->_result_columns[\array_key_first($this->_result_columns)] ?? '') != '*') {
+                    if (($this->_result_columns[\array_key_first($this->_result_columns)] ?? '') !== '*') {
                         // Put the * to the front of the list
                         $this->_result_columns = array_merge(['*'], $this->_result_columns);
                     }
@@ -999,7 +1028,7 @@ class ORM implements ArrayAccess
     /**
      * Reset result columns to default (SELECT *).
      */
-    public function clear_select()
+    public function clear_select(): static
     {
         $this->_result_columns               = ['*'];
         $this->_using_default_result_columns = true;
@@ -1012,7 +1041,7 @@ class ORM implements ArrayAccess
      * by the SELECT query. The second optional argument is
      * the alias to return the column as.
      */
-    public function select_expr($expr, $alias = null)
+    public function select_expr(string $expr, ?string $alias = null): static
     {
         return $this->_add_result_column($expr, $alias);
     }
@@ -1029,19 +1058,20 @@ class ORM implements ArrayAccess
      * @example select_many('column', 'column2', 'column3');
      * @example select_many(array('column', 'column2', 'column3'), 'column4', 'column5');
      *
-     * @return ORM
+     * @return static
      */
-    public function select_many()
+    public function select_many(...$columns): static
     {
-        $columns = func_get_args();
-        if (!empty($columns)) {
-            $columns = $this->_normalise_select_many_columns($columns);
-            foreach ($columns as $alias => $column) {
-                if (is_numeric($alias)) {
-                    $alias = null;
-                }
-                $this->select($column, $alias);
+        if (!($columns ?? false)) {
+            return $this;
+        }
+
+        $columns = $this->_normalise_select_many_columns($columns);
+        foreach ($columns as $alias => $column) {
+            if (is_numeric($alias)) {
+                $alias = null;
             }
+            $this->select($column, $alias);
         }
 
         return $this;
@@ -1059,19 +1089,20 @@ class ORM implements ArrayAccess
      * @example select_many_expr('column', 'column2', 'column3')
      * @example select_many_expr(array('column', 'column2', 'column3'), 'column4', 'column5')
      *
-     * @return ORM
+     * @return static
      */
-    public function select_many_expr()
+    public function select_many_expr(...$columns): static
     {
-        $columns = func_get_args();
-        if (!empty($columns)) {
-            $columns = $this->_normalise_select_many_columns($columns);
-            foreach ($columns as $alias => $column) {
-                if (is_numeric($alias)) {
-                    $alias = null;
-                }
-                $this->select_expr($column, $alias);
+        if (empty($columns)) {
+            return $this;
+        }
+
+        $columns = $this->_normalise_select_many_columns($columns);
+        foreach ($columns as $alias => $column) {
+            if (is_numeric($alias)) {
+                $alias = null;
             }
+            $this->select_expr($column, $alias);
         }
 
         return $this;
@@ -1085,10 +1116,11 @@ class ORM implements ArrayAccess
      *
      * array(array('alias' => 'column', 'column2', 'alias2' => 'column3'), 'column4', 'column5'))
      *
-     * @param array $columns
+     * @param array<int, string|array>  $columns
      * @return array
      */
-    protected function _normalise_select_many_columns($columns)
+    /** @return array<string|int, string> */
+    protected function _normalise_select_many_columns(array $columns): array
     {
         $return = [];
         foreach ($columns as $column) {
@@ -1111,7 +1143,7 @@ class ORM implements ArrayAccess
     /**
      * Add a DISTINCT keyword before the list of columns in the SELECT query
      */
-    public function distinct()
+    public function distinct(): static
     {
         $this->_distinct = true;
 
@@ -1141,7 +1173,7 @@ class ORM implements ArrayAccess
      * The final (optional) argument specifies an alias for the joined table.
      * @param string $join_operator
      */
-    protected function _add_join_source($join_operator, $table, $constraint, $table_alias = null)
+    protected function _add_join_source(string $join_operator, string $table, array|string $constraint, ?string $table_alias = null): static
     {
         $join_operator = trim("{$join_operator} JOIN");
 
@@ -1170,7 +1202,7 @@ class ORM implements ArrayAccess
      * Add a simple JOIN source to the query
      * @param string $table_alias
      */
-    public function join($table, $constraint, $table_alias = null)
+    public function join(string $table, array|string $constraint, ?string $table_alias = null): static
     {
         return $this->_add_join_source('', $table, $constraint, $table_alias);
     }
@@ -1180,7 +1212,7 @@ class ORM implements ArrayAccess
      * @param string $table
      * @param string[] $constraint
      */
-    public function inner_join($table, $constraint, $table_alias = null)
+    public function inner_join(string $table, array|string $constraint, ?string $table_alias = null): static
     {
         return $this->_add_join_source('INNER', $table, $constraint, $table_alias);
     }
@@ -1190,7 +1222,7 @@ class ORM implements ArrayAccess
      * @param string $table
      * @param string[] $constraint
      */
-    public function left_outer_join($table, $constraint, $table_alias = null)
+    public function left_outer_join(string $table, array|string $constraint, ?string $table_alias = null): static
     {
         return $this->_add_join_source('LEFT OUTER', $table, $constraint, $table_alias);
     }
@@ -1200,7 +1232,7 @@ class ORM implements ArrayAccess
      * @param string $table
      * @param string[] $constraint
      */
-    public function right_outer_join($table, $constraint, $table_alias = null)
+    public function right_outer_join(string $table, array|string $constraint, ?string $table_alias = null): static
     {
         return $this->_add_join_source('RIGHT OUTER', $table, $constraint, $table_alias);
     }
@@ -1210,7 +1242,7 @@ class ORM implements ArrayAccess
      * @param string $table
      * @param string[] $constraint
      */
-    public function full_outer_join($table, $constraint, $table_alias = null)
+    public function full_outer_join(string $table, array|string $constraint, ?string $table_alias = null): static
     {
         return $this->_add_join_source('FULL OUTER', $table, $constraint, $table_alias);
     }
@@ -1218,7 +1250,7 @@ class ORM implements ArrayAccess
     /**
      * Internal method to add a HAVING condition to the query
      */
-    protected function _add_having($fragment, $values = [])
+    protected function _add_having(string $fragment, mixed $values = []): static
     {
         return $this->_add_condition('having', $fragment, $values);
     }
@@ -1227,7 +1259,7 @@ class ORM implements ArrayAccess
      * Internal method to add a HAVING condition to the query
      * @param string $separator
      */
-    protected function _add_simple_having($column_name, $separator, $value)
+    protected function _add_simple_having(string $column_name, string $separator, mixed $value): static
     {
         return $this->_add_simple_condition('having', $column_name, $separator, $value);
     }
@@ -1235,7 +1267,7 @@ class ORM implements ArrayAccess
     /**
      * Internal method to add a WHERE condition to the query
      */
-    protected function _add_where($fragment, $values = [])
+    protected function _add_where(string $fragment, mixed $values = []): static
     {
         return $this->_add_condition('where', $fragment, $values);
     }
@@ -1244,7 +1276,7 @@ class ORM implements ArrayAccess
      * Internal method to add a WHERE condition to the query
      * @param string $separator
      */
-    protected function _add_simple_where($column_name, $separator, $value)
+    protected function _add_simple_where(string $column_name, string $separator, mixed $value): static
     {
         return $this->_add_simple_condition('where', $column_name, $separator, $value);
     }
@@ -1252,7 +1284,7 @@ class ORM implements ArrayAccess
     /**
      * Internal method to add a HAVING or WHERE condition to the query
      */
-    protected function _add_condition($type, $fragment, $values = [])
+    protected function _add_condition(string $type, string $fragment, mixed $values = []): static
     {
         $conditions_class_property_name = "_{$type}_conditions";
         if (!is_array($values)) {
@@ -1275,9 +1307,9 @@ class ORM implements ArrayAccess
      * Save the where conditions and clear
      * Use pop_where to get them back
      *
-     * @return ORM
+     * @return static
      */
-    public function stash_where()
+    public function stash_where(): static
     {
         $this->_where_conditions_stash = $this->_where_conditions;
 
@@ -1287,9 +1319,9 @@ class ORM implements ArrayAccess
     /**
      * Reinstate the stashed conditions to the end of the where list
      *
-     * @return ORM
+     * @return static
      */
-    public function pop_where()
+    public function pop_where(): static
     {
         foreach ($this->_where_conditions_stash as $stash) {
             $this->_where_conditions[] = $stash;
@@ -1302,15 +1334,17 @@ class ORM implements ArrayAccess
     /**
      * Cleare all WHERE clauses that reference column
      * @param string $column
-     * @return ORM
+     * @return static
      */
-    public function remove_where($column)
+    public function remove_where(string $column): static
     {
         $new_conditions = [];
         foreach ($this->_where_conditions as $idx => $where_condition) {
-            if (strpos($where_condition[self::CONDITION_FRAGMENT], '`' . $column . '`') === false) {
-                $new_conditions[] = $where_condition;
+            if (str_contains($where_condition[self::CONDITION_FRAGMENT], '`' . $column . '`')) {
+                continue;
             }
+
+            $new_conditions[] = $where_condition;
         }
         $this->_where_conditions = $new_conditions;
 
@@ -1319,9 +1353,9 @@ class ORM implements ArrayAccess
 
     /**
      * Clear / Reset the WHERE clause(s)
-     * @return ORM
+     * @return static
      */
-    public function clear_where()
+    public function clear_where(): static
     {
         $this->_where_conditions = [];
 
@@ -1330,9 +1364,9 @@ class ORM implements ArrayAccess
 
     /**
      * Clear / Reset the HAVING clause(s)
-     * @return ORM
+     * @return static
      */
-    public function clear_having()
+    public function clear_having(): static
     {
         $this->_having_conditions = [];
 
@@ -1346,10 +1380,10 @@ class ORM implements ArrayAccess
      * of the call to _quote_identifier
      * @param string $type
      */
-    protected function _add_simple_condition($type, $column_name, $separator, $value)
+    protected function _add_simple_condition(string $type, string $column_name, string $separator, mixed $value): static
     {
         // Add the table name in case of ambiguous columns
-        if (count($this->_join_sources) > 0 && strpos($column_name, '.') === false) {
+        if (count($this->_join_sources) > 0 && !str_contains($column_name, '.')) {
             $table = $this->_table_name;
             if (!is_null($this->_table_alias)) {
                 $table = $this->_table_alias;
@@ -1366,21 +1400,23 @@ class ORM implements ArrayAccess
      * Return a string containing the given number of question marks,
      * separated by commas. Eg "?, ?, ?"
      */
-    protected function _create_placeholders($fields)
+    protected function _create_placeholders(array $fields): string
     {
-        if (!empty($fields)) {
-            $db_fields = [];
-            foreach ($fields as $key => $value) {
-                // Process expression fields directly into the query
-                if (array_key_exists($key, $this->_expr_fields)) {
-                    $db_fields[] = $value;
-                } else {
-                    $db_fields[] = '?';
-                }
-            }
-
-            return implode(', ', $db_fields);
+        if (empty($fields)) {
+            return '';
         }
+
+        $db_fields = [];
+        foreach ($fields as $key => $value) {
+            // Process expression fields directly into the query
+            if (array_key_exists($key, $this->_expr_fields)) {
+                $db_fields[] = $value;
+            } else {
+                $db_fields[] = '?';
+            }
+        }
+
+        return implode(', ', $db_fields);
     }
 
     /**
@@ -1395,9 +1431,9 @@ class ORM implements ArrayAccess
      *
      * @param boolean $condition
      * @param callable $callback
-     * @return self
+     * @return static
      */
-    public function onlyif($condition, $callback)
+    public function onlyif(bool $condition, callable $callback): static
     {
         if ($condition) {
             return $callback($this);
@@ -1412,7 +1448,7 @@ class ORM implements ArrayAccess
      * added, and these will be ANDed together when the final query
      * is built.
      */
-    public function where($column_name, $value)
+    public function where(string $column_name, mixed $value): static
     {
         if (is_null($value)) {
             return $this->where_null($column_name);
@@ -1425,7 +1461,7 @@ class ORM implements ArrayAccess
      * More explicitly named version of for the where() method.
      * Can be used if preferred.
      */
-    public function where_equal($column_name, $value)
+    public function where_equal(string $column_name, mixed $value): static
     {
         if (is_null($value)) {
             return $this->where_null($column_name);
@@ -1439,7 +1475,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param string|null $value
      */
-    public function where_not_equal($column_name, $value)
+    public function where_not_equal(string $column_name, mixed $value): static
     {
         if (is_null($value)) {
             return $this->where_not_null($column_name);
@@ -1451,7 +1487,7 @@ class ORM implements ArrayAccess
     /**
      * Special method to query the table by its primary key
      */
-    public function where_id_is($id)
+    public function where_id_is(mixed $id): static
     {
         return $this->where($this->_get_id_column_name(), $id);
     }
@@ -1466,7 +1502,7 @@ class ORM implements ArrayAccess
      *
      * Each condition will be ORed together when added to the final query.
      */
-    public function where_any_is($values, $operator = '=')
+    public function where_any_is(array $values, array|string $operator = '='): static
     {
         $data  = [];
         $query = ['(('];
@@ -1489,17 +1525,17 @@ class ORM implements ArrayAccess
                 if (is_array($item)) {
                     $placeholders = $this->_create_placeholders($item);
                     $data         = array_merge($data, $item);
-                    if ($op == '=') {
+                    if ($op === '=') {
                         $query[] = 'IN (' . $placeholders . ')';
-                    } elseif ($op == '!=') {
+                    } elseif ($op === '!=') {
                         $query[] = 'NOT IN (' . $placeholders . ')';
                     } else {
                         throw new \InvalidArgumentException('You only pass an array for = and !=.');
                     }
                 } else {
-                    if (is_null($item) && ($op == '=')) {
+                    if (is_null($item) && ($op === '=')) {
                         $query[] = 'IS NULL';
-                    } elseif (is_null($item) && ($op == '!=')) {
+                    } elseif (is_null($item) && ($op === '!=')) {
                         $query[] = 'IS NOT NULL';
                     } else {
                         $query[] = $op . ' ?';
@@ -1518,7 +1554,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param string $value
      */
-    public function where_like($column_name, $value)
+    public function where_like(string $column_name, mixed $value): static
     {
         return $this->_add_simple_where($column_name, 'LIKE', $value);
     }
@@ -1528,7 +1564,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param string $value
      */
-    public function where_not_like($column_name, $value)
+    public function where_not_like(string $column_name, mixed $value): static
     {
         return $this->_add_simple_where($column_name, 'NOT LIKE', $value);
     }
@@ -1538,7 +1574,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param integer $value
      */
-    public function where_gt($column_name, $value)
+    public function where_gt(string $column_name, mixed $value): static
     {
         return $this->_add_simple_where($column_name, '>', $value);
     }
@@ -1548,7 +1584,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param integer $value
      */
-    public function where_lt($column_name, $value)
+    public function where_lt(string $column_name, mixed $value): static
     {
         return $this->_add_simple_where($column_name, '<', $value);
     }
@@ -1558,7 +1594,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param integer $value
      */
-    public function where_gte($column_name, $value)
+    public function where_gte(string $column_name, mixed $value): static
     {
         return $this->_add_simple_where($column_name, '>=', $value);
     }
@@ -1568,7 +1604,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param integer $value
      */
-    public function where_lte($column_name, $value)
+    public function where_lte(string $column_name, mixed $value): static
     {
         return $this->_add_simple_where($column_name, '<=', $value);
     }
@@ -1578,7 +1614,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param integer $value
      */
-    public function where_lt_or_null($column_name, $value)
+    public function where_lt_or_null(string $column_name, mixed $value): static
     {
         return $this->where_raw('( ' . $this->_quote_identifier($column_name) . ' < ? OR ' . $this->_quote_identifier($column_name) . ' IS NULL )', $value);
     }
@@ -1588,7 +1624,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param integer $value
      */
-    public function where_lte_or_null($column_name, $value)
+    public function where_lte_or_null(string $column_name, mixed $value): static
     {
         return $this->where_raw('( ' . $this->_quote_identifier($column_name) . ' <= ? OR ' . $this->_quote_identifier($column_name) . ' IS NULL )', $value);
     }
@@ -1598,7 +1634,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param integer $value
      */
-    public function where_gt_or_null($column_name, $value)
+    public function where_gt_or_null(string $column_name, mixed $value): static
     {
         return $this->where_raw('( ' . $this->_quote_identifier($column_name) . ' > ? OR ' . $this->_quote_identifier($column_name) . ' IS NULL )', $value);
     }
@@ -1608,15 +1644,16 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param integer $value
      */
-    public function where_gte_or_null($column_name, $value)
+    public function where_gte_or_null(string $column_name, mixed $value): static
     {
         return $this->where_raw('( ' . $this->_quote_identifier($column_name) . ' >= ? OR ' . $this->_quote_identifier($column_name) . ' IS NULL )', $value);
     }
 
     /**
      * Add a WHERE ... IN clause to your query
+     * @param string[]|Orm\Wrapper $values
      */
-    public function where_in($column_name, $values)
+    public function where_in(string $column_name, mixed $values): static
     {
         if (!$values) {
             return $this->_add_where('0');
@@ -1635,23 +1672,23 @@ class ORM implements ArrayAccess
     /**
      * Add a WHERE ... NOT IN clause to your query
      * @param string $column_name
-     * @param string[] $values
+     * @param string[]|Orm\Wrapper $values
      */
-    public function where_not_in($column_name, $values)
+    public function where_not_in(string $column_name, mixed $values): static
     {
-        if ($values) {
-            $column_name = $this->_quote_identifier($column_name);
-
-            if (is_a($values, \Granada\Orm\Wrapper::class)) {
-                return $this->_add_where("{$column_name} NOT IN ({$values->get_select_query()})");
-            }
-
-            $placeholders = $this->_create_placeholders($values);
-
-            return $this->_add_where("{$column_name} NOT IN ({$placeholders})", $values);
+        if (!$values) {
+            return $this;
         }
 
-        return $this;
+        $column_name = $this->_quote_identifier($column_name);
+
+        if (is_a($values, \Granada\Orm\Wrapper::class)) {
+            return $this->_add_where("{$column_name} NOT IN ({$values->get_select_query()})");
+        }
+
+        $placeholders = $this->_create_placeholders($values);
+
+        return $this->_add_where("{$column_name} NOT IN ({$placeholders})", $values);
     }
 
     /**
@@ -1659,23 +1696,23 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param string[] $values
      */
-    public function where_not_in_or_null($column_name, $values)
+    public function where_not_in_or_null(string $column_name, array $values): static
     {
-        if ($values) {
-            $column_name  = $this->_quote_identifier($column_name);
-            $placeholders = $this->_create_placeholders($values);
-
-            return $this->where_raw('( ' . $column_name . ' NOT IN (' . $placeholders . ') OR ' . $column_name . ' IS NULL )', $values);
+        if (!$values) {
+            return $this;
         }
 
-        return $this;
+        $column_name  = $this->_quote_identifier($column_name);
+        $placeholders = $this->_create_placeholders($values);
+
+        return $this->where_raw('( ' . $column_name . ' NOT IN (' . $placeholders . ') OR ' . $column_name . ' IS NULL )', $values);
     }
 
     /**
      * Add a WHERE column IS NULL clause to your query
      * @param string $column_name
      */
-    public function where_null($column_name)
+    public function where_null(string $column_name): static
     {
         $column_name = $this->_quote_identifier($column_name);
 
@@ -1686,7 +1723,7 @@ class ORM implements ArrayAccess
      * Add a WHERE column IS NOT NULL clause to your query
      * @param string $column_name
      */
-    public function where_not_null($column_name)
+    public function where_not_null(string $column_name): static
     {
         $column_name = $this->_quote_identifier($column_name);
 
@@ -1699,7 +1736,7 @@ class ORM implements ArrayAccess
      * to the parameters supplied in the second argument.
      * @param string $clause
      */
-    public function where_raw($clause, $parameters = [])
+    public function where_raw(string $clause, mixed $parameters = []): static
     {
         return $this->_add_where($clause, $parameters);
     }
@@ -1708,7 +1745,7 @@ class ORM implements ArrayAccess
      * Add a LIMIT to the query
      * @param integer $limit
      */
-    public function limit($limit)
+    public function limit(int $limit): static
     {
         $this->_limit = $limit;
 
@@ -1719,7 +1756,7 @@ class ORM implements ArrayAccess
      * Add an OFFSET to the query
      * @param integer $offset
      */
-    public function offset($offset)
+    public function offset(int $offset): static
     {
         $this->_offset = $offset;
 
@@ -1730,7 +1767,7 @@ class ORM implements ArrayAccess
      * Add an ORDER BY clause to the query
      * @param string $ordering
      */
-    protected function _add_order_by($column_name, $ordering)
+    protected function _add_order_by(string $column_name, string $ordering): static
     {
         $column_name       = $this->_quote_identifier($column_name);
         $this->_order_by[] = "{$column_name} {$ordering}";
@@ -1741,7 +1778,7 @@ class ORM implements ArrayAccess
     /**
      * Clear all ORDER BY clauses, used to override previous orders
      */
-    public function order_by_clear()
+    public function order_by_clear(): static
     {
         $this->_order_by = [];
 
@@ -1752,16 +1789,16 @@ class ORM implements ArrayAccess
      * Add an ORDER BY column DESC clause
      * @param string $column_name
      */
-    public function order_by_desc($column_name)
+    public function order_by_desc(string $column_name): static
     {
         return $this->_add_order_by($column_name, 'DESC');
     }
 
     /**
      * Add an ORDER BY column ASC clause
-     * @param boolean|string $column_name
+     * @param string $column_name
      */
-    public function order_by_asc($column_name)
+    public function order_by_asc(string $column_name): static
     {
         return $this->_add_order_by($column_name, 'ASC');
     }
@@ -1770,7 +1807,7 @@ class ORM implements ArrayAccess
      * Add an unquoted expression as an ORDER BY clause
      * @param string $clause
      */
-    public function order_by_expr($clause)
+    public function order_by_expr(string $clause): static
     {
         $this->_order_by[] = $clause;
 
@@ -1781,7 +1818,7 @@ class ORM implements ArrayAccess
      * Add a column to the list of columns to GROUP BY
      * @param string $column_name
      */
-    public function group_by($column_name)
+    public function group_by(string $column_name): static
     {
         $column_name       = $this->_quote_identifier($column_name);
         $this->_group_by[] = $column_name;
@@ -1793,7 +1830,7 @@ class ORM implements ArrayAccess
      * Add an unquoted expression to the list of columns to GROUP BY
      * @param string $expr
      */
-    public function group_by_expr($expr)
+    public function group_by_expr(string $expr): static
     {
         $this->_group_by[] = $expr;
 
@@ -1806,7 +1843,7 @@ class ORM implements ArrayAccess
      * added, and these will be ANDed together when the final query
      * is built.
      */
-    public function having($column_name, $value)
+    public function having(string $column_name, mixed $value): static
     {
         return $this->having_equal($column_name, $value);
     }
@@ -1815,7 +1852,7 @@ class ORM implements ArrayAccess
      * More explicitly named version of for the having() method.
      * Can be used if preferred.
      */
-    public function having_equal($column_name, $value)
+    public function having_equal(string $column_name, mixed $value): static
     {
         return $this->_add_simple_having($column_name, '=', $value);
     }
@@ -1825,7 +1862,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param string $value
      */
-    public function having_not_equal($column_name, $value)
+    public function having_not_equal(string $column_name, mixed $value): static
     {
         return $this->_add_simple_having($column_name, '!=', $value);
     }
@@ -1833,7 +1870,7 @@ class ORM implements ArrayAccess
     /**
      * Special method to query the table by its primary key
      */
-    public function having_id_is($id)
+    public function having_id_is(mixed $id): static
     {
         return $this->having($this->_get_id_column_name(), $id);
     }
@@ -1843,7 +1880,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param string $value
      */
-    public function having_like($column_name, $value)
+    public function having_like(string $column_name, mixed $value): static
     {
         return $this->_add_simple_having($column_name, 'LIKE', $value);
     }
@@ -1853,7 +1890,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param string $value
      */
-    public function having_not_like($column_name, $value)
+    public function having_not_like(string $column_name, mixed $value): static
     {
         return $this->_add_simple_having($column_name, 'NOT LIKE', $value);
     }
@@ -1863,7 +1900,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param integer $value
      */
-    public function having_gt($column_name, $value)
+    public function having_gt(string $column_name, mixed $value): static
     {
         return $this->_add_simple_having($column_name, '>', $value);
     }
@@ -1873,7 +1910,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param integer $value
      */
-    public function having_lt($column_name, $value)
+    public function having_lt(string $column_name, mixed $value): static
     {
         return $this->_add_simple_having($column_name, '<', $value);
     }
@@ -1883,7 +1920,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param integer $value
      */
-    public function having_gte($column_name, $value)
+    public function having_gte(string $column_name, mixed $value): static
     {
         return $this->_add_simple_having($column_name, '>=', $value);
     }
@@ -1893,7 +1930,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param integer $value
      */
-    public function having_lte($column_name, $value)
+    public function having_lte(string $column_name, mixed $value): static
     {
         return $this->_add_simple_having($column_name, '<=', $value);
     }
@@ -1903,7 +1940,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param string[] $values
      */
-    public function having_in($column_name, $values)
+    public function having_in(string $column_name, array $values): static
     {
         $column_name  = $this->_quote_identifier($column_name);
         $placeholders = $this->_create_placeholders($values);
@@ -1916,7 +1953,7 @@ class ORM implements ArrayAccess
      * @param string $column_name
      * @param string[] $values
      */
-    public function having_not_in($column_name, $values)
+    public function having_not_in(string $column_name, array $values): static
     {
         $column_name  = $this->_quote_identifier($column_name);
         $placeholders = $this->_create_placeholders($values);
@@ -1928,7 +1965,7 @@ class ORM implements ArrayAccess
      * Add a HAVING column IS NULL clause to your query
      * @param string $column_name
      */
-    public function having_null($column_name)
+    public function having_null(string $column_name): static
     {
         $column_name = $this->_quote_identifier($column_name);
 
@@ -1939,7 +1976,7 @@ class ORM implements ArrayAccess
      * Add a HAVING column IS NOT NULL clause to your query
      * @param string $column_name
      */
-    public function having_not_null($column_name)
+    public function having_not_null(string $column_name): static
     {
         $column_name = $this->_quote_identifier($column_name);
 
@@ -1952,7 +1989,7 @@ class ORM implements ArrayAccess
      * to the parameters supplied in the second argument.
      * @param string $clause
      */
-    public function having_raw($clause, $parameters = [])
+    public function having_raw(string $clause, array $parameters = []): static
     {
         return $this->_add_having($clause, $parameters);
     }
@@ -1961,7 +1998,7 @@ class ORM implements ArrayAccess
      * Build a SELECT statement based on the clauses that have
      * been passed to this instance by chaining method calls.
      */
-    protected function _build_select()
+    protected function _build_select(): string
     {
         // If the query is raw, just set the $this->_values to be
         // the raw query parameters and return the raw query
@@ -1989,7 +2026,7 @@ class ORM implements ArrayAccess
      * Used to perform unit tests
      * Note must call _build_select_start() for this to be populated
      */
-    public function testValues()
+    public function testValues(): array
     {
         return $this->_values;
     }
@@ -1997,10 +2034,10 @@ class ORM implements ArrayAccess
     /**
      * Build the start of the SELECT statement
      */
-    protected function _build_select_start()
+    protected function _build_select_start(): string
     {
         $fragment       = 'SELECT ';
-        $result_columns = join(', ', $this->_result_columns);
+        $result_columns = implode(', ', $this->_result_columns);
 
         if (
             !is_null($this->_limit)
@@ -2025,19 +2062,19 @@ class ORM implements ArrayAccess
     /**
      * Build the JOIN sources
      */
-    protected function _build_join()
+    protected function _build_join(): string
     {
         if (count($this->_join_sources) === 0) {
             return '';
         }
 
-        return join(' ', $this->_join_sources);
+        return implode(' ', $this->_join_sources);
     }
 
     /**
      * Build the WHERE clause(s)
      */
-    protected function _build_where()
+    protected function _build_where(): string
     {
         return $this->_build_conditions('where');
     }
@@ -2045,7 +2082,7 @@ class ORM implements ArrayAccess
     /**
      * Build the HAVING clause(s)
      */
-    protected function _build_having()
+    protected function _build_having(): string
     {
         return $this->_build_conditions('having');
     }
@@ -2053,13 +2090,13 @@ class ORM implements ArrayAccess
     /**
      * Build GROUP BY
      */
-    protected function _build_group_by()
+    protected function _build_group_by(): string
     {
         if (count($this->_group_by) === 0) {
             return '';
         }
 
-        return 'GROUP BY ' . join(', ', $this->_group_by);
+        return 'GROUP BY ' . implode(', ', $this->_group_by);
     }
 
     /**
@@ -2067,7 +2104,7 @@ class ORM implements ArrayAccess
      * @param string $type
      * @return string
      */
-    protected function _build_conditions($type)
+    protected function _build_conditions(string $type): string
     {
         $conditions_class_property_name = "_{$type}_conditions";
         // If there are no clauses, return empty string
@@ -2081,54 +2118,54 @@ class ORM implements ArrayAccess
             $this->_values = array_merge($this->_values, $condition[self::CONDITION_VALUES]);
         }
 
-        return strtoupper($type) . ' ' . join(' AND ', $conditions);
+        return strtoupper($type) . ' ' . implode(' AND ', $conditions);
     }
 
     /**
      * Build ORDER BY
      */
-    protected function _build_order_by()
+    protected function _build_order_by(): string
     {
         if (count($this->_order_by) === 0) {
             return '';
         }
 
-        return 'ORDER BY ' . join(', ', $this->_order_by);
+        return 'ORDER BY ' . implode(', ', $this->_order_by);
     }
 
     /**
      * Build LIMIT
      */
-    protected function _build_limit()
+    protected function _build_limit(): string
     {
-        $fragment = '';
         if (
-            !is_null($this->_limit)
-            && self::$_config[$this->_connection_name]['limit_clause_style'] == ORM::LIMIT_STYLE_LIMIT
+            is_null($this->_limit)
+            || self::$_config[$this->_connection_name]['limit_clause_style'] !== ORM::LIMIT_STYLE_LIMIT
         ) {
-            if (self::$_db[$this->_connection_name]->getAttribute(PDO::ATTR_DRIVER_NAME) == 'firebird') {
-                $fragment = 'ROWS';
-            } else {
-                $fragment = 'LIMIT';
-            }
-            $fragment .= " {$this->_limit}";
+            return '';
         }
 
-        return $fragment;
+        if (self::$_db[$this->_connection_name]->getAttribute(PDO::ATTR_DRIVER_NAME) === 'firebird') {
+            $limiter = 'ROWS';
+        } else {
+            $limiter = 'LIMIT';
+        }
+
+        return "{$limiter} {$this->_limit}";
     }
 
     /**
      * Build OFFSET
      */
-    protected function _build_offset()
+    protected function _build_offset(): string
     {
         if (!is_null($this->_offset)) {
             $clause = 'OFFSET';
-            if (self::$_db[$this->_connection_name]->getAttribute(PDO::ATTR_DRIVER_NAME) == 'firebird') {
+            if (self::$_db[$this->_connection_name]->getAttribute(PDO::ATTR_DRIVER_NAME) === 'firebird') {
                 $clause = 'TO';
             }
 
-            return "$clause " . $this->_offset;
+            return $clause . ' ' . $this->_offset;
         }
 
         return '';
@@ -2140,7 +2177,7 @@ class ORM implements ArrayAccess
      * @param string $glue
      * @return string
      */
-    protected function _join_if_not_empty($glue, $pieces)
+    protected function _join_if_not_empty(string $glue, array $pieces): string
     {
         $filtered_pieces = [];
         foreach ($pieces as $piece) {
@@ -2152,7 +2189,7 @@ class ORM implements ArrayAccess
             }
         }
 
-        return join($glue, $filtered_pieces);
+        return implode($glue, $filtered_pieces);
     }
 
     /**
@@ -2160,12 +2197,12 @@ class ORM implements ArrayAccess
      * (table names, column names etc). This method can
      * also deal with dot-separated identifiers eg table.column
      */
-    protected function _quote_identifier($identifier)
+    protected function _quote_identifier(string $identifier): string
     {
         $parts = explode('.', $identifier);
-        $parts = array_map([$this, '_quote_identifier_part'], $parts);
+        $parts = array_map($this->_quote_identifier_part(...), $parts);
 
-        return join('.', $parts);
+        return implode('.', $parts);
     }
 
     /**
@@ -2173,7 +2210,7 @@ class ORM implements ArrayAccess
      * part of an identifier, using the identifier quote
      * character specified in the config (or autodetected).
      */
-    protected function _quote_identifier_part($part)
+    protected function _quote_identifier_part(string $part): string
     {
         if ($part === '*') {
             return $part;
@@ -2193,9 +2230,9 @@ class ORM implements ArrayAccess
     /**
      * Create a cache key for the given query and parameters.
      */
-    protected static function _create_cache_key($query, $parameters)
+    protected static function _create_cache_key(string $query, array $parameters): string
     {
-        $parameter_string = join(',', $parameters);
+        $parameter_string = implode(',', $parameters);
         $key              = $query . ':' . $parameter_string;
 
         return sha1($key);
@@ -2206,7 +2243,7 @@ class ORM implements ArrayAccess
      * is cached for the key, return the value. Otherwise, return false.
      * @param string $cache_key
      */
-    protected static function _check_query_cache($cache_key, $connection_name = self::DEFAULT_CONNECTION)
+    protected static function _check_query_cache(string $cache_key, string $connection_name = self::DEFAULT_CONNECTION): mixed
     {
         if (isset(self::$_query_cache[$connection_name][$cache_key])) {
             return self::$_query_cache[$connection_name][$cache_key];
@@ -2218,7 +2255,7 @@ class ORM implements ArrayAccess
     /**
      * Clear the query cache
      */
-    public static function clear_cache()
+    public static function clear_cache(): void
     {
         self::$_query_cache = [];
     }
@@ -2227,7 +2264,7 @@ class ORM implements ArrayAccess
      * Add the given value to the query cache.
      * @param string $cache_key
      */
-    protected static function _cache_query_result($cache_key, $value, $connection_name = self::DEFAULT_CONNECTION)
+    protected static function _cache_query_result(string $cache_key, mixed $value, string $connection_name = self::DEFAULT_CONNECTION): void
     {
         if (!isset(self::$_query_cache[$connection_name])) {
             self::$_query_cache[$connection_name] = [];
@@ -2239,7 +2276,7 @@ class ORM implements ArrayAccess
      * Execute the SELECT query that has been built up by chaining methods
      * on this class. Return an array of rows as associative arrays.
      */
-    protected function _run()
+    protected function _run(): array
     {
         $query           = $this->_build_select();
         $caching_enabled = self::$_config[$this->_connection_name]['caching'];
@@ -2277,7 +2314,7 @@ class ORM implements ArrayAccess
     /**
      * reset Idiorm after executing the query
      */
-    protected function reset()
+    protected function reset(): void
     {
         $this->_values                       = [];
         $this->_result_columns               = ['*'];
@@ -2290,12 +2327,11 @@ class ORM implements ArrayAccess
      * names may optionally be supplied as arguments,
      * if so, only those keys will be returned.
      */
-    public function as_array()
+    public function as_array(...$args): array
     {
-        if (func_num_args() === 0) {
+        if (count($args) === 0) {
             return $this->_data;
         }
-        $args = func_get_args();
 
         return array_intersect_key($this->_data, array_flip($args));
     }
@@ -2304,7 +2340,7 @@ class ORM implements ArrayAccess
      * Return the value of a property of this object (database row)
      * or null if not present.
      */
-    public function get($key)
+    public function get(string $key): mixed
     {
         return $this->_data[$key] ?? null;
     }
@@ -2313,7 +2349,7 @@ class ORM implements ArrayAccess
      * Return the name of the column in the database table which contains
      * the primary key ID of the row.
      */
-    protected function _get_id_column_name()
+    protected function _get_id_column_name(): string
     {
         if (!is_null($this->_instance_id_column)) {
             return $this->_instance_id_column;
@@ -2328,7 +2364,7 @@ class ORM implements ArrayAccess
     /**
      * Get the primary key ID of this object.
      */
-    public function id()
+    public function id(): mixed
     {
         return $this->get($this->_get_id_column_name());
     }
@@ -2340,7 +2376,7 @@ class ORM implements ArrayAccess
      * Flags the properties as 'dirty' so they will be saved to the
      * database when save() is called.
      */
-    public function set($key, $value = null)
+    public function set(array|string $key, mixed $value = null): static
     {
         return $this->_set_orm_property($key, $value);
     }
@@ -2354,7 +2390,7 @@ class ORM implements ArrayAccess
      * @param string|array $key
      * @param string|null $value
      */
-    public function set_expr($key, $value = null)
+    public function set_expr(array|string $key, mixed $value = null)
     {
         return $this->_set_orm_property($key, $value, true);
     }
@@ -2364,16 +2400,16 @@ class ORM implements ArrayAccess
      * @param string|array $key
      * @param string|null $value
      */
-    protected function _set_orm_property($key, $value = null, $expr = false)
+    protected function _set_orm_property(array|string $key, mixed $value = null, bool $expr = false): static
     {
         if (!is_array($key)) {
             $key = [$key => $value];
         }
         foreach ($key as $field => $value) {
-            if ($field == '_isFirstResult') {
+            if ($field === '_isFirstResult') {
                 continue;
             }
-            if ($field == '_isLastResult') {
+            if ($field === '_isLastResult') {
                 continue;
             }
             if (!array_key_exists($field, $this->_clean_data) && array_key_exists($field, $this->_data)) {
@@ -2384,7 +2420,7 @@ class ORM implements ArrayAccess
             $this->_data[$field] = $value;
             $set_as_dirty        = $this->is_new() || $expr;
             if (is_float($value)) {
-                $set_as_dirty = abs($oldval - $value) > 0.00000000000001;
+                $set_as_dirty = abs($oldval - $value) > 0.000_000_000_000_01;
             } elseif (is_string($oldval)) {
                 if ($oldval !== $value) {
                     $set_as_dirty = true;
@@ -2395,7 +2431,7 @@ class ORM implements ArrayAccess
             if ($set_as_dirty) {
                 $this->_dirty_fields[$field] = $value;
             }
-            if (false === $expr and isset($this->_expr_fields[$field])) {
+            if (false === $expr && isset($this->_expr_fields[$field])) {
                 unset($this->_expr_fields[$field]);
             } elseif (true === $expr) {
                 $this->_expr_fields[$field] = true;
@@ -2411,7 +2447,7 @@ class ORM implements ArrayAccess
      * @param string $key
      * @return bool
      */
-    public function is_dirty($key)
+    public function is_dirty(string $key): bool
     {
         return array_key_exists($key, $this->_dirty_fields);
     }
@@ -2421,7 +2457,7 @@ class ORM implements ArrayAccess
      * object was saved.
      * @return bool
      */
-    public function is_any_dirty()
+    public function is_any_dirty(): bool
     {
         return count($this->_dirty_fields) > 0;
     }
@@ -2430,7 +2466,7 @@ class ORM implements ArrayAccess
      * List the dirty fields that need updating on next save
      * @return array
      */
-    public function list_dirty_fields()
+    public function list_dirty_fields(): array
     {
         return $this->_dirty_fields;
     }
@@ -2439,7 +2475,7 @@ class ORM implements ArrayAccess
      * Get the clean data for this record before it was made dirty
      * @return array
      */
-    public function clean_values()
+    public function clean_values(): array
     {
         return array_merge($this->_data, $this->_clean_data);
     }
@@ -2449,7 +2485,7 @@ class ORM implements ArrayAccess
      * ie before it became dirty
      * @return mixed
      */
-    public function clean_value($key)
+    public function clean_value(string $key): mixed
     {
         if (array_key_exists($key, $this->_clean_data)) {
             return $this->_clean_data[$key];
@@ -2465,7 +2501,7 @@ class ORM implements ArrayAccess
      * Check whether the model was the result of a call to create() or not
      * @return bool
      */
-    public function is_new()
+    public function is_new(): bool
     {
         return $this->_is_new;
     }
@@ -2476,7 +2512,7 @@ class ORM implements ArrayAccess
      * Added: on duplicate key update, only for mysql
      * If you want to insert a record, or update it if any of the unique keys already exists on db
      */
-    public function save($ignore = false)
+    public function save(bool $ignore = false)
     {
         $query = [];
 
@@ -2510,7 +2546,7 @@ class ORM implements ArrayAccess
         if ($this->_is_new) {
             $this->_is_new = false;
             if (!($this->id())) {
-                if (self::$_db[$this->_connection_name]->getAttribute(PDO::ATTR_DRIVER_NAME) == 'pgsql') {
+                if (self::$_db[$this->_connection_name]->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql') {
                     $this->_data[$this->_get_id_column_name()] = self::get_last_statement()->fetchColumn();
                 } else {
                     $this->_data[$this->_get_id_column_name()] = self::$_db[$this->_connection_name]->lastInsertId();
@@ -2518,7 +2554,8 @@ class ORM implements ArrayAccess
             }
         }
         $this->clear_cache();
-        $this->_dirty_fields = $this->_expr_fields = [];
+        $this->_expr_fields  = [];
+        $this->_dirty_fields = [];
         $this->_clean_data   = [];
 
         return $success;
@@ -2527,7 +2564,7 @@ class ORM implements ArrayAccess
     /**
      * Build an UPDATE query
      */
-    protected function _build_update()
+    protected function _build_update(): string
     {
         $query   = [];
         $query[] = "UPDATE {$this->_quote_identifier($this->_table_name)} SET";
@@ -2537,48 +2574,48 @@ class ORM implements ArrayAccess
             if (!array_key_exists($key, $this->_expr_fields)) {
                 $value = '?';
             }
-            $field_list[] = "{$this->_quote_identifier($key)} = $value";
+            $field_list[] = "{$this->_quote_identifier($key)} = {$value}";
         }
-        $query[] = join(', ', $field_list);
+        $query[] = implode(', ', $field_list);
         $query[] = 'WHERE';
         $query[] = $this->_quote_identifier($this->_get_id_column_name());
         $query[] = '= ?';
 
-        return join(' ', $query);
+        return implode(' ', $query);
     }
 
     /**
      * Build an INSERT query
      */
-    protected function _build_insert()
+    protected function _build_insert(): string
     {
         $query      = [];
         $query[]    = 'INSERT INTO';
         $query[]    = $this->_quote_identifier($this->_table_name);
-        $field_list = array_map([$this, '_quote_identifier'], array_keys($this->_dirty_fields));
-        $query[]    = '(' . join(', ', $field_list) . ')';
+        $field_list = array_map($this->_quote_identifier(...), array_keys($this->_dirty_fields));
+        $query[]    = '(' . implode(', ', $field_list) . ')';
         $query[]    = 'VALUES';
 
         $placeholders = $this->_create_placeholders($this->_dirty_fields);
         $query[]      = "({$placeholders})";
 
-        if (self::$_db[$this->_connection_name]->getAttribute(PDO::ATTR_DRIVER_NAME) == 'pgsql') {
+        if (self::$_db[$this->_connection_name]->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql') {
             $query[] = 'RETURNING ' . $this->_quote_identifier($this->_get_id_column_name());
         }
 
-        return join(' ', $query);
+        return implode(' ', $query);
     }
 
     /**
      * Added: Build an INSERT ON DUPLICATE KEY UPDATE query
      * Attention: This method only works on Mysql Databases
      */
-    protected function _build_insert_update()
+    protected function _build_insert_update(): string
     {
         $query        = [];
         $query[]      = 'INSERT INTO';
         $query[]      = $this->_quote_identifier($this->_table_name);
-        $field_list   = array_map([$this, '_quote_identifier'], array_keys($this->_dirty_fields));
+        $field_list   = array_map($this->_quote_identifier(...), array_keys($this->_dirty_fields));
         $query[]      = '(' . implode(', ', $field_list) . ')';
         $query[]      = 'VALUES';
         $placeholders = $this->_create_placeholders($this->_dirty_fields);
@@ -2593,9 +2630,9 @@ class ORM implements ArrayAccess
     /**
      * Delete this record from the database
      */
-    public function delete()
+    public function delete(): ?bool
     {
-        $query = join(' ', [
+        $query = implode(' ', [
             'DELETE FROM',
             $this->_quote_identifier($this->_table_name),
             'WHERE',
@@ -2611,13 +2648,13 @@ class ORM implements ArrayAccess
      * Added: could delete many of a join query, if you define $join to true
      * and the table where you want to delete the records
      */
-    public function delete_many($join = false, $table = false)
+    public function delete_many(bool $join = false, mixed $table = false): ?bool
     {
         if ($join) {
             // Build and return the full DELETE statement by concatenating
             // the results of calling each separate builder method.
             $query = $this->_join_if_not_empty(' ', [
-                "DELETE $table FROM",
+                "DELETE {$table} FROM",
                 $this->_quote_identifier($this->_table_name),
                 $this->_build_join(),
                 $this->_build_where(),
@@ -2641,17 +2678,17 @@ class ORM implements ArrayAccess
     // --------------------- //
     // ---  ArrayAccess  --- //
     // --------------------- //
-    public function offsetExists($key): bool
+    public function offsetExists(mixed $key): bool
     {
         return isset($this->_data[$key]);
     }
 
-    public function offsetGet($key): mixed
+    public function offsetGet(mixed $key): mixed
     {
         return $this->get($key);
     }
 
-    public function offsetSet($key, $value): void
+    public function offsetSet(mixed $key, mixed $value): void
     {
         if (is_null($key)) {
             throw new \InvalidArgumentException('You must specify a key/array index.');
@@ -2659,7 +2696,7 @@ class ORM implements ArrayAccess
         $this->set($key, $value);
     }
 
-    public function offsetUnset($key): void
+    public function offsetUnset(mixed $key): void
     {
         unset($this->_data[$key]);
         unset($this->_dirty_fields[$key]);
@@ -2668,22 +2705,22 @@ class ORM implements ArrayAccess
     // --------------------- //
     // --- MAGIC METHODS --- //
     // --------------------- //
-    public function __get($key)
+    public function __get(mixed $key): mixed
     {
         return $this->offsetGet($key);
     }
 
-    public function __set($key, $value)
+    public function __set(mixed $key, mixed $value): void
     {
         $this->offsetSet($key, $value);
     }
 
-    public function __unset($key)
+    public function __unset(mixed $key): void
     {
         $this->offsetUnset($key);
     }
 
-    public function __isset($key)
+    public function __isset(mixed $key): bool
     {
         return $this->offsetExists($key);
     }
@@ -2698,18 +2735,18 @@ class ORM implements ArrayAccess
      *
      * @param  string   $name
      * @param  array    $arguments
-     * @return ORM
+     * @return mixed
      */
-    public function __call($name, $arguments)
+    public function __call(string $name, array $arguments): mixed
     {
         $method = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $name));
         // return call_user_func_array(array($this, $method), $arguments);
 
         if (method_exists($this, $method)) {
-            return call_user_func_array([$this, $method], $arguments);
+            return $this->$method(...$arguments);
         }
 
-        return false;
+        throw new \BadMethodCallException("Method {$name} does not exist");
     }
 
     /**
@@ -2722,9 +2759,9 @@ class ORM implements ArrayAccess
      *
      * @param  string   $name
      * @param  array    $arguments
-     * @return ORM
+     * @return mixed
      */
-    public static function __callStatic($name, $arguments)
+    public static function __callStatic(string $name, array $arguments): mixed
     {
         $method = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $name));
 

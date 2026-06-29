@@ -1,6 +1,6 @@
 <?php
 
-use Granada\Orm;
+use Granada\ORM;
 use Granada\Model;
 
 class ModelPrefixingTest extends \PHPUnit\Framework\TestCase
