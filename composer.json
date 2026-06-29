@@ -1,51 +1,66 @@
 {
-    "name": "granadaorm/granada",
-    "type": "library",
-    "description": "Active Record / ORM with eager loading, lazy loading and more",
-    "keywords": ["active record", "orm","eager-loading", "paris", "idiorm", "database"],
-    "homepage": "https://github.com/GranadaORM/Granada",
-     "support": {
-        "issues": "https://github.com/GranadaORM/Granada/issues",
-        "source": "https://github.com/GranadaORM/Granada"
+  "name": "granadaorm/granada",
+  "type": "library",
+  "description": "Active Record / ORM with eager loading, lazy loading and more",
+  "keywords": [
+    "active record",
+    "orm",
+    "eager-loading",
+    "paris",
+    "idiorm",
+    "database"
+  ],
+  "homepage": "https://github.com/GranadaORM/Granada",
+  "support": {
+    "issues": "https://github.com/GranadaORM/Granada/issues",
+    "source": "https://github.com/GranadaORM/Granada"
+  },
+  "license": [
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSD-4-Clause"
+  ],
+  "authors": [
+    {
+      "name": "Josh Marshall",
+      "email": "josh@jmarshall.com.au",
+      "homepage": "https://www.jmarshall.com.au",
+      "role": "Developer"
     },
-    "license": [
-        "BSD-2-Clause",
-        "BSD-3-Clause",
-        "BSD-4-Clause"
-    ],
-    "authors": [
-        {
-            "name": "Josh Marshall",
-            "email": "josh@jmarshall.com.au",
-            "homepage": "https://www.jmarshall.com.au",
-            "role": "Developer"
-        },
-        {
-            "name": "Erik Wiesenthal",
-            "email": "erikforo@hotmail.com",
-            "role": "Initial Developer"
-        }
-    ],
-    "scripts": {
-        "phpstan": "nice phpstan --memory-limit=10240M analyze -c phpstan.neon",
-        "test": "phpunit"
-    },
-    "replace": {
-        "surt/granada": "*"
-    },
-    "require": {
-        "php": ">=8.1"
-    },
-    "suggest": {
-		"granadaorm/builder": "Automatically build model classes from the database schema",
-		"granadaorm/form": "Quick generate html forms from the model structure using css frameworks such as Bootstrap and Bulma"
-	},
-    "autoload": {
-        "psr-4": {"Granada\\": "src/Granada/"}
-    },
-    "require-dev": {
-        "phpstan/phpstan": "^1.11",
-        "phpunit/phpunit": "^10.0",
-        "friendsofphp/php-cs-fixer": "^3.75"
+    {
+      "name": "Erik Wiesenthal",
+      "email": "erikforo@hotmail.com",
+      "role": "Initial Developer"
     }
+  ],
+  "scripts": {
+    "phpstan": "nice phpstan --memory-limit=10240M analyze -c phpstan.neon",
+    "test": "phpunit",
+    "test-cov": "php -d pcov.enabled=1 vendor/bin/phpunit --coverage-html=.coverage",
+    "lint": "mago lint",
+    "lint-fix": "mago lint --fix",
+    "analyze": "mago analyze",
+    "cs-fix": "php-cs-fixer fix",
+    "cs-check": "php-cs-fixer fix --dry-run"
+  },
+  "replace": {
+    "surt/granada": "*"
+  },
+  "require": {
+    "php": ">=8.1"
+  },
+  "suggest": {
+    "granadaorm/builder": "Automatically build model classes from the database schema",
+    "granadaorm/form": "Quick generate html forms from the model structure using css frameworks such as Bootstrap and Bulma"
+  },
+  "autoload": {
+    "psr-4": {
+      "Granada\\": "src/Granada/"
+    }
+  },
+  "require-dev": {
+    "phpstan/phpstan": "^1.11",
+    "phpunit/phpunit": "^10.0",
+    "friendsofphp/php-cs-fixer": "^3.75"
+  }
 }

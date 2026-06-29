@@ -102,21 +102,25 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
         LazyItemCache::setMax(2);
 
         $car_1 = Car::find_one(1);
-        $car_1->manufactor;
-
-        $car_2 = Car::find_one(2);
-        $car_2->manufactor;
+        $mfg_1 = $car_1->manufactor;
+        $this->assertSame('Manufactor1', $mfg_1->name);
 
         $car_3 = Car::find_one(3);
-        $car_3->manufactor;
+        $mfg_2 = $car_3->manufactor;
+        $this->assertSame('Manufactor2', $mfg_2->name);
 
+        $owner_1 = Owner::find_one(1);
+        $owner   = $owner_1->car;
         $this->assertEquals(2, LazyItemCache::size());
 
-        LazyItemCache::clear();
-        $car_4       = Car::find_one(4);
-        $manufactor4 = $car_4->manufactor;
+        $mfg_1_evicted = LazyItemCache::get('Manufactor', 1);
+        $this->assertNull($mfg_1_evicted);
 
-        $this->assertNotNull($manufactor4);
+        $owner_still_cached = LazyItemCache::get('Car', 1);
+        $this->assertSame($owner, $owner_still_cached);
+
+        $mfg_2_still_cached = LazyItemCache::get('Manufactor', 2);
+        $this->assertSame($mfg_2, $mfg_2_still_cached);
     }
 
     public function testLazyItemCacheSizeTracksCorrectly()

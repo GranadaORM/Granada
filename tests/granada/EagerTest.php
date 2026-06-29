@@ -1,6 +1,6 @@
 <?php
 
-use Granada\Orm;
+use Granada\ORM;
 use Granada\Model;
 
 /**
@@ -260,6 +260,50 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `owner` WHERE `id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1')";
         $expectedSql[] = "SELECT * FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
+
+        $this->assertEquals($expectedSql, $actualSql);
+    }
+
+    public function testDotNotationEagerLoading()
+    {
+        $owner = Owner::with('car.manufactor')->find_one(1);
+
+        $this->assertNotNull($owner);
+        $this->assertNotNull($owner->car);
+        $this->assertEquals('Car1', $owner->car->name);
+        $this->assertNotNull($owner->car->manufactor);
+        $this->assertEquals('Manufactor1', $owner->car->manufactor->name);
+
+        $fullQueryLog = ORM::get_query_log();
+        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 3);
+
+        $expectedSql   = [];
+        $expectedSql[] = "SELECT * FROM `owner` WHERE `id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
+
+        $this->assertEquals($expectedSql, $actualSql);
+    }
+
+    public function testDotNotationEagerLoadingFindMany()
+    {
+        $owners = Owner::with('car.manufactor')->find_many();
+
+        $this->assertCount(4, $owners);
+
+        foreach ($owners as $owner) {
+            if ($owner->car) {
+                $this->assertNotNull($owner->car->manufactor);
+            }
+        }
+
+        $fullQueryLog = ORM::get_query_log();
+        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 3);
+
+        $expectedSql   = [];
+        $expectedSql[] = 'SELECT * FROM `owner`';
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1', '2', '3', '4')";
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1', '2')";
 
         $this->assertEquals($expectedSql, $actualSql);
     }

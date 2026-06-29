@@ -20,56 +20,58 @@ class Eager
      * Attempts to execute any relationship defined for eager loading
      *
      * @param Orm\Wrapper $orm
+     * @param array|ResultSet $results
      */
-    public static function hydrate($orm, &$results, $return_result_set = false)
+    public static function hydrate(Orm\Wrapper $orm, array|ResultSet &$results, bool $return_result_set = false): array|ResultSet
     {
-        if (count($results) > 0) {
-            foreach ($orm->relationships as $include) {
-                $relationship       = false;
-                $relationship_with  = null;
-                $relationship_args  = [];
-                $relationship_query = null;
+        if (!$results) {
+            return $results;
+        }
+        foreach ($orm->relationships as $include) {
+            $relationship       = false;
+            $relationship_with  = null;
+            $relationship_args  = [];
+            $relationship_query = null;
 
-                if (is_array($include)) {
-                    $relationship = key($include);
-                    $value        = $include[$relationship];
+            if (is_array($include)) {
+                $relationship = key($include);
+                $value        = $include[$relationship];
 
-                    if ($value instanceof \Closure) {
-                        $relationship_query = $value;
-                        $relationship_args  = [];
-                    } else {
-                        if (isset($value['with'])) {
-                            $relationship_with = $value['with'];
-                            unset($value['with']);
-                        }
-                        $relationship_args = $value;
-                    }
+                if ($value instanceof \Closure) {
+                    $relationship_query = $value;
+                    $relationship_args  = [];
                 } else {
-                    $relationship = $include;
+                    if (isset($value['with'])) {
+                        $relationship_with = $value['with'];
+                        unset($value['with']);
+                    }
+                    $relationship_args = $value;
                 }
-
-                if ($pos = strpos($relationship, '.')) {
-                    $relationship_with = substr($relationship, $pos + 1, strlen($relationship));
-                    $relationship      = substr($relationship, 0, $pos);
-                    $relationship_args = [];
-                }
-
-                $relationship = [
-                    'name'  => $relationship,
-                    'with'  => $relationship_with,
-                    'args'  => (array) $relationship_args,
-                    'query' => $relationship_query,
-                ];
-
-                // check if relationship exists on the model
-                $model = $orm->create();
-
-                if (!method_exists($model, $relationship['name'])) {
-                    throw new Exception("Attempting to eager load [{$relationship['name']}], but the relationship is not defined.", 500);
-                }
-
-                self::eagerly($model, $results, $relationship, $return_result_set);
+            } else {
+                $relationship = $include;
             }
+
+            if ($pos = strpos($relationship, '.')) {
+                $relationship_with = substr($relationship, $pos + 1, strlen($relationship));
+                $relationship      = substr($relationship, 0, $pos);
+                $relationship_args = [];
+            }
+
+            $relationship = [
+                'name'  => $relationship,
+                'with'  => $relationship_with,
+                'args'  => (array) $relationship_args,
+                'query' => $relationship_query,
+            ];
+
+            // check if relationship exists on the model
+            $model = $orm->create();
+
+            if (!method_exists($model, $relationship['name'])) {
+                throw new Exception("Attempting to eager load [{$relationship['name']}], but the relationship is not defined.", 500);
+            }
+
+            self::eagerly($model, $results, $relationship, $return_result_set);
         }
 
         return $results;
@@ -77,10 +79,10 @@ class Eager
 
     /**
      * return the associative keys of a result set or the ids of an array of objects
-     * @param  ResultSet|array $parents ResultSet or Array to check for keys
-     * @return array           array of primary keys
+     * @param  array|ResultSet  $parents ResultSet or Array to check for keys
+     * @return array<int, mixed>           array of primary keys
      */
-    public static function getKeys($parents)
+    public static function getKeys(array|ResultSet $parents): array
     {
         $keys    = [];
         $parents = ($parents instanceof ResultSet) ? $parents->as_array() : $parents;
@@ -90,65 +92,68 @@ class Eager
             for ($i = 0; $i < $count; $i++) {
                 $keys[] = $parents[$i]->id;
             }
-        } else {
-            $keys = array_keys($parents);
+
+            return $keys;
         }
 
-        return $keys;
+        return array_keys($parents);
     }
 
     /**
      * Eagerly load a relationship.
      *
      * @param Granada $model
-     * @param array $parents
-     * @param array $include
+     * @param array|ResultSet $parents
+     * @param array<string, mixed> $include
      * @param boolean $return_result_set
      * @return void
      */
-    private static function eagerly($model, &$parents, $include, $return_result_set)
+    private static function eagerly(Granada $model, array|ResultSet &$parents, array $include, bool $return_result_set): void
     {
-        if ($relationship = call_user_func_array([$model, $include['name']], $include['args'])) {
-            $relationship->reset_relation();
+        $relationship = call_user_func_array([$model, $include['name']], $include['args']);
+        if (!$relationship) {
+            return;
+        }
 
-            if ($include['query'] instanceof \Closure) {
-                // Might have non-standard selects, we need to clear them to set a limited subset
-                $relationship->clear_select();
-                // Fetch the further filters from the callback
-                ($include['query'])($relationship);
-                // Add required columns as minimum to do the with relationahip
-                self::auto_include_required_columns($relationship, $model);
-            }
+        $relationship->reset_relation();
 
-            if ($include['with']) {
-                $relationship->with($include['with']);
-            }
+        if ($include['query'] instanceof \Closure) {
+            // Might have non-standard selects, we need to clear them to set a limited subset
+            $relationship->clear_select();
+            // Fetch the further filters from the callback
+            ($include['query'])($relationship);
+            // Add required columns as minimum to do the with relationahip
+            self::auto_include_required_columns($relationship, $model);
+        }
 
-            // Initialize the relationship attribute on the parents. As expected, "many" relationships
-            // are initialized to an array and "one" relationships are initialized to null.
-            // added: many relationships are reset to array since we don't know yet the resultSet applicable
-            foreach ($parents as &$parent) {
-                $parent->relationships[$include['name']] = (in_array($model->relating, ['has_many', 'has_many_through'])) ? [] : null;
-            }
+        if ($include['with']) {
+            $relationship->with($include['with']);
+        }
 
-            if (in_array($relating = $model->relating, ['has_one', 'has_many', 'belongs_to'])) {
-                self::$relating($relationship, $parents, $model->relating_key, $include['name'], $return_result_set);
-            } else {
-                self::has_many_through($relationship, $parents, $model->relating_key, $model->relating_table, $include['name'], $return_result_set);
-            }
+        // Initialize the relationship attribute on the parents. As expected, "many" relationships
+        // are initialized to an array and "one" relationships are initialized to null.
+        // added: many relationships are reset to array since we don't know yet the resultSet applicable
+        foreach ($parents as &$parent) {
+            $parent->relationships[$include['name']] = (in_array($model->relating, ['has_many', 'has_many_through'])) ? [] : null;
+        }
+
+        if (in_array($relating = $model->relating, ['has_one', 'has_many', 'belongs_to'])) {
+            self::$relating($relationship, $parents, $model->relating_key, $include['name'], $return_result_set);
+        } else {
+            self::has_many_through($relationship, $parents, $model->relating_key, $model->relating_table, $include['name'], $return_result_set);
         }
     }
 
     /**
      * Eagerly load a 1:1 relationship.
      *
-     * @param  object  $relationship
-     * @param  array   $parents
-     * @param  string  $relating_key
+     * @param  Orm\Wrapper  $relationship
+     * @param  array|ResultSet  $parents
+     * @param  string|array  $relating_key
      * @param  string  $include
      * @return void
      */
-    private static function has_one($relationship, &$parents, $relating_key, $include, $return_result_set)
+    private static function has_one(Orm\Wrapper $relationship, array|ResultSet &$parents, array|string $relating_key, string $include, bool $return_result_set): void
     {
         $keys    = static::getKeys($parents);
         $related = $relationship->where_in($relating_key, $keys)->find_many();
@@ -157,23 +162,29 @@ class Eager
         if (array_key_first((array) $parents) === 0) {
             $results = [];
             foreach ($related as $key => $child) {
-                if (!isset($results[$child[$relating_key]])) {
-                    $results[$child[$relating_key]] = $child;
+                if (isset($results[$child[$relating_key]])) {
+                    continue;
                 }
+
+                $results[$child[$relating_key]] = $child;
             }
 
             foreach ($parents as $p_key => $parent) {
                 foreach ($results as $r_key => $result) {
-                    if ($parent->id == $r_key) {
-                        $parents[$p_key]->relationships[$include] = $result;
+                    if ($parent->id != $r_key) {
+                        continue;
                     }
+
+                    $parents[$p_key]->relationships[$include] = $result;
                 }
             }
         } else {
             foreach ($related as $key => $child) {
-                if (!isset($parents[$child->$relating_key]->relationships[$include])) {
-                    $parents[$child->$relating_key]->relationships[$include] = $child;
+                if (isset($parents[$child->$relating_key]->relationships[$include])) {
+                    continue;
                 }
+
+                $parents[$child->$relating_key]->relationships[$include] = $child;
             }
         }
     }
@@ -181,13 +192,13 @@ class Eager
     /**
      * Eagerly load a 1:* relationship.
      *
-     * @param  object  $relationship
-     * @param  array   $parents
-     * @param  string  $relating_key
+     * @param  Orm\Wrapper  $relationship
+     * @param  array|ResultSet  $parents
+     * @param  string|array  $relating_key
      * @param  string  $include
      * @return void
      */
-    private static function has_many($relationship, &$parents, $relating_key, $include, $return_result_set)
+    private static function has_many(Orm\Wrapper $relationship, array|ResultSet &$parents, array|string $relating_key, string $include, bool $return_result_set): void
     {
         $keys    = static::getKeys($parents);
         $related = $relationship->where_in($relating_key, $keys)->find_many();
@@ -206,9 +217,11 @@ class Eager
 
             foreach ($parents as $p_key => $parent) {
                 foreach ($results as $r_key => $result) {
-                    if ($parent->id == $r_key) {
-                        $parents[$p_key]->relationships[$include] = $result;
+                    if ($parent->id != $r_key) {
+                        continue;
                     }
+
+                    $parents[$p_key]->relationships[$include] = $result;
                 }
             }
         } else {
@@ -229,13 +242,13 @@ class Eager
     /**
      * Eagerly load a 1:1 belonging relationship.
      *
-     * @param  object  $relationship
-     * @param  array   $parents
+     * @param  Orm\Wrapper  $relationship
+     * @param  array|ResultSet  $parents
      * @param  string  $relating_key
      * @param  string  $include
      * @return void
      */
-    private static function belongs_to($relationship, &$parents, $relating_key, $include, $return_result_set)
+    private static function belongs_to(Orm\Wrapper $relationship, array|ResultSet &$parents, string $relating_key, string $include, bool $return_result_set): void
     {
         $keys = [];
         foreach ($parents as &$parent) {
@@ -248,9 +261,11 @@ class Eager
         }
 
         foreach ($parents as &$parent) {
-            if (array_key_exists($parent->$relating_key, $children)) {
-                $parent->relationships[$include] = $children[$parent->$relating_key];
+            if (!(array_key_exists($parent->$relating_key, $children))) {
+                continue;
             }
+
+            $parent->relationships[$include] = $children[$parent->$relating_key];
         }
     }
 
@@ -258,15 +273,15 @@ class Eager
      * Eagerly load a many-to-many relationship.
      *
      *
-     * @param  object  $relationship
-     * @param  array   $parents
-     * @param  string  $relating_key
+     * @param  Orm\Wrapper  $relationship
+     * @param  array|ResultSet  $parents
+     * @param  array  $relating_key
      * @param  string  $relating_table
      * @param  string  $include
      *
      * @return void
      */
-    private static function has_many_through($relationship, &$parents, $relating_key, $relating_table, $include, $return_result_set)
+    private static function has_many_through(Orm\Wrapper $relationship, array|ResultSet &$parents, array $relating_key, string $relating_table, string $include, bool $return_result_set): void
     {
         $keys = static::getKeys($parents);
 
@@ -290,7 +305,7 @@ class Eager
         }
     }
 
-    private static function auto_include_required_columns($relationship, $model)
+    private static function auto_include_required_columns(Orm\Wrapper $relationship, Granada $model): void
     {
         switch ($model->relating) {
             case 'belongs_to':

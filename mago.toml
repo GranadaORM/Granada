@@ -1,0 +1,44 @@
+[source]
+paths = ['src/']
+
+[linter.rules.strict-types]
+enabled = false
+
+[linter.rules.no-boolean-flag-parameter]
+enabled = false
+
+[linter.rules.excessive-parameter-list]
+enabled = false
+
+[linter.rules.too-many-methods]
+enabled = false
+
+[linter.rules.no-else-clause]
+enabled = false
+
+[linter.rules.cyclomatic-complexity]
+enabled = false
+
+[linter.rules.kan-defect]
+enabled = false
+
+[linter.rules.too-many-properties]
+enabled = false
+
+[linter.rules.literal-named-argument]
+enabled = false
+
+[linter.rules.no-assign-in-condition]
+enabled = false
+
+[linter.rules.strict-behavior]
+enabled = false
+
+[linter.rules.halstead]
+enabled = false
+
+[linter.rules.no-empty]
+enabled = false
+
+[linter.rules.no-isset]
+enabled = false

@@ -297,6 +297,11 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         ORM::for_table('widget')->where_not_in_or_null('name', ['Fred', 'Joe'])->find_many();
         $expected = "SELECT * FROM `widget` WHERE ( `name` NOT IN ('Fred', 'Joe') OR `name` IS NULL )";
         $this->assertEquals($expected, ORM::get_last_query());
+
+        ORM::for_table('widget')->where_not_in_or_null('name', [])->find_many();
+        // If empty, no where
+        $expected = 'SELECT * FROM `widget`';
+        $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereNotInNoItems()
@@ -543,6 +548,13 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testHavingIdIs()
+    {
+        ORM::for_table('widget')->group_by('name')->having_id_is(5)->find_one();
+        $expected = "SELECT * FROM `widget` GROUP BY `name` HAVING `id` = '5' LIMIT 1";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
     public function testHavingLike()
     {
         ORM::for_table('widget')->group_by('name')->having_like('name', '%Fred%')->find_one();
@@ -752,6 +764,13 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
     {
         ORM::for_table('widget')->select_many(['widget_name' => 'widget.name'], 'widget_handle')->find_many();
         $expected = 'SELECT `widget`.`name` AS `widget_name`, `widget_handle` FROM `widget`';
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testSelectManyAsList()
+    {
+        ORM::for_table('widget')->select_many(['name', 'price'])->find_many();
+        $expected = 'SELECT `name`, `price` FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -983,6 +1002,15 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
     {
         ORM::for_table('widget')->where_equal('age', 10)->delete_many();
         $expected = "DELETE FROM `widget` WHERE `age` = '10'";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testDeleteManyJoin()
+    {
+        ORM::for_table('widget')->join('widget_handle', ['widget_handle.widget_id', '=', 'widget.id'])
+            ->where_equal('widget_handle.name', 'test')
+            ->delete_many(join: true);
+        $expected = "DELETE  FROM `widget` JOIN `widget_handle` ON `widget_handle`.`widget_id` = `widget`.`id` WHERE `widget_handle`.`name` = 'test'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 

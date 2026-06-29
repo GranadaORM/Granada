@@ -90,7 +90,7 @@ class Car extends Model
         return $query->where('name', $name);
     }
 
-    protected static function _defaultFilter($query)
+    protected static function _defaultFilter($query): \Granada\Orm\Wrapper
     {
         return $query->where('car.is_deleted', 0);
     }
@@ -188,6 +188,14 @@ class BookTwo extends Model
     public function authors()
     {
         return $this->has_many_through('Author', 'AuthorBook', 'custom_book_id', 'custom_author_id');
+    }
+}
+
+class BookThree extends Model
+{
+    public function authors()
+    {
+        return $this->has_many_through('Author', null, null, null, 'id', 'id');
     }
 }
 class MockPrefix_Simple extends Model {}

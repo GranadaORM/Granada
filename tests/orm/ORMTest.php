@@ -111,6 +111,16 @@ class ORMTest extends \PHPUnit\Framework\TestCase
         $model->save();
     }
 
+    public function testIsDirtyUnset()
+    {
+        $model       = ORM::for_table('test')->create();
+        $model->test = 5;
+        $this->assertTrue($model->is_dirty('test'));
+        unset($model->test);
+        $this->assertNull($model->test);
+        $this->assertFalse($model->is_dirty('test'));
+    }
+
     public function testIsDirtySetNull()
     {
         $model       = ORM::for_table('test')->create();

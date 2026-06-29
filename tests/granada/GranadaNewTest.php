@@ -1,6 +1,6 @@
 <?php
 
-use Granada\Orm;
+use Granada\ORM;
 use Granada\Model;
 
 /**
@@ -56,11 +56,17 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testSetterForProperty()
     {
-        $car       = Model::factory('Car')->find_one(1);
-        $car->name = 'Car1';
+        $car = Model::factory('Car')->find_one(1);
+        $this->assertTrue(isset($car['name']));
+        $this->assertEquals('Car1', $car['name']);
+
+        $car['name'] = 'Car1';
         $car->save();
-        $expected = 'test';
-        $this->assertEquals($expected, $car->name);
+        $this->assertEquals('test', $car['name']);
+
+        $car['manufactor_id'] = 2;
+        $this->assertEquals(2, $car['manufactor_id']);
+        $this->assertTrue($car->is_dirty('manufactor_id'));
     }
 
     public function testNewItemNoID()
@@ -82,6 +88,17 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $car->save();
         $expected = 7;
         $this->assertEquals($expected, $car->id);
+    }
+
+    public function testNewModel()
+    {
+        $car = Model::factory('Car')->create([
+            'id'   => '',
+            'name' => 'New Car',
+        ]);
+        $this->assertTrue($car->is_new());
+        $car->save();
+        $this->assertFalse($car->is_new());
     }
 
     public function testSetterForRelationship()
@@ -736,12 +753,21 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $car = Model::factory('Car')->find_one(1);
 
         $this->assertSame(false, $car->is_dirty('name'));
+        $this->assertSame(true, $car->is_clean('name'));
         $this->assertSame(false, $car->is_any_dirty());
         $this->assertEquals(1, $car->manufactor_id);
 
+        $this->assertSame(true, $car->is_clean('manufactor_id'));
+
+        $this->assertSame([], $car->list_dirty_fields());
+
         $car->manufactor_id = 2;
         $this->assertSame(true, $car->is_dirty('manufactor_id'));
+        $this->assertSame(false, $car->is_clean('manufactor_id'));
         $this->assertSame(true, $car->is_any_dirty());
+        $this->assertSame([
+            'manufactor_id' => 2,
+        ], $car->list_dirty_fields());
         $this->assertEquals(2, $car->manufactor_id);
     }
 
@@ -838,6 +864,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         // Changes after save
         $expected['manufactor_id'] = 2;
         $this->assertEquals($expected, $car->clean_values());
+
+        $this->assertEquals(null, $car->clean_value('unknown_field'));
     }
 
     public function testNotFound()
@@ -917,5 +945,26 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $car = Model::factory('Car')->find_one(1);
         $this->assertSame(true, isset($car->expensiveProperty));
         $this->assertSame(true, isset($car->anotherProperty));
+    }
+
+    public function testAggregateReturnTypeIntForWholeNumber()
+    {
+        $count = Car::count();
+        $this->assertIsInt($count);
+        $sum = Car::sum('manufactor_id');
+        $this->assertIsInt($sum);
+    }
+
+    public function testAggregateReturnTypeFloatForDecimal()
+    {
+        ORM::get_db()->exec('CREATE TABLE IF NOT EXISTS aggregate_test (id INTEGER PRIMARY KEY AUTOINCREMENT, value REAL)');
+        ORM::get_db()->exec('INSERT INTO aggregate_test (value) VALUES (1.1)');
+        ORM::get_db()->exec('INSERT INTO aggregate_test (value) VALUES (1.1)');
+        $sum = ORM::for_table('aggregate_test')->sum('value');
+        $this->assertEqualsWithDelta(2.2, $sum, 0.01);
+        $this->assertIsFloat($sum);
+        $avg = ORM::for_table('aggregate_test')->avg('value');
+        $this->assertEqualsWithDelta(1.1, $avg, 0.01);
+        $this->assertIsFloat($avg);
     }
 }
