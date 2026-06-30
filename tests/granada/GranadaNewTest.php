@@ -966,7 +966,6 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
-
     public function testAggregateReturnTypeIntForWholeNumber()
     {
         $count = Car::count();
