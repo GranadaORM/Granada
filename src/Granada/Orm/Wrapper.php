@@ -131,7 +131,7 @@ class Wrapper extends ORM
     /**
      * Special method to query the table by its primary key
      */
-    public function where_id_in(array $ids): static
+    public function where_id_in(array|Wrapper $ids): static
     {
         return $this->where_in($this->_get_id_column_name(), $ids);
     }
