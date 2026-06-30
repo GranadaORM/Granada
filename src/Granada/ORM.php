@@ -1743,9 +1743,8 @@ class ORM implements ArrayAccess
 
     /**
      * Add a LIMIT to the query
-     * @param integer $limit
      */
-    public function limit(int $limit): static
+    public function limit(?int $limit): static
     {
         $this->_limit = $limit;
 
@@ -1754,9 +1753,8 @@ class ORM implements ArrayAccess
 
     /**
      * Add an OFFSET to the query
-     * @param integer $offset
      */
-    public function offset(int $offset): static
+    public function offset(?int $offset): static
     {
         $this->_offset = $offset;
 
