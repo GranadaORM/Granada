@@ -947,6 +947,26 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(true, isset($car->anotherProperty));
     }
 
+    public function testWhereIdInArray()
+    {
+        Car::where_id_in([1, 3])
+            ->find_many();
+        $expected = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` IN ('1', '3')";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testWhereIdInQuery()
+    {
+        Car::where_id_in(
+            CarPart::where('name', 'Door')
+                ->select('car_id')
+        )
+            ->find_many();
+        $expected = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` IN (SELECT `car_id` FROM `car_part` WHERE `name` = 'Door')";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+
     public function testAggregateReturnTypeIntForWholeNumber()
     {
         $count = Car::count();
