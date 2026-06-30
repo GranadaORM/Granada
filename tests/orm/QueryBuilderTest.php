@@ -453,6 +453,16 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testClearLimitAndOffset()
+    {
+        ORM::for_table('widget')
+            ->limit(5)->offset(5)
+            ->limit(null)->offset(null)
+            ->find_many();
+        $expected = 'SELECT * FROM `widget`';
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
     public function testOrderByDesc()
     {
         ORM::for_table('widget')->order_by_desc('name')->find_one();

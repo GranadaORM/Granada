@@ -40,8 +40,8 @@
     "lint": "mago lint",
     "lint-fix": "mago lint --fix",
     "analyze": "mago analyze",
-    "cs-fix": "php-cs-fixer fix",
-    "cs-check": "php-cs-fixer fix --dry-run"
+    "cs-fix": "PHP_CS_FIXER_IGNORE_ENV=1 php-cs-fixer fix",
+    "cs-check": "PHP_CS_FIXER_IGNORE_ENV=1 php-cs-fixer fix --dry-run"
   },
   "replace": {
     "surt/granada": "*"
