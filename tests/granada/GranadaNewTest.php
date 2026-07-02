@@ -858,6 +858,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
             'owner_id'      => '1',
             'is_deleted'    => '0',
             'enabled'       => '1',
+            'manufacture_date' => '2020-01-01'
         ];
         $this->assertEquals($expected, $car->clean_values());
         $car->save();
@@ -985,5 +986,30 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $avg = ORM::for_table('aggregate_test')->avg('value');
         $this->assertEqualsWithDelta(1.1, $avg, 0.01);
         $this->assertIsFloat($avg);
+    }
+
+    public function testMinMaxInt()
+    {
+        $min = Car::min('id');
+        $max = Car::max('id');
+
+        $this->assertSame(1, $min);
+        $this->assertSame(6, $max);
+    }
+    public function testMinMaxFloat()
+    {
+        $min = Part::min('price');
+        $max = Part::max('price');
+
+        $this->assertSame(5.01, $min);
+        $this->assertSame(25.99, $max);
+    }
+    public function testMinMaxString()
+    {
+        $min = Car::min('manufacture_date');
+        $max = Car::max('manufacture_date');
+
+        $this->assertSame('2020-01-01', $min);
+        $this->assertSame('2023-10-05', $max);
     }
 }

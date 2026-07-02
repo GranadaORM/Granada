@@ -11,7 +11,8 @@ CREATE TABLE owner (
 
 CREATE TABLE part (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT
+    name TEXT,
+    price DOUBLE
 );
 
 CREATE TABLE car (
@@ -19,6 +20,7 @@ CREATE TABLE car (
     name TEXT,
     manufactor_id INTEGER,
     owner_id INTEGER,
+    manufacture_date DATE,
     enabled INTEGER,
     is_deleted INTEGER,
     FOREIGN KEY (manufactor_id) REFERENCES manufactor (id),
@@ -42,18 +44,18 @@ INSERT INTO owner(id,name) VALUES (2, 'Owner2');
 INSERT INTO owner(id,name) VALUES (3, 'Owner3');
 INSERT INTO owner(id,name) VALUES (4, 'Owner4');
 
-INSERT INTO part(id,name) VALUES (1, 'Part1');
-INSERT INTO part(id,name) VALUES (2, 'Part2');
-INSERT INTO part(id,name) VALUES (3, 'Part3');
-INSERT INTO part(id,name) VALUES (4, 'Part4');
-INSERT INTO part(id,name) VALUES (5, 'Part5');
+INSERT INTO part(id,name,price) VALUES (1, 'Part1', 5.01);
+INSERT INTO part(id,name,price) VALUES (2, 'Part2', 15.00);
+INSERT INTO part(id,name,price) VALUES (3, 'Part3', 10.95);
+INSERT INTO part(id,name,price) VALUES (4, 'Part4', 25.99);
+INSERT INTO part(id,name,price) VALUES (5, 'Part5', 14.49);
 
-INSERT INTO car(id,name,manufactor_id, owner_id, enabled, is_deleted) VALUES (1, 'Car1',1,1,1,0);
-INSERT INTO car(id,name,manufactor_id, owner_id, enabled, is_deleted) VALUES (2, 'Car2',1,2,1,0);
-INSERT INTO car(id,name,manufactor_id, owner_id, enabled, is_deleted) VALUES (3, 'Car3',2,3,1,0);
-INSERT INTO car(id,name,manufactor_id, owner_id, enabled, is_deleted) VALUES (4, 'Car4',2,4,1,0);
-INSERT INTO car(id,name,manufactor_id, owner_id, enabled, is_deleted) VALUES (5, 'Car5',2,4,1,1);
-INSERT INTO car(id,name,manufactor_id, owner_id, enabled, is_deleted) VALUES (6, 'Car6',2,4,0,0);
+INSERT INTO car(id,name,manufactor_id, owner_id, manufacture_date, enabled, is_deleted) VALUES (1, 'Car1',1,1,'2020-01-01',1,0);
+INSERT INTO car(id,name,manufactor_id, owner_id, manufacture_date, enabled, is_deleted) VALUES (2, 'Car2',1,2,'2020-02-01',1,0);
+INSERT INTO car(id,name,manufactor_id, owner_id, manufacture_date, enabled, is_deleted) VALUES (3, 'Car3',2,3,'2023-10-05',1,0);
+INSERT INTO car(id,name,manufactor_id, owner_id, manufacture_date, enabled, is_deleted) VALUES (4, 'Car4',2,4,'2022-03-30',1,0);
+INSERT INTO car(id,name,manufactor_id, owner_id, manufacture_date, enabled, is_deleted) VALUES (5, 'Car5',2,4,'2025-05-10',1,1);
+INSERT INTO car(id,name,manufactor_id, owner_id, manufacture_date, enabled, is_deleted) VALUES (6, 'Car6',2,4,'2021-12-10',0,0);
 
 INSERT INTO car_part(id,car_id,part_id) VALUES (1,1,1);
 INSERT INTO car_part(id,car_id,part_id) VALUES (2,2,1);

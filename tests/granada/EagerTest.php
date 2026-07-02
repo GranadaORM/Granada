@@ -110,9 +110,9 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT `part`.*, `car_part`.`car_id` FROM `part` JOIN `car_part` ON `part`.`id` = `car_part`.`part_id` WHERE `car_part`.`car_id` IN ('1')";
 
         $expectedParts   = [];
-        $expectedParts[] = ['id' => 1, 'name' => 'Part1'];
-        $expectedParts[] = ['id' => 2, 'name' => 'Part2'];
-        $expectedParts[] = ['id' => 1, 'name' => 'Part1'];
+        $expectedParts[] = ['id' => 1, 'name' => 'Part1', 'price' => 5.01];
+        $expectedParts[] = ['id' => 2, 'name' => 'Part2', 'price' => 15.00];
+        $expectedParts[] = ['id' => 1, 'name' => 'Part1', 'price' => 5.01];
 
         $fullQueryLog = ORM::get_query_log();
 
@@ -196,44 +196,49 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             'id'   => '1',
             'name' => 'Part1',
             'cars' => [
-                ['id' => '1', 'name' => 'Car1', 'manufactor_id' => '1', 'owner_id' => '1', 'is_deleted' => '0', 'enabled' => '1'],
-                ['id' => '2', 'name' => 'Car2', 'manufactor_id' => '1', 'owner_id' => '2', 'is_deleted' => '0', 'enabled' => '1'],
-                ['id' => '3', 'name' => 'Car3', 'manufactor_id' => '2', 'owner_id' => '3', 'is_deleted' => '0', 'enabled' => '1'],
-                ['id' => '4', 'name' => 'Car4', 'manufactor_id' => '2', 'owner_id' => '4', 'is_deleted' => '0', 'enabled' => '1'],
-                ['id' => '1', 'name' => 'Car1', 'manufactor_id' => '1', 'owner_id' => '1', 'is_deleted' => '0', 'enabled' => '1'],
+                ['id' => '1', 'name' => 'Car1', 'manufactor_id' => '1', 'owner_id' => '1', 'is_deleted' => '0', 'enabled' => '1', 'manufacture_date' => '2020-01-01'],
+                ['id' => '2', 'name' => 'Car2', 'manufactor_id' => '1', 'owner_id' => '2', 'is_deleted' => '0', 'enabled' => '1', 'manufacture_date' => '2020-02-01'],
+                ['id' => '3', 'name' => 'Car3', 'manufactor_id' => '2', 'owner_id' => '3', 'is_deleted' => '0', 'enabled' => '1', 'manufacture_date' => '2023-10-05'],
+                ['id' => '4', 'name' => 'Car4', 'manufactor_id' => '2', 'owner_id' => '4', 'is_deleted' => '0', 'enabled' => '1', 'manufacture_date' => '2022-03-30'],
+                ['id' => '1', 'name' => 'Car1', 'manufactor_id' => '1', 'owner_id' => '1', 'is_deleted' => '0', 'enabled' => '1', 'manufacture_date' => '2020-01-01'],
             ],
+            'price' => 5.01
         ];
 
         $expectedParts[] = [
             'id'   => '2',
             'name' => 'Part2',
             'cars' => [
-                ['id' => '1', 'name' => 'Car1', 'manufactor_id' => '1', 'owner_id' => '1', 'is_deleted' => '0', 'enabled' => '1'],
+                ['id' => '1', 'name' => 'Car1', 'manufactor_id' => '1', 'owner_id' => '1', 'is_deleted' => '0', 'enabled' => '1', 'manufacture_date' => '2020-01-01'],
             ],
+            'price' => 15.00
         ];
 
         $expectedParts[] = [
             'id'   => '3',
             'name' => 'Part3',
             'cars' => [
-                ['id' => '2', 'name' => 'Car2', 'manufactor_id' => '1', 'owner_id' => '2', 'is_deleted' => '0', 'enabled' => '1'],
+                ['id' => '2', 'name' => 'Car2', 'manufactor_id' => '1', 'owner_id' => '2', 'is_deleted' => '0', 'enabled' => '1', 'manufacture_date' => '2020-02-01'],
             ],
+            'price' => 10.95
         ];
 
         $expectedParts[] = [
             'id'   => '4',
             'name' => 'Part4',
             'cars' => [
-                ['id' => '3', 'name' => 'Car3', 'manufactor_id' => '2', 'owner_id' => '3', 'is_deleted' => '0', 'enabled' => '1'],
+                ['id' => '3', 'name' => 'Car3', 'manufactor_id' => '2', 'owner_id' => '3', 'is_deleted' => '0', 'enabled' => '1', 'manufacture_date' => '2023-10-05'],
             ],
+            'price' => 25.99
         ];
 
         $expectedParts[] = [
             'id'   => '5',
             'name' => 'Part5',
             'cars' => [
-                ['id' => '4', 'name' => 'Car4', 'manufactor_id' => '2', 'owner_id' => '4', 'is_deleted' => '0', 'enabled' => '1'],
+                ['id' => '4', 'name' => 'Car4', 'manufactor_id' => '2', 'owner_id' => '4', 'is_deleted' => '0', 'enabled' => '1', 'manufacture_date' => '2022-03-30'],
             ],
+            'price' => 14.49
         ];
 
         $expectedSql   = [];

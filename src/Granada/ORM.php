@@ -854,7 +854,7 @@ class ORM implements ArrayAccess
      * Will return the max value of the choosen column.
      * @param string $column
      */
-    public function max(string $column): int
+    public function max(string $column): float|int|string
     {
         return $this->_call_aggregate_db_function(__FUNCTION__, $column);
     }
@@ -864,7 +864,7 @@ class ORM implements ArrayAccess
      * Will return the min value of the choosen column.
      * @param string $column
      */
-    public function min(string $column): int
+    public function min(string $column): float|int|string
     {
         return $this->_call_aggregate_db_function(__FUNCTION__, $column);
     }
