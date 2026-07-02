@@ -202,7 +202,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
                 ['id' => '4', 'name' => 'Car4', 'manufactor_id' => '2', 'owner_id' => '4', 'is_deleted' => '0', 'enabled' => '1', 'manufacture_date' => '2022-03-30'],
                 ['id' => '1', 'name' => 'Car1', 'manufactor_id' => '1', 'owner_id' => '1', 'is_deleted' => '0', 'enabled' => '1', 'manufacture_date' => '2020-01-01'],
             ],
-            'price' => 5.01
+            'price' => 5.01,
         ];
 
         $expectedParts[] = [
@@ -211,7 +211,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             'cars' => [
                 ['id' => '1', 'name' => 'Car1', 'manufactor_id' => '1', 'owner_id' => '1', 'is_deleted' => '0', 'enabled' => '1', 'manufacture_date' => '2020-01-01'],
             ],
-            'price' => 15.00
+            'price' => 15.00,
         ];
 
         $expectedParts[] = [
@@ -220,7 +220,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             'cars' => [
                 ['id' => '2', 'name' => 'Car2', 'manufactor_id' => '1', 'owner_id' => '2', 'is_deleted' => '0', 'enabled' => '1', 'manufacture_date' => '2020-02-01'],
             ],
-            'price' => 10.95
+            'price' => 10.95,
         ];
 
         $expectedParts[] = [
@@ -229,7 +229,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             'cars' => [
                 ['id' => '3', 'name' => 'Car3', 'manufactor_id' => '2', 'owner_id' => '3', 'is_deleted' => '0', 'enabled' => '1', 'manufacture_date' => '2023-10-05'],
             ],
-            'price' => 25.99
+            'price' => 25.99,
         ];
 
         $expectedParts[] = [
@@ -238,7 +238,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             'cars' => [
                 ['id' => '4', 'name' => 'Car4', 'manufactor_id' => '2', 'owner_id' => '4', 'is_deleted' => '0', 'enabled' => '1', 'manufacture_date' => '2022-03-30'],
             ],
-            'price' => 14.49
+            'price' => 14.49,
         ];
 
         $expectedSql   = [];

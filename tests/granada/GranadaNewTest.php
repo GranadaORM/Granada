@@ -852,13 +852,13 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(1, $car->clean_value('manufactor_id'));
         $this->assertEquals(2, $car->manufactor_id);
         $expected = [
-            'id'            => '1',
-            'name'          => 'Car1',
-            'manufactor_id' => '1',
-            'owner_id'      => '1',
-            'is_deleted'    => '0',
-            'enabled'       => '1',
-            'manufacture_date' => '2020-01-01'
+            'id'               => '1',
+            'name'             => 'Car1',
+            'manufactor_id'    => '1',
+            'owner_id'         => '1',
+            'is_deleted'       => '0',
+            'enabled'          => '1',
+            'manufacture_date' => '2020-01-01',
         ];
         $this->assertEquals($expected, $car->clean_values());
         $car->save();
@@ -996,6 +996,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(1, $min);
         $this->assertSame(6, $max);
     }
+
     public function testMinMaxFloat()
     {
         $min = Part::min('price');
@@ -1004,6 +1005,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(5.01, $min);
         $this->assertSame(25.99, $max);
     }
+
     public function testMinMaxString()
     {
         $min = Car::min('manufacture_date');
