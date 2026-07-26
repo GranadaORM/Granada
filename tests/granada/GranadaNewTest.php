@@ -967,6 +967,14 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testWhereIdInNull()
+    {
+        Car::where_id_in(null)
+            ->find_many();
+        $expected = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND 0";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
     public function testAggregateReturnTypeIntForWholeNumber()
     {
         $count = Car::count();
