@@ -1,18 +1,19 @@
 <?php
 
 return (new PhpCsFixer\Config())
-   ->setFinder(PhpCsFixer\Finder::create()
-        ->in(__DIR__)
-        ->exclude('vendor')
-        ->exclude('.github')
-        ->name('*.php')
-        ->ignoreDotFiles(true)
-        ->ignoreVCS(true)
+    ->setFinder(
+        PhpCsFixer\Finder::create()
+            ->in(__DIR__)
+            ->exclude('vendor')
+            ->exclude('.github')
+            ->name('*.php')
+            ->ignoreDotFiles(true)
+            ->ignoreVCS(true)
     )
     ->setRiskyAllowed(true)
     ->setRules([
         '@PER-CS'                 => true,
-        '@PHP82Migration'         => true,
+        '@PHP8x2Migration'        => true,
         'align_multiline_comment' => true,
         'binary_operator_spaces'  => [
             'operators' => [
@@ -60,9 +61,19 @@ return (new PhpCsFixer\Config())
         'no_empty_statement'             => true,
         'no_extra_blank_lines'           => [
             'tokens' => [
-                'attribute', 'break', 'case', 'continue',
-                'curly_brace_block', 'default', 'extra', 'parenthesis_brace_block',
-                'return', 'square_brace_block', 'switch', 'throw', 'use',
+                'attribute',
+                'break',
+                'case',
+                'continue',
+                'curly_brace_block',
+                'default',
+                'extra',
+                'parenthesis_brace_block',
+                'return',
+                'square_brace_block',
+                'switch',
+                'throw',
+                'use',
             ],
         ],
         'no_singleline_whitespace_before_semicolons' => true,
@@ -77,7 +88,8 @@ return (new PhpCsFixer\Config())
         'phpdoc_order'                               => [
             'order' => [
                 'param',
-                'return', 'throws',
+                'return',
+                'throws',
             ],
         ],
         'phpdoc_no_package'           => true,
