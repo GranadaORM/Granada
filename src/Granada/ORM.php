@@ -57,10 +57,6 @@ class ORM implements ArrayAccess
     // --- CLASS CONSTANTS --- //
     // ----------------------- //
 
-    // WHERE and HAVING condition array keys
-    public const CONDITION_FRAGMENT = 0;
-    public const CONDITION_VALUES   = 1;
-
     public const DEFAULT_CONNECTION = 'default';
 
     // Limit clause style
@@ -83,6 +79,7 @@ class ORM implements ArrayAccess
         'driver_options'              => null,
         'identifier_quote_character'  => null, // if this is null, will be autodetected
         'limit_clause_style'          => null, // if this is null, will be autodetected
+        'driver_name'                 => null, // if this is null, will be autodetected
         'logging'                     => false,
         'logger'                      => null,
         'caching'                     => false,
@@ -107,6 +104,10 @@ class ORM implements ArrayAccess
     /** @var array<string, mixed> */
     protected static array $_query_cache = [];
 
+    // Shared immutable Dialect instances, keyed by the config values that build them
+    /** @var array<string, Orm\Dialect> */
+    protected static array $_dialect_cache = [];
+
     // Reference to previously used PDOStatement object to enable low-level access, if needed
     protected static $_last_statement = null;
 
@@ -128,14 +129,14 @@ class ORM implements ArrayAccess
     protected array $_values = [];
 
     // Columns to select in the result
-    /** @var array<int, string> */
+    /** @var array<int, string|Orm\Aggregate> */
     protected array $_result_columns = ['*'];
 
     // Are we using the default result column or have these been manually changed?
     protected bool $_using_default_result_columns = true;
 
     // Join sources
-    /** @var array<int, string> */
+    /** @var array<int, Orm\JoinSource|string> */
     protected array $_join_sources = [];
 
     // Should the query include a DISTINCT keyword?
@@ -152,10 +153,10 @@ class ORM implements ArrayAccess
     protected array $_raw_parameters = [];
 
     // Array of WHERE clauses
-    /** @var array<int, array<string, mixed>> */
+    /** @var array<int, Orm\Condition> */
     protected array $_where_conditions = [];
 
-    /** @var array<int, array<string, mixed>> */
+    /** @var array<int, Orm\Condition> */
     protected array $_where_conditions_stash = [];
 
     // LIMIT
@@ -165,15 +166,15 @@ class ORM implements ArrayAccess
     protected ?int $_offset = null;
 
     // ORDER BY
-    /** @var array<int, string> */
+    /** @var array<int, Orm\Term> */
     protected array $_order_by = [];
 
     // GROUP BY
-    /** @var array<int, string> */
+    /** @var array<int, Orm\Term> */
     protected array $_group_by = [];
 
     // HAVING
-    /** @var array<int, array<string, mixed>> */
+    /** @var array<int, Orm\Condition> */
     protected array $_having_conditions = [];
 
     // The data for a hydrated instance of the class
@@ -282,7 +283,8 @@ class ORM implements ArrayAccess
      */
     public static function reset_config(): void
     {
-        self::$_config = [];
+        self::$_config        = [];
+        self::$_dialect_cache = [];
     }
 
     /**
@@ -351,6 +353,7 @@ class ORM implements ArrayAccess
     {
         self::_setup_db_config($connection_name);
         self::$_db[$connection_name] = $db;
+        self::_setup_driver_name($connection_name);
         self::_setup_identifier_quote_character($connection_name);
         self::_setup_limit_clause_style($connection_name);
     }
@@ -373,7 +376,7 @@ class ORM implements ArrayAccess
     protected static function _setup_identifier_quote_character(string $connection_name): void
     {
         if (is_null(self::$_config[$connection_name]['identifier_quote_character'])) {
-            self::$_config[$connection_name]['identifier_quote_character'] = self::_detect_identifier_quote_character($connection_name);
+            self::$_config[$connection_name]['identifier_quote_character'] = self::_dialect($connection_name)->quote_character;
         }
     }
 
@@ -386,52 +389,38 @@ class ORM implements ArrayAccess
     public static function _setup_limit_clause_style(string $connection_name): void
     {
         if (is_null(self::$_config[$connection_name]['limit_clause_style'])) {
-            self::$_config[$connection_name]['limit_clause_style'] = self::_detect_limit_clause_style($connection_name);
+            self::$_config[$connection_name]['limit_clause_style'] = self::_dialect($connection_name)->limit_clause_style;
         }
     }
 
     /**
-     * Return the correct character used to quote identifiers (table
-     * names, column names etc) by looking at the driver being used by PDO.
+     * Detect and initialise the name of the PDO driver backing the
+     * connection, if this has not been specified manually
      * @param string $connection_name Which connection to use
-     * @return string
      */
-    protected static function _detect_identifier_quote_character(string $connection_name): string
+    protected static function _setup_driver_name(string $connection_name): void
     {
-        switch (self::get_db($connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME)) {
-            case 'pgsql':
-            case 'sqlsrv':
-            case 'dblib':
-            case 'mssql':
-            case 'sybase':
-            case 'firebird':
-                return '"';
-
-            case 'mysql':
-            case 'sqlite':
-            case 'sqlite2':
-            default:
-                return '`';
+        if (is_null(self::$_config[$connection_name]['driver_name'])) {
+            self::$_config[$connection_name]['driver_name'] = self::get_db($connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME);
         }
     }
 
     /**
-     * Returns a constant after determining the appropriate limit clause
-     * style
+     * The Dialect for a connection: every driver-specific fact the
+     * renderer, save() and Wrapper need.
+     * Falls back to the mysql/sqlite dialect when the
+     * driver name is unknown or not yet detected.
      * @param string $connection_name Which connection to use
-     * @return string Limit clause style keyword/constant
      */
-    protected static function _detect_limit_clause_style(string $connection_name): string
+    protected static function _dialect(string $connection_name = self::DEFAULT_CONNECTION): Orm\Dialect
     {
-        switch (self::get_db($connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME)) {
-            case 'sqlsrv':
-            case 'dblib':
-            case 'mssql':
-                return ORM::LIMIT_STYLE_TOP_N;
+        $config             = self::$_config[$connection_name]      ?? [];
+        $driver_name        = $config['driver_name']                ?? null;
+        $quote_character    = $config['identifier_quote_character'] ?? null;
+        $limit_clause_style = $config['limit_clause_style']         ?? null;
+        $key                = ($driver_name ?? '') . '|' . ($quote_character ?? '') . '|' . ($limit_clause_style ?? '');
 
-            default:
-                return ORM::LIMIT_STYLE_LIMIT;
-        }
+        return self::$_dialect_cache[$key] ??= Orm\Dialect::forDriver($driver_name, $quote_character, $limit_clause_style);
     }
 
     /**
@@ -516,30 +505,32 @@ class ORM implements ArrayAccess
             return false;
         }
 
-        if (!isset(self::$_query_log[$connection_name])) {
-            self::$_query_log[$connection_name] = [];
+        self::_record_query(
+            Orm\Renderer::interpolate(
+                $query,
+                $parameters,
+                fn($parameter) => self::$_db[$connection_name]->quote($parameter)
+            ),
+            $connection_name
+        );
+
+        return true;
+    }
+
+    /**
+     * Store an interpolated query in the query log and invoke the
+     * configured logger, if logging is enabled for the connection.
+     * @param string $bound_query
+     * @param string $connection_name Which connection to use
+     */
+    protected static function _record_query(string $bound_query, string $connection_name): void
+    {
+        if (!self::$_config[$connection_name]['logging']) {
+            return;
         }
 
-        if (count($parameters) > 0) {
-            // Escape the parameters it not null
-            foreach ($parameters as $key => $parameter) {
-                $parameters[$key] = ($parameter === null) ? 'NULL' : self::$_db[$connection_name]->quote($parameter);
-            }
-
-            // Avoid %format collision for vsprintf
-            $query = str_replace('%', '%%', $query);
-
-            // Replace placeholders in the query for vsprintf
-            if (str_contains($query, "'") || str_contains($query, '"')) {
-                $query = Orm\Str::str_replace_outside_quotes('?', '%s', $query);
-            } else {
-                $query = str_replace('?', '%s', $query);
-            }
-
-            // Replace the question marks in the query with the parameters
-            $bound_query = vsprintf($query, $parameters);
-        } else {
-            $bound_query = $query;
+        if (!isset(self::$_query_log[$connection_name])) {
+            self::$_query_log[$connection_name] = [];
         }
 
         self::$_last_query                    = $bound_query;
@@ -549,8 +540,6 @@ class ORM implements ArrayAccess
             $logger = self::$_config[$connection_name]['logger'];
             $logger($bound_query);
         }
-
-        return true;
     }
 
     /**
@@ -751,21 +740,32 @@ class ORM implements ArrayAccess
     }
 
     /**
-     * Instead of running the query, get the query that would be run for a find_many() call
+     * Instead of running the query, get the query that would be run for a find_many() call.
      * @param string $connection_name
      * @return string
      */
     public function get_select_query(string $connection_name = self::DEFAULT_CONNECTION): string
     {
-        // Ensure logging works
-        $before_log                                 = self::$_config[$connection_name]['logging'];
-        self::$_config[$connection_name]['logging'] = true;
+        $query  = $this->_build_select();
+        $values = $this->_values;
 
-        $this->_log_query($this->_build_select(), $this->_values, $connection_name);
+        if (count($values) === 0) {
+            $bound_query = $query;
+        } else {
+            if (!isset(self::$_db[$connection_name])) {
+                throw new \InvalidArgumentException('Cannot interpolate bound values without a database connection');
+            }
 
-        self::$_config[$connection_name]['logging'] = $before_log;
+            $bound_query = Orm\Renderer::interpolate(
+                $query,
+                $values,
+                fn($parameter) => self::$_db[$connection_name]->quote($parameter)
+            );
+        }
 
-        return $this->get_last_query();
+        self::_record_query($bound_query, $connection_name);
+
+        return $bound_query;
     }
 
     /**
@@ -897,14 +897,9 @@ class ORM implements ArrayAccess
      */
     protected function _call_aggregate_db_function(string $sql_function, string $column): float|int|string
     {
-        $alias        = strtolower($sql_function);
-        $sql_function = strtoupper($sql_function);
-        if ($column !== '*') {
-            $column = $this->_quote_identifier($column);
-        }
+        $alias                 = strtolower($sql_function);
         $result_columns        = $this->_result_columns;
-        $this->_result_columns = [];
-        $this->select_expr("{$sql_function}({$column})", $alias);
+        $this->_result_columns = [new Orm\Aggregate(strtoupper($sql_function), $column, $alias)];
         $result                = $this->find_one();
         $this->_result_columns = $result_columns;
 
@@ -1175,25 +1170,7 @@ class ORM implements ArrayAccess
      */
     protected function _add_join_source(string $join_operator, string $table, array|string $constraint, ?string $table_alias = null): static
     {
-        $join_operator = trim("{$join_operator} JOIN");
-
-        $table = $this->_quote_identifier($table);
-
-        // Add table alias if present
-        if (!is_null($table_alias)) {
-            $table_alias = $this->_quote_identifier($table_alias);
-            $table .= " {$table_alias}";
-        }
-
-        // Build the constraint
-        if (is_array($constraint)) {
-            [$first_column, $operator, $second_column] = $constraint;
-            $first_column                              = $this->_quote_identifier($first_column);
-            $second_column                             = $this->_quote_identifier($second_column);
-            $constraint                                = "{$first_column} {$operator} {$second_column}";
-        }
-
-        $this->_join_sources[] = "{$join_operator} {$table} ON {$constraint}";
+        $this->_join_sources[] = new Orm\JoinSource($join_operator, $table, $table_alias, $constraint);
 
         return $this;
     }
@@ -1252,16 +1229,15 @@ class ORM implements ArrayAccess
      */
     protected function _add_having(string $fragment, mixed $values = []): static
     {
-        return $this->_add_condition('having', $fragment, $values);
+        return $this->_add_having_condition(Orm\Condition::raw($fragment, is_array($values) ? $values : [$values]));
     }
 
     /**
      * Internal method to add a HAVING condition to the query
-     * @param string $separator
      */
     protected function _add_simple_having(string $column_name, string $separator, mixed $value): static
     {
-        return $this->_add_simple_condition('having', $column_name, $separator, $value);
+        return $this->_add_having_condition($this->_simple_condition($column_name, $separator, $value));
     }
 
     /**
@@ -1269,36 +1245,33 @@ class ORM implements ArrayAccess
      */
     protected function _add_where(string $fragment, mixed $values = []): static
     {
-        return $this->_add_condition('where', $fragment, $values);
+        return $this->_add_where_condition(Orm\Condition::raw($fragment, is_array($values) ? $values : [$values]));
     }
 
     /**
      * Internal method to add a WHERE condition to the query
-     * @param string $separator
      */
     protected function _add_simple_where(string $column_name, string $separator, mixed $value): static
     {
-        return $this->_add_simple_condition('where', $column_name, $separator, $value);
+        return $this->_add_where_condition($this->_simple_condition($column_name, $separator, $value));
     }
 
-    /**
-     * Internal method to add a HAVING or WHERE condition to the query
-     */
-    protected function _add_condition(string $type, string $fragment, mixed $values = []): static
+    private function _add_where_condition(Orm\Condition $condition): static
     {
-        $conditions_class_property_name = "_{$type}_conditions";
-        if (!is_array($values)) {
-            $values = [$values];
+        if (in_array($condition, $this->_where_conditions)) {
+            return $this; // already present, do not duplicate
         }
-        $filter = [
-            self::CONDITION_FRAGMENT => $fragment,
-            self::CONDITION_VALUES   => $values,
-        ];
-        if (in_array($filter, $this->$conditions_class_property_name)) {
-            // Condition already exists, de-dupe
-            return $this;
+        $this->_where_conditions[] = $condition;
+
+        return $this;
+    }
+
+    private function _add_having_condition(Orm\Condition $condition): static
+    {
+        if (in_array($condition, $this->_having_conditions)) {
+            return $this; // already present, do not duplicate
         }
-        array_push($this->$conditions_class_property_name, $filter);
+        $this->_having_conditions[] = $condition;
 
         return $this;
     }
@@ -1338,17 +1311,38 @@ class ORM implements ArrayAccess
      */
     public function remove_where(string $column): static
     {
-        $new_conditions = [];
-        foreach ($this->_where_conditions as $idx => $where_condition) {
-            if (str_contains($where_condition[self::CONDITION_FRAGMENT], '`' . $column . '`')) {
-                continue;
-            }
-
-            $new_conditions[] = $where_condition;
-        }
-        $this->_where_conditions = $new_conditions;
+        $this->_where_conditions = array_values(array_filter(
+            $this->_where_conditions,
+            fn(Orm\Condition $condition) => !self::_condition_references_column($condition, $column),
+        ));
 
         return $this;
+    }
+
+    /**
+     * Structured conditions reference a column when it appears as any
+     * dot-segment of their (possibly qualified) column; raw conditions
+     * when the quoted column name appears in the fragment.
+     */
+    private static function _condition_references_column(Orm\Condition $condition, string $column): bool
+    {
+        if ($condition->type === Orm\Condition::RAW) {
+            return str_contains($condition->fragment, '`' . $column . '`');
+        }
+
+        if ($condition->type === Orm\Condition::ANY_IS) {
+            foreach ($condition->groups as $group) {
+                foreach ($group as $inner) {
+                    if (self::_condition_references_column($inner, $column)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        return $condition->column !== '' && in_array($column, explode('.', $condition->column), true);
     }
 
     /**
@@ -1374,15 +1368,11 @@ class ORM implements ArrayAccess
     }
 
     /**
-     * Helper method to compile a simple COLUMN SEPARATOR VALUE
-     * style HAVING or WHERE condition into a string and value ready to
-     * be passed to the _add_condition method. Avoids duplication
-     * of the call to _quote_identifier
-     * @param string $type
+     * A COLUMN SEPARATOR VALUE condition. Adds the table name in case
+     * of ambiguous columns; quoting is left to the Renderer.
      */
-    protected function _add_simple_condition(string $type, string $column_name, string $separator, mixed $value): static
+    private function _simple_condition(string $column_name, string $separator, mixed $value): Orm\Condition
     {
-        // Add the table name in case of ambiguous columns
         if (count($this->_join_sources) > 0 && !str_contains($column_name, '.')) {
             $table = $this->_table_name;
             if (!is_null($this->_table_alias)) {
@@ -1391,32 +1381,8 @@ class ORM implements ArrayAccess
 
             $column_name = "{$table}.{$column_name}";
         }
-        $column_name = $this->_quote_identifier($column_name);
 
-        return $this->_add_condition($type, "{$column_name} {$separator} ?", $value);
-    }
-
-    /**
-     * Return a string containing the given number of question marks,
-     * separated by commas. Eg "?, ?, ?"
-     */
-    protected function _create_placeholders(array $fields): string
-    {
-        if (empty($fields)) {
-            return '';
-        }
-
-        $db_fields = [];
-        foreach ($fields as $key => $value) {
-            // Process expression fields directly into the query
-            if (array_key_exists($key, $this->_expr_fields)) {
-                $db_fields[] = $value;
-            } else {
-                $db_fields[] = '?';
-            }
-        }
-
-        return implode(', ', $db_fields);
+        return Orm\Condition::compare($column_name, $separator, $value);
     }
 
     /**
@@ -1504,49 +1470,31 @@ class ORM implements ArrayAccess
      */
     public function where_any_is(array $values, array|string $operator = '='): static
     {
-        $data  = [];
-        $query = ['(('];
-        $first = true;
+        $groups = [];
         foreach ($values as $value) {
-            if ($first) {
-                $first = false;
-            } else {
-                $query[] = ') OR (';
-            }
-            $firstsub = true;
+            $group = [];
             foreach ($value as $key => $item) {
                 $op = is_string($operator) ? $operator : ($operator[$key] ?? '=');
-                if ($firstsub) {
-                    $firstsub = false;
-                } else {
-                    $query[] = 'AND';
-                }
-                $query[] = $this->_quote_identifier($key);
                 if (is_array($item)) {
-                    $placeholders = $this->_create_placeholders($item);
-                    $data         = array_merge($data, $item);
                     if ($op === '=') {
-                        $query[] = 'IN (' . $placeholders . ')';
+                        $group[] = Orm\Condition::in($key, $item);
                     } elseif ($op === '!=') {
-                        $query[] = 'NOT IN (' . $placeholders . ')';
+                        $group[] = Orm\Condition::notIn($key, $item);
                     } else {
                         throw new \InvalidArgumentException('You only pass an array for = and !=.');
                     }
+                } elseif (is_null($item) && ($op === '=')) {
+                    $group[] = Orm\Condition::isNull($key);
+                } elseif (is_null($item) && ($op === '!=')) {
+                    $group[] = Orm\Condition::isNotNull($key);
                 } else {
-                    if (is_null($item) && ($op === '=')) {
-                        $query[] = 'IS NULL';
-                    } elseif (is_null($item) && ($op === '!=')) {
-                        $query[] = 'IS NOT NULL';
-                    } else {
-                        $query[] = $op . ' ?';
-                        $data[]  = $item;
-                    }
+                    $group[] = Orm\Condition::compare($key, $op, $item);
                 }
             }
+            $groups[] = $group;
         }
-        $query[] = '))';
 
-        return $this->where_raw(implode(' ', $query), $data);
+        return $this->_add_where_condition(Orm\Condition::anyIs($groups));
     }
 
     /**
@@ -1616,7 +1564,7 @@ class ORM implements ArrayAccess
      */
     public function where_lt_or_null(string $column_name, mixed $value): static
     {
-        return $this->where_raw('( ' . $this->_quote_identifier($column_name) . ' < ? OR ' . $this->_quote_identifier($column_name) . ' IS NULL )', $value);
+        return $this->_add_where_condition(Orm\Condition::orNull($column_name, '<', $value));
     }
 
     /**
@@ -1626,7 +1574,7 @@ class ORM implements ArrayAccess
      */
     public function where_lte_or_null(string $column_name, mixed $value): static
     {
-        return $this->where_raw('( ' . $this->_quote_identifier($column_name) . ' <= ? OR ' . $this->_quote_identifier($column_name) . ' IS NULL )', $value);
+        return $this->_add_where_condition(Orm\Condition::orNull($column_name, '<=', $value));
     }
 
     /**
@@ -1636,7 +1584,7 @@ class ORM implements ArrayAccess
      */
     public function where_gt_or_null(string $column_name, mixed $value): static
     {
-        return $this->where_raw('( ' . $this->_quote_identifier($column_name) . ' > ? OR ' . $this->_quote_identifier($column_name) . ' IS NULL )', $value);
+        return $this->_add_where_condition(Orm\Condition::orNull($column_name, '>', $value));
     }
 
     /**
@@ -1646,7 +1594,7 @@ class ORM implements ArrayAccess
      */
     public function where_gte_or_null(string $column_name, mixed $value): static
     {
-        return $this->where_raw('( ' . $this->_quote_identifier($column_name) . ' >= ? OR ' . $this->_quote_identifier($column_name) . ' IS NULL )', $value);
+        return $this->_add_where_condition(Orm\Condition::orNull($column_name, '>=', $value));
     }
 
     /**
@@ -1658,15 +1606,12 @@ class ORM implements ArrayAccess
         if (!$values) {
             return $this->_add_where('0');
         }
-        $column_name = $this->_quote_identifier($column_name);
 
         if (is_a($values, \Granada\Orm\Wrapper::class)) {
-            return $this->_add_where("{$column_name} IN ({$values->get_select_query()})");
+            return $this->_add_where_condition(Orm\Condition::inSubquery($column_name, $values->get_select_query()));
         }
 
-        $placeholders = $this->_create_placeholders($values);
-
-        return $this->_add_where("{$column_name} IN ({$placeholders})", $values);
+        return $this->_add_where_condition(Orm\Condition::in($column_name, $values));
     }
 
     /**
@@ -1680,15 +1625,11 @@ class ORM implements ArrayAccess
             return $this;
         }
 
-        $column_name = $this->_quote_identifier($column_name);
-
         if (is_a($values, \Granada\Orm\Wrapper::class)) {
-            return $this->_add_where("{$column_name} NOT IN ({$values->get_select_query()})");
+            return $this->_add_where_condition(Orm\Condition::notInSubquery($column_name, $values->get_select_query()));
         }
 
-        $placeholders = $this->_create_placeholders($values);
-
-        return $this->_add_where("{$column_name} NOT IN ({$placeholders})", $values);
+        return $this->_add_where_condition(Orm\Condition::notIn($column_name, $values));
     }
 
     /**
@@ -1702,10 +1643,7 @@ class ORM implements ArrayAccess
             return $this;
         }
 
-        $column_name  = $this->_quote_identifier($column_name);
-        $placeholders = $this->_create_placeholders($values);
-
-        return $this->where_raw('( ' . $column_name . ' NOT IN (' . $placeholders . ') OR ' . $column_name . ' IS NULL )', $values);
+        return $this->_add_where_condition(Orm\Condition::notInOrNull($column_name, $values));
     }
 
     /**
@@ -1714,9 +1652,7 @@ class ORM implements ArrayAccess
      */
     public function where_null(string $column_name): static
     {
-        $column_name = $this->_quote_identifier($column_name);
-
-        return $this->_add_where("{$column_name} IS NULL");
+        return $this->_add_where_condition(Orm\Condition::isNull($column_name));
     }
 
     /**
@@ -1725,9 +1661,7 @@ class ORM implements ArrayAccess
      */
     public function where_not_null(string $column_name): static
     {
-        $column_name = $this->_quote_identifier($column_name);
-
-        return $this->_add_where("{$column_name} IS NOT NULL");
+        return $this->_add_where_condition(Orm\Condition::isNotNull($column_name));
     }
 
     /**
@@ -1767,8 +1701,7 @@ class ORM implements ArrayAccess
      */
     protected function _add_order_by(string $column_name, string $ordering): static
     {
-        $column_name       = $this->_quote_identifier($column_name);
-        $this->_order_by[] = "{$column_name} {$ordering}";
+        $this->_order_by[] = Orm\Term::column($column_name, $ordering);
 
         return $this;
     }
@@ -1807,7 +1740,7 @@ class ORM implements ArrayAccess
      */
     public function order_by_expr(string $clause): static
     {
-        $this->_order_by[] = $clause;
+        $this->_order_by[] = Orm\Term::expression($clause);
 
         return $this;
     }
@@ -1818,8 +1751,7 @@ class ORM implements ArrayAccess
      */
     public function group_by(string $column_name): static
     {
-        $column_name       = $this->_quote_identifier($column_name);
-        $this->_group_by[] = $column_name;
+        $this->_group_by[] = Orm\Term::column($column_name);
 
         return $this;
     }
@@ -1830,7 +1762,7 @@ class ORM implements ArrayAccess
      */
     public function group_by_expr(string $expr): static
     {
-        $this->_group_by[] = $expr;
+        $this->_group_by[] = Orm\Term::expression($expr);
 
         return $this;
     }
@@ -1940,10 +1872,7 @@ class ORM implements ArrayAccess
      */
     public function having_in(string $column_name, array $values): static
     {
-        $column_name  = $this->_quote_identifier($column_name);
-        $placeholders = $this->_create_placeholders($values);
-
-        return $this->_add_having("{$column_name} IN ({$placeholders})", $values);
+        return $this->_add_having_condition(Orm\Condition::in($column_name, $values));
     }
 
     /**
@@ -1953,10 +1882,7 @@ class ORM implements ArrayAccess
      */
     public function having_not_in(string $column_name, array $values): static
     {
-        $column_name  = $this->_quote_identifier($column_name);
-        $placeholders = $this->_create_placeholders($values);
-
-        return $this->_add_having("{$column_name} NOT IN ({$placeholders})", $values);
+        return $this->_add_having_condition(Orm\Condition::notIn($column_name, $values));
     }
 
     /**
@@ -1965,9 +1891,7 @@ class ORM implements ArrayAccess
      */
     public function having_null(string $column_name): static
     {
-        $column_name = $this->_quote_identifier($column_name);
-
-        return $this->_add_having("{$column_name} IS NULL");
+        return $this->_add_having_condition(Orm\Condition::isNull($column_name));
     }
 
     /**
@@ -1976,9 +1900,7 @@ class ORM implements ArrayAccess
      */
     public function having_not_null(string $column_name): static
     {
-        $column_name = $this->_quote_identifier($column_name);
-
-        return $this->_add_having("{$column_name} IS NOT NULL");
+        return $this->_add_having_condition(Orm\Condition::isNotNull($column_name));
     }
 
     /**
@@ -1998,196 +1920,67 @@ class ORM implements ArrayAccess
      */
     protected function _build_select(): string
     {
-        // If the query is raw, just set the $this->_values to be
-        // the raw query parameters and return the raw query
         if ($this->_is_raw_query) {
             $this->_values = $this->_raw_parameters;
 
             return $this->_raw_query;
         }
 
-        // Build and return the full SELECT statement by concatenating
-        // the results of calling each separate builder method.
-        return $this->_join_if_not_empty(' ', [
-            $this->_build_select_start(),
-            $this->_build_join(),
-            $this->_build_where(),
-            $this->_build_group_by(),
-            $this->_build_having(),
-            $this->_build_order_by(),
-            $this->_build_limit(),
-            $this->_build_offset(),
-        ]);
+        $statement     = Orm\Renderer::select($this->_select_spec());
+        $this->_values = $statement->values;
+
+        return $statement->query;
     }
 
     /**
-     * Used to perform unit tests
-     * Note must call _build_select_start() for this to be populated
+     * Snapshot the builder's read state into a SelectSpec for the
+     * Renderer, so statements render without a database connection.
      */
-    public function testValues(): array
+    protected function _select_spec(): Orm\SelectSpec
     {
-        return $this->_values;
+        return new Orm\SelectSpec(
+            table_name: $this->_table_name,
+            dialect: self::_dialect($this->_connection_name),
+            table_alias: $this->_table_alias,
+            result_columns: $this->_result_columns,
+            join_sources: $this->_join_sources,
+            distinct: $this->_distinct,
+            where_conditions: $this->_where_conditions,
+            having_conditions: $this->_having_conditions,
+            group_by: $this->_group_by,
+            order_by: $this->_order_by,
+            limit: $this->_limit,
+            offset: $this->_offset,
+        );
     }
 
     /**
-     * Build the start of the SELECT statement
+     * Snapshot the builder's write state into a WriteSpec for the Renderer.
      */
-    protected function _build_select_start(): string
+    protected function _write_spec(): Orm\WriteSpec
     {
-        $fragment       = 'SELECT ';
-        $result_columns = implode(', ', $this->_result_columns);
-
-        if (
-            !is_null($this->_limit)
-            && self::$_config[$this->_connection_name]['limit_clause_style'] === ORM::LIMIT_STYLE_TOP_N
-        ) {
-            $fragment .= "TOP {$this->_limit} ";
-        }
-
-        if ($this->_distinct) {
-            $result_columns = 'DISTINCT ' . $result_columns;
-        }
-
-        $fragment .= "{$result_columns} FROM " . $this->_quote_identifier($this->_table_name);
-
-        if (!is_null($this->_table_alias)) {
-            $fragment .= ' ' . $this->_quote_identifier($this->_table_alias);
-        }
-
-        return $fragment;
+        return new Orm\WriteSpec(
+            table_name: $this->_table_name,
+            id_column: $this->_get_id_column_name(),
+            dialect: self::_dialect($this->_connection_name),
+            dirty_fields: $this->_dirty_fields,
+            expr_fields: $this->_expr_fields,
+            id_value: $this->id(),
+        );
     }
 
     /**
-     * Build the JOIN sources
+     * Snapshot the state a bulk delete needs into a BulkDeleteSpec for the Renderer.
      */
-    protected function _build_join(): string
+    protected function _bulk_delete_spec(string $target = ''): Orm\BulkDeleteSpec
     {
-        if (count($this->_join_sources) === 0) {
-            return '';
-        }
-
-        return implode(' ', $this->_join_sources);
-    }
-
-    /**
-     * Build the WHERE clause(s)
-     */
-    protected function _build_where(): string
-    {
-        return $this->_build_conditions('where');
-    }
-
-    /**
-     * Build the HAVING clause(s)
-     */
-    protected function _build_having(): string
-    {
-        return $this->_build_conditions('having');
-    }
-
-    /**
-     * Build GROUP BY
-     */
-    protected function _build_group_by(): string
-    {
-        if (count($this->_group_by) === 0) {
-            return '';
-        }
-
-        return 'GROUP BY ' . implode(', ', $this->_group_by);
-    }
-
-    /**
-     * Build a WHERE or HAVING clause
-     * @param string $type
-     * @return string
-     */
-    protected function _build_conditions(string $type): string
-    {
-        $conditions_class_property_name = "_{$type}_conditions";
-        // If there are no clauses, return empty string
-        if (count($this->$conditions_class_property_name) === 0) {
-            return '';
-        }
-
-        $conditions = [];
-        foreach ($this->$conditions_class_property_name as $condition) {
-            $conditions[]  = $condition[self::CONDITION_FRAGMENT];
-            $this->_values = array_merge($this->_values, $condition[self::CONDITION_VALUES]);
-        }
-
-        return strtoupper($type) . ' ' . implode(' AND ', $conditions);
-    }
-
-    /**
-     * Build ORDER BY
-     */
-    protected function _build_order_by(): string
-    {
-        if (count($this->_order_by) === 0) {
-            return '';
-        }
-
-        return 'ORDER BY ' . implode(', ', $this->_order_by);
-    }
-
-    /**
-     * Build LIMIT
-     */
-    protected function _build_limit(): string
-    {
-        if (
-            is_null($this->_limit)
-            || self::$_config[$this->_connection_name]['limit_clause_style'] !== ORM::LIMIT_STYLE_LIMIT
-        ) {
-            return '';
-        }
-
-        if (self::$_db[$this->_connection_name]->getAttribute(PDO::ATTR_DRIVER_NAME) === 'firebird') {
-            $limiter = 'ROWS';
-        } else {
-            $limiter = 'LIMIT';
-        }
-
-        return "{$limiter} {$this->_limit}";
-    }
-
-    /**
-     * Build OFFSET
-     */
-    protected function _build_offset(): string
-    {
-        if (!is_null($this->_offset)) {
-            $clause = 'OFFSET';
-            if (self::$_db[$this->_connection_name]->getAttribute(PDO::ATTR_DRIVER_NAME) === 'firebird') {
-                $clause = 'TO';
-            }
-
-            return $clause . ' ' . $this->_offset;
-        }
-
-        return '';
-    }
-
-    /**
-     * Wrapper around PHP's join function which
-     * only adds the pieces if they are not empty.
-     * @param string $glue
-     * @return string
-     */
-    protected function _join_if_not_empty(string $glue, array $pieces): string
-    {
-        $filtered_pieces = [];
-        foreach ($pieces as $piece) {
-            if (is_string($piece)) {
-                $piece = trim($piece);
-            }
-            if (!empty($piece)) {
-                $filtered_pieces[] = $piece;
-            }
-        }
-
-        return implode($glue, $filtered_pieces);
+        return new Orm\BulkDeleteSpec(
+            table_name: $this->_table_name,
+            target: $target,
+            dialect: self::_dialect($this->_connection_name),
+            where_conditions: $this->_where_conditions,
+            join_sources: $this->_join_sources,
+        );
     }
 
     /**
@@ -2197,32 +1990,7 @@ class ORM implements ArrayAccess
      */
     protected function _quote_identifier(string $identifier): string
     {
-        $parts = explode('.', $identifier);
-        $parts = array_map($this->_quote_identifier_part(...), $parts);
-
-        return implode('.', $parts);
-    }
-
-    /**
-     * This method performs the actual quoting of a single
-     * part of an identifier, using the identifier quote
-     * character specified in the config (or autodetected).
-     */
-    protected function _quote_identifier_part(string $part): string
-    {
-        if ($part === '*') {
-            return $part;
-        }
-
-        $quote_character = self::$_config[$this->_connection_name]['identifier_quote_character'];
-
-        // double up any identifier quotes to escape them
-        return $quote_character
-            . str_replace(
-                $quote_character,
-                $quote_character . $quote_character,
-                $part
-            ) . $quote_character;
+        return self::_dialect($this->_connection_name)->quoteIdentifier($identifier);
     }
 
     /**
@@ -2512,8 +2280,6 @@ class ORM implements ArrayAccess
      */
     public function save(bool $ignore = false)
     {
-        $query = [];
-
         // Fix if id field is blank but not null
         if (!($this->id() && array_key_exists($this->_get_id_column_name(), $this->_dirty_fields))) {
             unset($this->_dirty_fields[$this->_get_id_column_name()]);
@@ -2523,32 +2289,29 @@ class ORM implements ArrayAccess
         $values = array_values(array_diff_key($this->_dirty_fields, $this->_expr_fields));
 
         if ($ignore) {
-            $query  = $this->_build_insert_update();
-            $values = array_merge($values, $values);
+            $statement = Orm\Renderer::insertUpdate($this->_write_spec());
         } else {
             if (!$this->_is_new) { // UPDATE
                 // If there are no dirty values, do nothing
                 if (empty($values) && empty($this->_expr_fields)) {
                     return true;
                 }
-                $query    = $this->_build_update();
-                $values[] = $this->id();
+                $statement = Orm\Renderer::update($this->_write_spec());
             } else { // INSERT
-                $query = $this->_build_insert();
+                $statement = Orm\Renderer::insert($this->_write_spec());
             }
         }
 
-        $success = self::_execute($query, $values, $this->_connection_name);
+        $success = self::_execute($statement->query, $statement->values, $this->_connection_name);
 
         // If we've just inserted a new record, set the ID of this object
         if ($this->_is_new) {
             $this->_is_new = false;
             if (!($this->id())) {
-                if (self::$_db[$this->_connection_name]->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql') {
-                    $this->_data[$this->_get_id_column_name()] = self::get_last_statement()->fetchColumn();
-                } else {
-                    $this->_data[$this->_get_id_column_name()] = self::$_db[$this->_connection_name]->lastInsertId();
-                }
+                $this->_data[$this->_get_id_column_name()] = self::_dialect($this->_connection_name)->fetchNewId(
+                    self::$_db[$this->_connection_name],
+                    self::get_last_statement()
+                );
             }
         }
         $this->clear_cache();
@@ -2564,22 +2327,7 @@ class ORM implements ArrayAccess
      */
     protected function _build_update(): string
     {
-        $query   = [];
-        $query[] = "UPDATE {$this->_quote_identifier($this->_table_name)} SET";
-
-        $field_list = [];
-        foreach ($this->_dirty_fields as $key => $value) {
-            if (!array_key_exists($key, $this->_expr_fields)) {
-                $value = '?';
-            }
-            $field_list[] = "{$this->_quote_identifier($key)} = {$value}";
-        }
-        $query[] = implode(', ', $field_list);
-        $query[] = 'WHERE';
-        $query[] = $this->_quote_identifier($this->_get_id_column_name());
-        $query[] = '= ?';
-
-        return implode(' ', $query);
+        return Orm\Renderer::update($this->_write_spec())->query;
     }
 
     /**
@@ -2587,42 +2335,7 @@ class ORM implements ArrayAccess
      */
     protected function _build_insert(): string
     {
-        $query      = [];
-        $query[]    = 'INSERT INTO';
-        $query[]    = $this->_quote_identifier($this->_table_name);
-        $field_list = array_map($this->_quote_identifier(...), array_keys($this->_dirty_fields));
-        $query[]    = '(' . implode(', ', $field_list) . ')';
-        $query[]    = 'VALUES';
-
-        $placeholders = $this->_create_placeholders($this->_dirty_fields);
-        $query[]      = "({$placeholders})";
-
-        if (self::$_db[$this->_connection_name]->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql') {
-            $query[] = 'RETURNING ' . $this->_quote_identifier($this->_get_id_column_name());
-        }
-
-        return implode(' ', $query);
-    }
-
-    /**
-     * Added: Build an INSERT ON DUPLICATE KEY UPDATE query
-     * Attention: This method only works on Mysql Databases
-     */
-    protected function _build_insert_update(): string
-    {
-        $query        = [];
-        $query[]      = 'INSERT INTO';
-        $query[]      = $this->_quote_identifier($this->_table_name);
-        $field_list   = array_map($this->_quote_identifier(...), array_keys($this->_dirty_fields));
-        $query[]      = '(' . implode(', ', $field_list) . ')';
-        $query[]      = 'VALUES';
-        $placeholders = $this->_create_placeholders($this->_dirty_fields);
-        $query[]      = "({$placeholders})";
-
-        $query[] = ' ON DUPLICATE KEY UPDATE ';
-        $query[] = implode(' = ?, ', $field_list) . ' = ? ';
-
-        return implode(' ', $query);
+        return Orm\Renderer::insert($this->_write_spec())->query;
     }
 
     /**
@@ -2630,44 +2343,20 @@ class ORM implements ArrayAccess
      */
     public function delete(): ?bool
     {
-        $query = implode(' ', [
-            'DELETE FROM',
-            $this->_quote_identifier($this->_table_name),
-            'WHERE',
-            $this->_quote_identifier($this->_get_id_column_name()),
-            '= ?',
-        ]);
+        $statement = Orm\Renderer::delete($this->_write_spec());
 
-        return self::_execute($query, [$this->id()], $this->_connection_name);
+        return self::_execute($statement->query, $statement->values, $this->_connection_name);
     }
 
     /**
-     * Delete many records from the database
-     * Added: could delete many of a join query, if you define $join to true
-     * and the table where you want to delete the records
+     * Delete many records from the database. `$target` names the table or
+     * alias the delete removes from in the join form.
      */
-    public function delete_many(bool $join = false, mixed $table = false): ?bool
+    public function delete_many(string $target = ''): ?bool
     {
-        if ($join) {
-            // Build and return the full DELETE statement by concatenating
-            // the results of calling each separate builder method.
-            $query = $this->_join_if_not_empty(' ', [
-                "DELETE {$table} FROM",
-                $this->_quote_identifier($this->_table_name),
-                $this->_build_join(),
-                $this->_build_where(),
-            ]);
-        } else {
-            // Build and return the full DELETE statement by concatenating
-            // the results of calling each separate builder method.
-            $query = $this->_join_if_not_empty(' ', [
-                'DELETE FROM',
-                $this->_quote_identifier($this->_table_name),
-                $this->_build_where(),
-            ]);
-        }
+        $statement = Orm\Renderer::deleteMany($this->_bulk_delete_spec($target));
 
-        $result = self::_execute($query, $this->_values, $this->_connection_name);
+        $result = self::_execute($statement->query, $statement->values, $this->_connection_name);
         \Granada\LazyItemCache::clear();
 
         return $result;

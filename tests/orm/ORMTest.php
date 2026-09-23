@@ -20,12 +20,6 @@ class ORMTest extends \PHPUnit\Framework\TestCase
         ORM::reset_db();
     }
 
-    public function testStaticAtrributes()
-    {
-        $this->assertEquals('0', ORM::CONDITION_FRAGMENT);
-        $this->assertEquals('1', ORM::CONDITION_VALUES);
-    }
-
     public function testForTable()
     {
         $result = ORM::for_table('test');

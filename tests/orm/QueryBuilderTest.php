@@ -279,10 +279,9 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
 
     public function testWhereInNULL()
     {
-        $query = ORM::for_table('widget')->where_in('custid', null);
-        $query->_build_select();
-        $expected = [];
-        $this->assertEquals($expected, $query->testValues());
+        ORM::for_table('widget')->where_in('custid', null)->find_many();
+        $expected = 'SELECT * FROM `widget` WHERE 0';
+        $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereNotIn()
@@ -1019,7 +1018,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
     {
         ORM::for_table('widget')->join('widget_handle', ['widget_handle.widget_id', '=', 'widget.id'])
             ->where_equal('widget_handle.name', 'test')
-            ->delete_many(join: true);
+            ->delete_many();
         $expected = "DELETE  FROM `widget` JOIN `widget_handle` ON `widget_handle`.`widget_id` = `widget`.`id` WHERE `widget_handle`.`name` = 'test'";
         $this->assertEquals($expected, ORM::get_last_query());
     }

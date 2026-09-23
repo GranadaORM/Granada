@@ -132,6 +132,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
             'caching'                     => false,
             'return_result_sets'          => true, // true by default in Granada
             'limit_clause_style'          => 'limit',
+            'driver_name'                 => 'sqlite',
             'find_many_primary_id_as_key' => true,
         ];
         $this->assertEquals($expected, ORM::get_config());

@@ -151,7 +151,7 @@ class Wrapper extends ORM
      */
     public function group_by_raw(string $expr): static
     {
-        $this->_group_by[] = $expr;
+        $this->_group_by[] = Term::expression($expr);
 
         return $this;
     }
@@ -161,7 +161,7 @@ class Wrapper extends ORM
      */
     public function order_by_raw(string $clause): static
     {
-        $this->_order_by[] = $clause;
+        $this->_order_by[] = Term::expression($clause);
 
         return $this;
     }
@@ -397,7 +397,9 @@ class Wrapper extends ORM
 
         if ($method === 'order_by_list') {
             if ($parameters[1]) {
-                return $this->order_by_expr('FIELD(`' . $parameters[0] . '`,' . implode(',', $parameters[1]) . ')');
+                $this->_order_by[] = Term::byFieldList($parameters[0], $parameters[1]);
+
+                return $this;
             }
 
             return $this;
@@ -484,10 +486,14 @@ class Wrapper extends ORM
             $target_method = $config['method'];
 
             if ($target_method === '_order_by_natural_desc') {
-                return $this->order_by_expr('LENGTH(`' . $varname . '`), `' . $varname . '` DESC');
+                $this->_order_by[] = Term::natural($varname, 'DESC');
+
+                return $this;
             }
             if ($target_method === '_order_by_natural_asc') {
-                return $this->order_by_expr('LENGTH(`' . $varname . '`), `' . $varname . '` ASC');
+                $this->_order_by[] = Term::natural($varname, 'ASC');
+
+                return $this;
             }
 
             return call_user_func([$this, $target_method], $varname);
