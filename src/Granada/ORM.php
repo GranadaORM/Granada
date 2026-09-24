@@ -89,8 +89,8 @@ class ORM implements ArrayAccess
 
     protected static array $_config = [];
 
-    // Map of database connections, instances of the PDO class
-    /** @var array<string, \PDO> */
+    // List of database connections
+    /** @var array<string, \PDO|null> */
     protected static array $_db = [];
 
     // Last query run, only populated if logging is enabled
@@ -346,7 +346,7 @@ class ORM implements ArrayAccess
      * This is public in case the ORM should use a ready-instantiated
      * PDO object as its database connection. Accepts an optional string key
      * to identify the connection if multiple connections are used.
-     * @param PDO $db
+     * @param PDO|null $db
      * @param string $connection_name Which connection to use
      */
     public static function set_db(?\PDO $db, string $connection_name = self::DEFAULT_CONNECTION): void
@@ -1057,7 +1057,7 @@ class ORM implements ArrayAccess
      */
     public function select_many(...$columns): static
     {
-        if (!($columns ?? false)) {
+        if (!$columns) {
             return $this;
         }
 
