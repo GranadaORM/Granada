@@ -2,6 +2,7 @@
 
 use Granada\ORM;
 use Granada\Model;
+use Granada\Orm\ConnectionManager;
 
 class MultipleConnectionsTest extends \PHPUnit\Framework\TestCase
 {
@@ -9,22 +10,17 @@ class MultipleConnectionsTest extends \PHPUnit\Framework\TestCase
 
     protected function setUp(): void
     {
+        $manager = new ConnectionManager('sqlite::memory:');
+
         // Set up the dummy database connection
-        ORM::set_db(new MockPDO('sqlite::memory:'));
-        ORM::set_db(new MockDifferentPDO('sqlite::memory:'), self::ALTERNATE);
+        $manager->set_db(new MockPDO('sqlite::memory:'));
+        $manager->set_db(new MockDifferentPDO('sqlite::memory:'), self::ALTERNATE);
 
         // Enable logging
-        ORM::configure('logging', true);
-        ORM::configure('logging', true, self::ALTERNATE);
-    }
+        $manager->configure('logging', true);
+        $manager->configure('logging', true, self::ALTERNATE);
 
-    protected function tearDown(): void
-    {
-        ORM::configure('logging', false);
-        ORM::configure('logging', false, self::ALTERNATE);
-
-        ORM::set_db(null);
-        ORM::set_db(null, self::ALTERNATE);
+        ORM::set_connection_manager($manager);
     }
 
     public function testMultipleConnections()
