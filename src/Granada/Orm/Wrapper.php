@@ -204,7 +204,7 @@ class Wrapper extends ORM
         $row_id              = $result->id();
         $key                 = ($has_id_column && $associative_results) ? ($row_id ?? '') : 0;
         $results             = [$key => $result];
-        Eager::hydrate($this, $results, (bool) self::$_config[$this->_connection_name]['return_result_sets']);
+        Eager::hydrate($this, $results, (bool) self::get_config('return_result_sets', $this->_connection_name));
 
         // return the result as element, not result set
         return $results[$key];
@@ -232,7 +232,7 @@ class Wrapper extends ORM
         }
 
         // Add eager relationships
-        return Eager::hydrate($this, $instances, (bool) self::$_config[$this->_connection_name]['return_result_sets']);
+        return Eager::hydrate($this, $instances, (bool) self::get_config('return_result_sets', $this->_connection_name));
     }
 
     /**

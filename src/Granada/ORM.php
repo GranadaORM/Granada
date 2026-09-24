@@ -67,55 +67,14 @@ class ORM implements ArrayAccess
     // --- CLASS PROPERTIES --- //
     // ------------------------ //
 
-    // Class configuration
-    /** @var array<string, mixed> */
-    protected static array $_default_config = [
-        'connection_string'           => 'sqlite::memory:',
-        'id_column'                   => 'id',
-        'id_column_overrides'         => [],
-        'error_mode'                  => PDO::ERRMODE_EXCEPTION,
-        'username'                    => null,
-        'password'                    => null,
-        'driver_options'              => null,
-        'identifier_quote_character'  => null, // if this is null, will be autodetected
-        'limit_clause_style'          => null, // if this is null, will be autodetected
-        'driver_name'                 => null, // if this is null, will be autodetected
-        'logging'                     => false,
-        'logger'                      => null,
-        'caching'                     => false,
-        'return_result_sets'          => true,
-        'find_many_primary_id_as_key' => true,
-    ];
-
-    protected static array $_config = [];
-
-    // List of database connections
-    /** @var array<string, \PDO|null> */
-    protected static array $_db = [];
-
-    // Last query run, only populated if logging is enabled
-    protected static ?string $_last_query = null;
-
-    // Log of all queries run, mapped by connection key, only populated if logging is enabled
-    /** @var array<string, array<string, mixed>> */
-    protected static array $_query_log = [];
-
-    // Query cache, only used if query caching is enabled
-    /** @var array<string, mixed> */
-    protected static array $_query_cache = [];
-
-    // Shared immutable Dialect instances, keyed by the config values that build them
-    /** @var array<string, Orm\Dialect> */
-    protected static array $_dialect_cache = [];
-
-    // Reference to previously used PDOStatement object to enable low-level access, if needed
-    protected static $_last_statement = null;
+    // The connection manager all static calls delegate to
+    protected static ?Orm\ConnectionManager $_connection_manager = null;
 
     // --------------------------- //
     // --- INSTANCE PROPERTIES --- //
     // --------------------------- //
 
-    // Key name of the connections in self::$_db used by this instance
+    // Name of the connection, in the connection manager, used by this instance
     protected string $_connection_name;
 
     // The name of the table the current ORM instance is associated with
@@ -212,6 +171,23 @@ class ORM implements ArrayAccess
     // ---------------------- //
 
     /**
+     * The connection manager behind these statics, created on first use.
+     */
+    protected static function _manager(): Orm\ConnectionManager
+    {
+        return self::$_connection_manager ??= new Orm\ConnectionManager();
+    }
+
+    /**
+     * Swap the connection manager behind the ORM statics, eg for a fresh
+     * one per test.
+     */
+    public static function set_connection_manager(Orm\ConnectionManager $manager): void
+    {
+        self::$_connection_manager = $manager;
+    }
+
+    /**
      * Pass configuration settings to the class in the form of
      * key/value pairs. As a shortcut, if the second argument
      * is omitted and the key is a string, the setting is
@@ -219,72 +195,32 @@ class ORM implements ArrayAccess
      * to the database (often, this will be the only configuration
      * required to use Idiorm). If you have more than one setting
      * you wish to configure, another shortcut is to pass an array
-     * of settings (and omit the second argument).
+     * of settings (and omit the second argument). Setting a key
+     * outside the documented set throws.
      * @param array|string $key
-     * @param mixed $value
      * @param string $connection_name Which connection to use
      */
     public static function configure(array|string $key, mixed $value = null, string $connection_name = self::DEFAULT_CONNECTION): void
     {
-        self::_setup_db_config($connection_name); // ensures at least default config is set
-
-        if (is_array($key)) {
-            // Shortcut: If only one array argument is passed,
-            // assume it's an array of configuration settings
-            foreach ($key as $conf_key => $conf_value) {
-                self::configure($conf_key, $conf_value, $connection_name);
-            }
-        } else {
-            if (is_null($value)) {
-                // Shortcut: If only one string argument is passed,
-                // assume it's a connection string
-                $value = $key;
-                $key   = 'connection_string';
-            }
-            self::$_config[$connection_name][$key] = $value;
-        }
-
-        if ($key === 'connection_string') {
-            self::_setup_default_driver_options();
-        }
-    }
-
-    private static function _setup_default_driver_options(string $connection_name = self::DEFAULT_CONNECTION): void
-    {
-        if (self::$_config[$connection_name]['driver_options']) {
-            return;
-        }
-
-        if (str_starts_with(self::$_config[$connection_name]['connection_string'], 'mysql:')) {
-            // Set default connection mode for MySQL to be SSL without verifying certificate
-            self::$_config[$connection_name]['driver_options'] = [
-                PDO::MYSQL_ATTR_SSL_CA                 => true,
-                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
-            ];
-        }
+        self::_manager()->configure($key, $value, $connection_name);
     }
 
     /**
      * Retrieve configuration options by key, or as whole array.
-     * @param string $key
      * @param string $connection_name Which connection to use
      */
     public static function get_config(?string $key = null, string $connection_name = self::DEFAULT_CONNECTION): mixed
     {
-        if ($key) {
-            return self::$_config[$connection_name][$key];
-        }
-
-        return self::$_config[$connection_name];
+        return self::_manager()->get_config($key, $connection_name);
     }
 
     /**
-     * Delete all configs in _config array.
+     * Reset every connection's settings to their defaults. Database
+     * handles are left open; reset_db() closes those.
      */
     public static function reset_config(): void
     {
-        self::$_config        = [];
-        self::$_dialect_cache = [];
+        self::_manager()->reset_config();
     }
 
     /**
@@ -310,74 +246,29 @@ class ORM implements ArrayAccess
      */
     protected static function _setup_db(string $connection_name = self::DEFAULT_CONNECTION): void
     {
-        if (
-            array_key_exists($connection_name, self::$_db)
-            && is_object(self::$_db[$connection_name])
-        ) {
-            return;
-        }
-
-        self::_setup_db_config($connection_name);
-
-        $db = new PDO(
-            self::$_config[$connection_name]['connection_string'],
-            self::$_config[$connection_name]['username'],
-            self::$_config[$connection_name]['password'],
-            is_array(self::$_config[$connection_name]['driver_options']) ? self::$_config[$connection_name]['driver_options'] : null
-        );
-
-        $db->setAttribute(PDO::ATTR_ERRMODE, self::$_config[$connection_name]['error_mode']);
-        self::set_db($db, $connection_name);
-    }
-
-    /**
-     * Ensures configuration (mulitple connections) is at least set to default.
-     * @param string $connection_name Which connection to use
-     */
-    protected static function _setup_db_config(string $connection_name): void
-    {
-        if (!array_key_exists($connection_name, self::$_config)) {
-            self::$_config[$connection_name] = self::$_default_config;
-        }
+        self::_manager()->get_db($connection_name);
     }
 
     /**
      * Set the PDO object used by Idiorm to communicate with the database.
      * This is public in case the ORM should use a ready-instantiated
      * PDO object as its database connection. Accepts an optional string key
-     * to identify the connection if multiple connections are used.
+     * to identify the connection if multiple connections are used. Passing
+     * null drops the handle; the next use reconnects from the settings.
      * @param PDO|null $db
      * @param string $connection_name Which connection to use
      */
     public static function set_db(?\PDO $db, string $connection_name = self::DEFAULT_CONNECTION): void
     {
-        self::_setup_db_config($connection_name);
-        self::$_db[$connection_name] = $db;
-        self::_setup_driver_name($connection_name);
-        self::_setup_identifier_quote_character($connection_name);
-        self::_setup_limit_clause_style($connection_name);
+        self::_manager()->set_db($db, $connection_name);
     }
 
     /**
-     * Close and delete all registered PDO objects in _db array.
+     * Close and delete all registered PDO objects.
      */
     public static function reset_db(): void
     {
-        self::$_db = [];
-    }
-
-    /**
-     * Detect and initialise the character used to quote identifiers
-     * (table names, column names etc). If this has been specified
-     * manually using ORM::configure('identifier_quote_character', 'some-char'),
-     * this will do nothing.
-     * @param string $connection_name Which connection to use
-     */
-    protected static function _setup_identifier_quote_character(string $connection_name): void
-    {
-        if (is_null(self::$_config[$connection_name]['identifier_quote_character'])) {
-            self::$_config[$connection_name]['identifier_quote_character'] = self::_dialect($connection_name)->quote_character;
-        }
+        self::_manager()->reset_db();
     }
 
     /**
@@ -388,39 +279,17 @@ class ORM implements ArrayAccess
      */
     public static function _setup_limit_clause_style(string $connection_name): void
     {
-        if (is_null(self::$_config[$connection_name]['limit_clause_style'])) {
-            self::$_config[$connection_name]['limit_clause_style'] = self::_dialect($connection_name)->limit_clause_style;
-        }
-    }
-
-    /**
-     * Detect and initialise the name of the PDO driver backing the
-     * connection, if this has not been specified manually
-     * @param string $connection_name Which connection to use
-     */
-    protected static function _setup_driver_name(string $connection_name): void
-    {
-        if (is_null(self::$_config[$connection_name]['driver_name'])) {
-            self::$_config[$connection_name]['driver_name'] = self::get_db($connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME);
-        }
+        self::_manager()->setup_limit_clause_style($connection_name);
     }
 
     /**
      * The Dialect for a connection: every driver-specific fact the
      * renderer, save() and Wrapper need.
-     * Falls back to the mysql/sqlite dialect when the
-     * driver name is unknown or not yet detected.
      * @param string $connection_name Which connection to use
      */
     protected static function _dialect(string $connection_name = self::DEFAULT_CONNECTION): Orm\Dialect
     {
-        $config             = self::$_config[$connection_name]      ?? [];
-        $driver_name        = $config['driver_name']                ?? null;
-        $quote_character    = $config['identifier_quote_character'] ?? null;
-        $limit_clause_style = $config['limit_clause_style']         ?? null;
-        $key                = ($driver_name ?? '') . '|' . ($quote_character ?? '') . '|' . ($limit_clause_style ?? '');
-
-        return self::$_dialect_cache[$key] ??= Orm\Dialect::forDriver($driver_name, $quote_character, $limit_clause_style);
+        return self::_manager()->dialect($connection_name);
     }
 
     /**
@@ -433,9 +302,7 @@ class ORM implements ArrayAccess
      */
     public static function get_db(string $connection_name = self::DEFAULT_CONNECTION): \PDO
     {
-        self::_setup_db($connection_name); // required in case this is called before Idiorm is instantiated
-
-        return self::$_db[$connection_name];
+        return self::_manager()->get_db($connection_name);
     }
 
     /**
@@ -463,12 +330,12 @@ class ORM implements ArrayAccess
      */
     public static function get_last_statement(): mixed
     {
-        return self::$_last_statement;
+        return self::_manager()->get_last_statement();
     }
 
     /**
      * Internal helper method for executing statments. Logs queries, and
-     * stores statement object in ::_last_statment, accessible publicly
+     * stores statement object in the connection manager, accessible publicly
      * through ::get_last_statement()
      * @param string $query
      * @param array $parameters An array of parameters to be bound in to the query
@@ -477,44 +344,7 @@ class ORM implements ArrayAccess
      */
     protected static function _execute(string $query, array $parameters = [], string $connection_name = self::DEFAULT_CONNECTION): ?bool
     {
-        self::_log_query($query, $parameters, $connection_name);
-        $statement = self::get_db($connection_name)->prepare($query);
-
-        self::$_last_statement = $statement;
-
-        return $statement->execute($parameters);
-    }
-
-    /**
-     * Add a query to the internal query log. Only works if the
-     * 'logging' config option is set to true.
-     *
-     * This works by manually binding the parameters to the query - the
-     * query isn't executed like this (PDO normally passes the query and
-     * parameters to the database which takes care of the binding) but
-     * doing it this way makes the logged queries more readable.
-     * @param string $query
-     * @param array<int, mixed> $parameters An array of parameters to be bound in to the query
-     * @param string $connection_name Which connection to use
-     * @return bool
-     */
-    protected static function _log_query(string $query, array $parameters, string $connection_name): bool
-    {
-        // If logging is not enabled, do nothing
-        if (!self::$_config[$connection_name]['logging']) {
-            return false;
-        }
-
-        self::_record_query(
-            Orm\Renderer::interpolate(
-                $query,
-                $parameters,
-                fn($parameter) => self::$_db[$connection_name]->quote($parameter)
-            ),
-            $connection_name
-        );
-
-        return true;
+        return self::_manager()->execute($query, $parameters, $connection_name);
     }
 
     /**
@@ -525,21 +355,7 @@ class ORM implements ArrayAccess
      */
     protected static function _record_query(string $bound_query, string $connection_name): void
     {
-        if (!self::$_config[$connection_name]['logging']) {
-            return;
-        }
-
-        if (!isset(self::$_query_log[$connection_name])) {
-            self::$_query_log[$connection_name] = [];
-        }
-
-        self::$_last_query                    = $bound_query;
-        self::$_query_log[$connection_name][] = $bound_query;
-
-        if (is_callable(self::$_config[$connection_name]['logger'])) {
-            $logger = self::$_config[$connection_name]['logger'];
-            $logger($bound_query);
-        }
+        self::_manager()->record_query($bound_query, $connection_name);
     }
 
     /**
@@ -552,14 +368,7 @@ class ORM implements ArrayAccess
      */
     public static function get_last_query(?string $connection_name = null): ?string
     {
-        if ($connection_name === null) {
-            return self::$_last_query;
-        }
-        if (!isset(self::$_query_log[$connection_name])) {
-            return '';
-        }
-
-        return end(self::$_query_log[$connection_name]);
+        return self::_manager()->get_last_query($connection_name);
     }
 
     /**
@@ -571,11 +380,7 @@ class ORM implements ArrayAccess
      */
     public static function get_query_log(string $connection_name = self::DEFAULT_CONNECTION): array
     {
-        if (isset(self::$_query_log[$connection_name])) {
-            return self::$_query_log[$connection_name];
-        }
-
-        return [];
+        return self::_manager()->get_query_log($connection_name);
     }
 
     /**
@@ -584,7 +389,7 @@ class ORM implements ArrayAccess
      */
     public static function get_connection_names(): array
     {
-        return array_keys(self::$_db);
+        return self::_manager()->get_connection_names();
     }
 
     // ------------------------ //
@@ -605,9 +410,7 @@ class ORM implements ArrayAccess
         $this->_connection_name = $connection_name;
 
         // Set the flag as config dictates
-        $this->_associative_results = self::$_config[$this->_connection_name]['find_many_primary_id_as_key'];
-
-        self::_setup_db_config($connection_name);
+        $this->_associative_results = self::get_config('find_many_primary_id_as_key', $this->_connection_name);
     }
 
     /**
@@ -656,7 +459,7 @@ class ORM implements ArrayAccess
      */
     public function reset_associative(): static
     {
-        $this->_associative_results = self::$_config[$this->_connection_name]['find_many_primary_id_as_key'];
+        $this->_associative_results = self::get_config('find_many_primary_id_as_key', $this->_connection_name);
 
         return $this;
     }
@@ -723,7 +526,7 @@ class ORM implements ArrayAccess
      */
     public function find_many()
     {
-        if (self::$_config[$this->_connection_name]['return_result_sets']) {
+        if (self::get_config('return_result_sets', $this->_connection_name)) {
             return $this->find_result_set();
         }
 
@@ -752,14 +555,14 @@ class ORM implements ArrayAccess
         if (count($values) === 0) {
             $bound_query = $query;
         } else {
-            if (!isset(self::$_db[$connection_name])) {
+            if (!self::_manager()->has_db($connection_name)) {
                 throw new \InvalidArgumentException('Cannot interpolate bound values without a database connection');
             }
 
             $bound_query = Orm\Renderer::interpolate(
                 $query,
                 $values,
-                fn($parameter) => self::$_db[$connection_name]->quote($parameter)
+                fn($parameter) => self::get_db($connection_name)->quote($parameter)
             );
         }
 
@@ -2008,14 +1811,11 @@ class ORM implements ArrayAccess
      * Check the query cache for the given cache key. If a value
      * is cached for the key, return the value. Otherwise, return false.
      * @param string $cache_key
+     * @param string $connection_name Which connection to use
      */
     protected static function _check_query_cache(string $cache_key, string $connection_name = self::DEFAULT_CONNECTION): mixed
     {
-        if (isset(self::$_query_cache[$connection_name][$cache_key])) {
-            return self::$_query_cache[$connection_name][$cache_key];
-        }
-
-        return false;
+        return self::_manager()->check_query_cache($cache_key, $connection_name);
     }
 
     /**
@@ -2023,19 +1823,17 @@ class ORM implements ArrayAccess
      */
     public static function clear_cache(): void
     {
-        self::$_query_cache = [];
+        self::_manager()->clear_cache();
     }
 
     /**
      * Add the given value to the query cache.
      * @param string $cache_key
+     * @param string $connection_name Which connection to use
      */
     protected static function _cache_query_result(string $cache_key, mixed $value, string $connection_name = self::DEFAULT_CONNECTION): void
     {
-        if (!isset(self::$_query_cache[$connection_name])) {
-            self::$_query_cache[$connection_name] = [];
-        }
-        self::$_query_cache[$connection_name][$cache_key] = $value;
+        self::_manager()->cache_query_result($cache_key, $value, $connection_name);
     }
 
     /**
@@ -2045,7 +1843,7 @@ class ORM implements ArrayAccess
     protected function _run(): array
     {
         $query           = $this->_build_select();
-        $caching_enabled = self::$_config[$this->_connection_name]['caching'];
+        $caching_enabled = self::get_config('caching', $this->_connection_name);
 
         $cache_key = '';
         if ($caching_enabled) {
@@ -2120,11 +1918,13 @@ class ORM implements ArrayAccess
         if (!is_null($this->_instance_id_column)) {
             return $this->_instance_id_column;
         }
-        if (isset(self::$_config[$this->_connection_name]['id_column_overrides'][$this->_table_name])) {
-            return self::$_config[$this->_connection_name]['id_column_overrides'][$this->_table_name];
+
+        $id_column_overrides = self::get_config('id_column_overrides', $this->_connection_name);
+        if (isset($id_column_overrides[$this->_table_name])) {
+            return $id_column_overrides[$this->_table_name];
         }
 
-        return self::$_config[$this->_connection_name]['id_column'];
+        return self::get_config('id_column', $this->_connection_name);
     }
 
     /**
@@ -2309,7 +2109,7 @@ class ORM implements ArrayAccess
             $this->_is_new = false;
             if (!($this->id())) {
                 $this->_data[$this->_get_id_column_name()] = self::_dialect($this->_connection_name)->fetchNewId(
-                    self::$_db[$this->_connection_name],
+                    self::get_db($this->_connection_name),
                     self::get_last_statement()
                 );
             }
