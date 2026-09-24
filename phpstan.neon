@@ -2,3 +2,23 @@ parameters:
   level: 5
   paths:
     - src
+  ignoreErrors:
+    # for_table() is the Active Record factory: @return static is the API
+    # contract and new static() is how subclasses get instantiated. Finalising
+    # constructors to satisfy this would break subclasses that override them.
+    -
+      identifier: new.static
+      path: src/Granada/ORM.php
+      count: 1
+    # Same factory pattern as ORM::for_table, kept in sync by design.
+    -
+      identifier: new.static
+      path: src/Granada/Orm/Wrapper.php
+      count: 1
+    # The @param string[] docblock is the contract; the is_string() guard
+    # deliberately tolerates non-string pieces at this public seam instead
+    # of fataling on trim().
+    -
+      identifier: function.alreadyNarrowedType
+      path: src/Granada/Orm/Renderer.php
+      count: 1
