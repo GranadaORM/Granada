@@ -70,6 +70,10 @@ class ORM implements ArrayAccess
     // The connection manager all static calls delegate to
     protected static ?Orm\ConnectionManager $_connection_manager = null;
 
+    // LazyItemCache uses this to invalidate cache
+    /** @var callable[] */
+    protected static array $_on_write = [];
+
     // --------------------------- //
     // --- INSTANCE PROPERTIES --- //
     // --------------------------- //
@@ -305,6 +309,11 @@ class ORM implements ArrayAccess
         return self::_manager()->get_db($connection_name);
     }
 
+    public static function on_write(callable $callback): void
+    {
+        self::$_on_write[] = $callback;
+    }
+
     /**
      * Executes a raw query as a wrapper for PDOStatement::execute.
      * Useful for queries that can't be accomplished through Idiorm,
@@ -319,6 +328,10 @@ class ORM implements ArrayAccess
     public static function raw_execute(string $query, array $parameters = [], string $connection_name = self::DEFAULT_CONNECTION): ?bool
     {
         self::_setup_db($connection_name);
+
+        if (self::_is_write($query)) {
+            return self::_execute_write($query, $parameters, $connection_name);
+        }
 
         return self::_execute($query, $parameters, $connection_name);
     }
@@ -345,6 +358,40 @@ class ORM implements ArrayAccess
     protected static function _execute(string $query, array $parameters = [], string $connection_name = self::DEFAULT_CONNECTION): ?bool
     {
         return self::_manager()->execute($query, $parameters, $connection_name);
+    }
+
+    /**
+     * Execute a mutating statement, then run the write callbacks.
+     * All write paths (save, delete, delete_many, raw_execute) go
+     * through here; the read path does not.
+     * @param string $query
+     * @param mixed[] $parameters
+     */
+    private static function _execute_write(string $query, array $parameters, string $connection_name = self::DEFAULT_CONNECTION): ?bool
+    {
+        $result = self::_execute($query, $parameters, $connection_name);
+
+        foreach (self::$_on_write as $callback) {
+            $callback();
+        }
+
+        return $result;
+    }
+
+    /**
+     * Whether a raw statement changes rows.
+     * A raw statement is a single statement, so its leading verb decides.
+     * @param string $query
+     */
+    private static function _is_write(string $query): bool
+    {
+        $sql = strtoupper(ltrim($query));
+
+        return str_starts_with($sql, 'INSERT')
+            || str_starts_with($sql, 'REPLACE')
+            || str_starts_with($sql, 'UPDATE')
+            || str_starts_with($sql, 'DELETE')
+            || str_starts_with($sql, 'TRUNCATE');
     }
 
     /**
@@ -2088,7 +2135,7 @@ class ORM implements ArrayAccess
             }
         }
 
-        $success = self::_execute($statement->query, $statement->values, $this->_connection_name);
+        $success = self::_execute_write($statement->query, $statement->values, $this->_connection_name);
 
         // If we've just inserted a new record, set the ID of this object
         if ($this->_is_new) {
@@ -2131,7 +2178,7 @@ class ORM implements ArrayAccess
     {
         $statement = Orm\Renderer::delete($this->_write_spec());
 
-        return self::_execute($statement->query, $statement->values, $this->_connection_name);
+        return self::_execute_write($statement->query, $statement->values, $this->_connection_name);
     }
 
     /**
@@ -2142,10 +2189,7 @@ class ORM implements ArrayAccess
     {
         $statement = Orm\Renderer::deleteMany($this->_bulk_delete_spec($target));
 
-        $result = self::_execute($statement->query, $statement->values, $this->_connection_name);
-        \Granada\LazyItemCache::clear();
-
-        return $result;
+        return self::_execute_write($statement->query, $statement->values, $this->_connection_name);
     }
 
     // --------------------- //
