@@ -103,6 +103,20 @@ class CarPart extends Model {}
  */
 class Simple extends Model {}
 class ComplexModelClassName extends Model {}
+
+/**
+ * Its table allows duplicate, null and zero ids, for testing how
+ * find_many keys its results.
+ */
+class KeyedRow extends Model
+{
+    public static $_table = 'keyed_row';
+}
+class KeyedRowCustomId extends Model
+{
+    public static $_table     = 'keyed_row_custom';
+    public static $_id_column = 'custom_id';
+}
 class ModelWithCustomTable extends Model
 {
     public static $_table = 'custom_table';

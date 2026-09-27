@@ -67,6 +67,16 @@ CREATE TABLE kit_widget (
     FOREIGN KEY (kit_id) REFERENCES kit (id)
 );
 
+CREATE TABLE keyed_row (
+    id INTEGER,
+    name TEXT
+);
+
+CREATE TABLE keyed_row_custom (
+    custom_id INTEGER,
+    name TEXT
+);
+
 INSERT INTO manufactor(id,name,enabled) VALUES (1, 'Manufactor1', 1);
 INSERT INTO manufactor(id,name,enabled) VALUES (2, 'Manufactor2', 1);
 
@@ -115,3 +125,11 @@ INSERT INTO kit(id,name,enabled,hidden) VALUES (2, 'Kit2', 1, 0);
 
 INSERT INTO kit_widget(id,widget_id,kit_id) VALUES (1, 1, 1);
 INSERT INTO kit_widget(id,widget_id,kit_id) VALUES (2, 3, 2);
+
+INSERT INTO keyed_row(id,name) VALUES (1, 'a');
+INSERT INTO keyed_row(id,name) VALUES (1, 'a-dup');
+INSERT INTO keyed_row(id,name) VALUES (NULL, 'null-id');
+INSERT INTO keyed_row(id,name) VALUES (3, 'c');
+INSERT INTO keyed_row(id,name) VALUES (0, 'zero');
+
+INSERT INTO keyed_row_custom(custom_id,name) VALUES (7, 'seven');
