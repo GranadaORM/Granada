@@ -486,11 +486,21 @@ class ORM implements ArrayAccess
      */
     protected function _create_instance_from_row(array $row): static
     {
-        $instance = static::for_table($this->_table_name, $this->_connection_name);
+        $instance = new static($this->_table_name, [], $this->_connection_name);
         $instance->use_id_column($this->_instance_id_column);
         $instance->hydrate($row);
 
         return $instance;
+    }
+
+    protected function _row_hydrator(): Orm\RowHydrator
+    {
+        return new Orm\RowHydrator(
+            $this->_connection_name,
+            $this->_instance_id_column,
+            $this->_associative_results,
+            fn(array $row): ORM => $this->_create_instance_from_row($row),
+        );
     }
 
     /**
@@ -576,41 +586,13 @@ class ORM implements ArrayAccess
      * from your query, and execute it. Will return an array
      * of instances of the ORM class, or an empty array if
      * no rows were returned.
-     * @return array<int|static, static>
+     * @return array<int|string, ORM|Granada>
      */
     protected function _find_many(bool $associative = true): array
     {
         $rows = $this->_run();
 
-        return $this->_get_instances($rows);
-    }
-
-    /**
-     * Create instances of each row in the result and map
-     * them to an associative array with the primary IDs as
-     * the array keys.
-     * @param array<int, array<string, mixed>> $rows
-     * @return array
-     */
-    protected function _get_instances(array $rows): array
-    {
-        $size      = count($rows);
-        $instances = [];
-        for ($i = 0; $i < $size; $i++) {
-            $row = $this->_create_instance_from_row($rows[$i]);
-            if (
-                isset($row->{$this->_instance_id_column})
-                && $this->_associative_results
-                && $row->id()
-            ) {
-                $instances[$row->id()] = $row;
-
-                continue;
-            }
-            $instances[$i] = $row;
-        }
-
-        return $instances;
+        return $this->_row_hydrator()->instances($rows);
     }
 
     /**

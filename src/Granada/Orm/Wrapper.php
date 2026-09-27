@@ -3,7 +3,7 @@
 namespace Granada\Orm;
 
 use Granada\ORM;
-use Granada\Eager;
+use Granada\Granada;
 use Granada\Relationship;
 use Exception;
 
@@ -195,26 +195,14 @@ class Wrapper extends ORM
      * Wrap Idiorm's find_one method to return
      * an instance of the class associated with
      * this wrapper instead of the raw ORM class.
-     * Added: hidrate the model instance before returning
      * @param integer $id
      */
     public function find_one(mixed $id = null)
     {
-        $result = $this->_create_model_instance(parent::find_one($id));
-        if (!$result) {
-            return $result;
-        }
+        $instance          = $this->_create_model_instance(parent::find_one($id));
+        $return_result_set = (bool) self::get_config('return_result_sets', $this->_connection_name);
 
-        // set result on an result set for the eager load to work
-        $has_id_column       = isset($this->_instance_id_column);
-        $associative_results = $this->_associative_results;
-        $row_id              = $result->id();
-        $key                 = ($has_id_column && $associative_results) ? ($row_id ?? '') : 0;
-        $results             = [$key => $result];
-        Eager::hydrate($this, $results, (bool) self::get_config('return_result_sets', $this->_connection_name));
-
-        // return the result as element, not result set
-        return $results[$key];
+        return $this->_row_hydrator()->one($this, $instance, $return_result_set);
     }
 
     /**
@@ -225,48 +213,19 @@ class Wrapper extends ORM
      */
     public function find_many()
     {
-        $instances = parent::find_many();
+        $return_result_set = (bool) self::get_config('return_result_sets', $this->_connection_name);
 
-        // Check if now rows returned
-        if (is_array($instances)) {
-            if (!$instances) {
-                return $instances;
-            }
-        } else {
-            if (!$instances->has_results()) {
-                return $instances;
-            }
-        }
-
-        // Add eager relationships
-        return Eager::hydrate($this, $instances, (bool) self::get_config('return_result_sets', $this->_connection_name));
+        return $this->_row_hydrator()->many($this, parent::find_many(), $return_result_set);
     }
 
-    /**
-     * Override Idiorm _instances_with_id_as_key
-     * Create instances of each row in the result and map
-     * them to an associative array with the primary IDs as
-     * the array keys.
-     * Added: the array result key = primary key from the model
-     * Added: Eager loading of relationships defined "with()"
-     * @param array $rows
-     * @return array
-     */
-    protected function _get_instances(array $rows): array
+    protected function _row_hydrator(): RowHydrator
     {
-        $instances           = [];
-        $has_id_column       = isset($this->_instance_id_column);
-        $associative_results = $this->_associative_results;
-
-        foreach ($rows as $current_key => $current_row) {
-            $row             = $this->_create_instance_from_row($current_row);
-            $row             = $this->_create_model_instance($row);
-            $id              = $row->id();
-            $key             = ($has_id_column && $associative_results && $id) ? $id : $current_key;
-            $instances[$key] = $row;
-        }
-
-        return $instances;
+        return new RowHydrator(
+            $this->_connection_name,
+            $this->_instance_id_column,
+            $this->_associative_results,
+            fn(array $row): Granada => $this->_create_model_instance($this->_create_instance_from_row($row)),
+        );
     }
 
     /**
