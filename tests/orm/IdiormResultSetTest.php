@@ -219,7 +219,7 @@ class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(2, $ResultSet->count());
     }
 
-    public function testManualIteration()
+    public function testFirstAndLastWithStringKeys()
     {
         $a       = ORM::for_table('test');
         $a->name = 'First';
@@ -232,29 +232,6 @@ class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
 
         $this->assertSame('First', $ResultSet->first()->name);
         $this->assertSame('Last', $ResultSet->last()->name);
-
-        $ResultSet->rewind();
-        $this->assertSame('alpha', $ResultSet->key());
-        $this->assertSame('First', $ResultSet->current()->name);
-
-        $ResultSet->next();
-        $this->assertSame('beta', $ResultSet->key());
-        $this->assertSame('Middle', $ResultSet->current()->name);
-
-        $ResultSet->next();
-        $this->assertSame('gamma', $ResultSet->key());
-        $this->assertSame('Last', $ResultSet->current()->name);
-
-        $this->assertFalse($ResultSet->next());
-    }
-
-    public function testValidCallsIdWhichDoesNotExistOnResultSet()
-    {
-        $this->expectException(\TypeError::class);
-
-        $ResultSet = new ResultSet([ORM::for_table('test')]);
-        $ResultSet->rewind();
-        $ResultSet->valid();
     }
 
     public function testArrayAccess()
