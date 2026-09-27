@@ -47,7 +47,7 @@
     "surt/granada": "*"
   },
   "require": {
-    "php": ">=8.1"
+    "php": ">=8.4"
   },
   "suggest": {
     "granadaorm/builder": "Automatically build model classes from the database schema",
