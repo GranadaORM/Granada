@@ -137,6 +137,24 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testRelationshipQueryAsSubquery()
+    {
+        $gadget = Gadget::find_one(1);
+
+        $widget_ids = $gadget->widgets()->select('id');
+
+        $this->assertSame(
+            "SELECT `id` FROM `widget` WHERE `gadget_id` = '1' AND `enabled` = '1' AND `hidden` = '0'",
+            $widget_ids->get_select_query()
+        );
+
+        Widget::where_id_in($widget_ids)->find_many();
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE `enabled` = '1' AND `hidden` = '0' AND `id` IN (SELECT `id` FROM `widget` WHERE `gadget_id` = '1' AND `enabled` = '1' AND `hidden` = '0')",
+            ORM::get_last_query()
+        );
+    }
+
     public function testHasOneRelation()
     {
         $user     = Model::factory('User')->find_one(1);

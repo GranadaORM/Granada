@@ -36,6 +36,37 @@ CREATE TABLE car_part (
     FOREIGN KEY (part_id) REFERENCES part (id)
 );
 
+CREATE TABLE gadget (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    enabled INTEGER,
+    hidden INTEGER
+);
+
+CREATE TABLE widget (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    gadget_id INTEGER,
+    enabled INTEGER,
+    hidden INTEGER,
+    FOREIGN KEY (gadget_id) REFERENCES gadget (id)
+);
+
+CREATE TABLE kit (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    enabled INTEGER,
+    hidden INTEGER
+);
+
+CREATE TABLE kit_widget (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    widget_id INTEGER,
+    kit_id INTEGER,
+    FOREIGN KEY (widget_id) REFERENCES widget (id),
+    FOREIGN KEY (kit_id) REFERENCES kit (id)
+);
+
 INSERT INTO manufactor(id,name,enabled) VALUES (1, 'Manufactor1', 1);
 INSERT INTO manufactor(id,name,enabled) VALUES (2, 'Manufactor2', 1);
 
@@ -67,3 +98,20 @@ INSERT INTO car_part(id,car_id,part_id) VALUES (6,2,3);
 INSERT INTO car_part(id,car_id,part_id) VALUES (7,3,4);
 INSERT INTO car_part(id,car_id,part_id) VALUES (8,4,5);
 INSERT INTO car_part(id,car_id,part_id) VALUES (9,1,1);
+
+INSERT INTO gadget(id,name,enabled,hidden) VALUES (1, 'Gadget1', 1, 0);
+INSERT INTO gadget(id,name,enabled,hidden) VALUES (2, 'Gadget2', 0, 0);
+INSERT INTO gadget(id,name,enabled,hidden) VALUES (3, 'Gadget3', 1, 1);
+INSERT INTO gadget(id,name,enabled,hidden) VALUES (4, 'Gadget4', 1, 0);
+
+INSERT INTO widget(id,name,gadget_id,enabled,hidden) VALUES (1, 'Widget1', 1, 1, 0);
+INSERT INTO widget(id,name,gadget_id,enabled,hidden) VALUES (2, 'Widget2', 1, 1, 0);
+INSERT INTO widget(id,name,gadget_id,enabled,hidden) VALUES (3, 'Widget3', 2, 1, 0);
+INSERT INTO widget(id,name,gadget_id,enabled,hidden) VALUES (4, 'Widget4', NULL, 1, 0);
+INSERT INTO widget(id,name,gadget_id,enabled,hidden) VALUES (5, 'Widget5', 4, 1, 0);
+
+INSERT INTO kit(id,name,enabled,hidden) VALUES (1, 'Kit1', 1, 0);
+INSERT INTO kit(id,name,enabled,hidden) VALUES (2, 'Kit2', 1, 0);
+
+INSERT INTO kit_widget(id,widget_id,kit_id) VALUES (1, 1, 1);
+INSERT INTO kit_widget(id,widget_id,kit_id) VALUES (2, 3, 2);

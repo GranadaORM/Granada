@@ -4,6 +4,7 @@ namespace Granada\Orm;
 
 use Granada\ORM;
 use Granada\Eager;
+use Granada\Relationship;
 use Exception;
 
 /**
@@ -22,6 +23,12 @@ class Wrapper extends ORM
      * return an instance or instances of this class.
      */
     protected ?string $_class_name = null;
+
+    /**
+     * The relationship this query was built from,
+     * when a relationship method built it.
+     */
+    public ?Relationship $relationship = null;
 
     /** @var array<string, mixed> */
     public array $relationships = [];
@@ -308,6 +315,8 @@ class Wrapper extends ORM
 
     /**
      * Added: Reset relation deletes the relationship "where" condition.
+     *
+     * @deprecated No replacement; will be removed in a future major version.
      *
      * @return static
      */

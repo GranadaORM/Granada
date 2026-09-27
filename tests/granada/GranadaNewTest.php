@@ -420,6 +420,32 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         }
     }
 
+    public function testRelatedQuery()
+    {
+        $car         = Car::find_one();
+        $partcounter = 0;
+        foreach ($car->parts()->find_many() as $part) {
+            $partcounter++;
+
+            switch ($partcounter) {
+                case 1:
+                    $this->assertSame('Part1', $part->name);
+                    break;
+
+                case 2:
+                    $this->assertSame('Part2', $part->name);
+                    break;
+
+                case 3:
+                    $this->assertSame('Part1', $part->name);
+                    break;
+            }
+        }
+        $this->assertSame(3, $partcounter);
+
+        $this->assertSame(3, $car->parts()->count());
+    }
+
     public function testRelatedModelFirstAndLastEager()
     {
         $cars = Car::with('parts')->find_many();
