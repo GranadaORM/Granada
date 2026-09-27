@@ -27,15 +27,25 @@ class Eager
         if (!$results) {
             return $results;
         }
-        foreach ($orm->relationships as $include) {
+
+        $model = null;
+        foreach ($results as $result) {
+            $model = $result;
+            break;
+        }
+        if (!$model) {
+            return $results;
+        }
+
+        foreach ($orm->relationships as $entry) {
             $relationship       = false;
             $relationship_with  = null;
             $relationship_args  = [];
             $relationship_query = null;
 
-            if (is_array($include)) {
-                $relationship = key($include);
-                $value        = $include[$relationship];
+            if (is_array($entry)) {
+                $relationship = key($entry);
+                $value        = $entry[$relationship];
 
                 if ($value instanceof \Closure) {
                     $relationship_query = $value;
@@ -48,7 +58,7 @@ class Eager
                     $relationship_args = $value;
                 }
             } else {
-                $relationship = $include;
+                $relationship = $entry;
             }
 
             if ($pos = strpos($relationship, '.')) {
@@ -57,7 +67,7 @@ class Eager
                 $relationship_args = [];
             }
 
-            $relationship = [
+            $include = [
                 'name'  => $relationship,
                 'with'  => $relationship_with,
                 'args'  => (array) $relationship_args,
@@ -65,13 +75,21 @@ class Eager
             ];
 
             // check if relationship exists on the model
-            $model = $orm->create();
-
-            if (!method_exists($model, $relationship['name'])) {
-                throw new Exception("Attempting to eager load [{$relationship['name']}], but the relationship is not defined.", 500);
+            if (!method_exists($model, $include['name'])) {
+                throw new Exception("Attempting to eager load [{$include['name']}], but the relationship is not defined.", 500);
             }
 
-            self::eagerly($model, $results, $relationship, $return_result_set);
+            $relationship = $model->{$include['name']}(...$include['args']);
+
+            if ($relationship instanceof Orm\Wrapper) {
+                // Chained calls return the query, with the relationship attached
+                $relationship = $relationship->relationship;
+            }
+            if (!$relationship instanceof Relationship) {
+                continue;
+            }
+
+            self::eagerly($relationship, $results, $include, $return_result_set);
         }
 
         return $results;
@@ -102,45 +120,51 @@ class Eager
     /**
      * Eagerly load a relationship.
      *
-     * @param Granada $model
+     * @param Relationship $relationship
      * @param array|ResultSet $parents
      * @param array<string, mixed> $include
      * @param boolean $return_result_set
      * @return void
      */
-    private static function eagerly(Granada $model, array|ResultSet &$parents, array $include, bool $return_result_set): void
+    private static function eagerly(Relationship $relationship, array|ResultSet &$parents, array $include, bool $return_result_set): void
     {
-        $relationship = call_user_func_array([$model, $include['name']], $include['args']);
-        if (!$relationship) {
-            return;
-        }
-
-        $relationship->reset_relation();
+        $query = Granada::_eager_relationship_query($relationship);
 
         if ($include['query'] instanceof \Closure) {
             // Might have non-standard selects, we need to clear them to set a limited subset
-            $relationship->clear_select();
+            $query->clear_select();
             // Fetch the further filters from the callback
-            ($include['query'])($relationship);
+            ($include['query'])($query);
             // Add required columns as minimum to do the with relationahip
-            self::auto_include_required_columns($relationship, $model);
+            self::auto_include_required_columns($query, $relationship);
         }
 
         if ($include['with']) {
-            $relationship->with($include['with']);
+            $query->with($include['with']);
         }
 
         // Initialize the relationship attribute on the parents. As expected, "many" relationships
         // are initialized to an array and "one" relationships are initialized to null.
         // added: many relationships are reset to array since we don't know yet the resultSet applicable
         foreach ($parents as &$parent) {
-            $parent->relationships[$include['name']] = (in_array($model->relating, ['has_many', 'has_many_through'])) ? [] : null;
+            $parent->relationships[$include['name']] = (in_array($relationship->kind, ['has_many', 'has_many_through'])) ? [] : null;
         }
 
-        if (in_array($relating = $model->relating, ['has_one', 'has_many', 'belongs_to'])) {
-            self::$relating($relationship, $parents, $model->relating_key, $include['name'], $return_result_set);
-        } else {
-            self::has_many_through($relationship, $parents, $model->relating_key, $model->relating_table, $include['name'], $return_result_set);
+        switch ($relationship->kind) {
+            case 'has_one':
+                self::has_one($query, $parents, $relationship->keys[0], $include['name'], $return_result_set);
+                break;
+
+            case 'has_many':
+                self::has_many($query, $parents, $relationship->keys[0], $include['name'], $return_result_set);
+                break;
+
+            case 'belongs_to':
+                self::belongs_to($query, $parents, $relationship->keys[0], $include['name'], $return_result_set);
+                break;
+
+            default:
+                self::has_many_through($query, $parents, $relationship->keys, $relationship->table, $include['name'], $return_result_set);
         }
     }
 
@@ -305,16 +329,16 @@ class Eager
         }
     }
 
-    private static function auto_include_required_columns(Orm\Wrapper $relationship, Granada $model): void
+    private static function auto_include_required_columns(Orm\Wrapper $query, Relationship $relationship): void
     {
-        switch ($model->relating) {
+        switch ($relationship->kind) {
             case 'belongs_to':
-                $relationship->select(Granada::_get_id_column_name($model->relating_class));
+                $query->select(Granada::_get_id_column_name($relationship->class));
                 break;
 
             case 'has_one':
             case 'has_many':
-                $relationship->select($model->relating_key);
+                $query->select($relationship->keys[0]);
                 break;
         }
     }

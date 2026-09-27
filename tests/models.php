@@ -198,6 +198,64 @@ class BookThree extends Model
         return $this->has_many_through('Author', null, null, null, 'id', 'id');
     }
 }
+
+/**
+ * Its default filter deliberately adds two where conditions.
+ */
+class Gadget extends Model
+{
+    protected static function _defaultFilter($query): \Granada\Orm\Wrapper
+    {
+        return $query->where('enabled', 1)->where('hidden', 0);
+    }
+
+    public function widgets()
+    {
+        return $this->has_many('Widget');
+    }
+
+    public function named_widgets()
+    {
+        return $this->has_many('Widget')->where('name', 'Widget1');
+    }
+
+    public function featured()
+    {
+        return $this->has_one('Widget');
+    }
+}
+
+class Widget extends Model
+{
+    protected static function _defaultFilter($query): \Granada\Orm\Wrapper
+    {
+        return $query->where('enabled', 1)->where('hidden', 0);
+    }
+
+    public function gadget()
+    {
+        return $this->belongs_to('Gadget');
+    }
+
+    public function kits()
+    {
+        return $this->has_many_through('Kit');
+    }
+}
+
+/**
+ * Its default filter deliberately adds two where conditions.
+ */
+class Kit extends Model
+{
+    protected static function _defaultFilter($query): \Granada\Orm\Wrapper
+    {
+        return $query->where('enabled', 1)->where('hidden', 0);
+    }
+}
+
+class KitWidget extends Model {}
+
 class MockPrefix_Simple extends Model {}
 class MockPrefix_TableSpecified extends Model
 {

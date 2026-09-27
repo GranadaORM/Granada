@@ -93,12 +93,16 @@ class Granada implements ArrayAccess
     /**
      * The relationship type the model is currently resolving.
      *
+     * @deprecated Instead read from the relationship e.g. $this->cars()?->kind
+     *
      * @var string
      */
     public ?string $relating = null;
 
     /**
      * The foreign key of the "relating" relationship.
+     *
+     * @deprecated Instead read from the relationship e.g. $this->cars()?->keys
      *
      * @var string
      */
@@ -109,6 +113,8 @@ class Granada implements ArrayAccess
      *
      * This is used during has_many_through eager loading.
      *
+     * @deprecated Instead read from the relationship e.g. $this->cars()?->table
+     *
      * @var string
      */
     public ?string $relating_table = null;
@@ -117,6 +123,8 @@ class Granada implements ArrayAccess
      * The class name of the model being resolved via a relationship.
      *
      * Set by has_one() and belongs_to().
+     *
+     * @deprecated Instead read from the relationship e.g. $this->cars()?->class
      *
      * @var string|null
      */
@@ -222,6 +230,18 @@ class Granada implements ArrayAccess
     public static function factory(string $class_name, ?string $connection_name = null): Orm\Wrapper
     {
         $class_name = self::$auto_prefix_models . $class_name;
+        $wrapper    = self::_wrapper_for_class($class_name, $connection_name);
+        $class_name::_defaultFilter($wrapper);
+
+        return $wrapper;
+    }
+
+    /**
+     * Build a query for a (fully prefixed) model class without applying
+     * its default filter.
+     */
+    private static function _wrapper_for_class(string $class_name, ?string $connection_name = null): Orm\Wrapper
+    {
         $table_name = self::_get_table_name($class_name);
 
         if (!$connection_name) {
@@ -231,44 +251,113 @@ class Granada implements ArrayAccess
                 Orm\Wrapper::DEFAULT_CONNECTION
             );
         }
+
         $wrapper = Orm\Wrapper::for_table($table_name, $connection_name);
         $wrapper->set_class_name($class_name);
         $wrapper->use_id_column(self::_get_id_column_name($class_name));
         $wrapper->resultSetClass = $class_name::$resultSetClass;
-        $class_name::_defaultFilter($wrapper);
 
         return $wrapper;
     }
 
     /**
-     * Internal method to construct the queries for both the has_one and
-     * has_many methods. These two types of association are identical; the
-     * only difference is whether find_one or find_many is used to complete
-     * the method chain.
+     * Build the query that loads a relationship for this model.
      */
-    protected function _has_one_or_many(string $associated_class_name, ?string $foreign_key_name = null, ?string $foreign_key_name_in_current_models_table = null, ?string $connection_name = null): Orm\Wrapper
+    public function _relationship_query(Relationship $relationship): Orm\Wrapper
     {
-        $base_table_name  = self::_get_table_name(get_class($this));
-        $foreign_key_name = self::_build_foreign_key_name($foreign_key_name, $base_table_name);
+        $query = self::_wrapper_for_class($relationship->class, $relationship->connection);
 
-        $where_value = ''; // Value of foreign_table.{$foreign_key_name} we're
-        // looking for. Where foreign_table is the actual
-        // database table in the associated model.
+        $where_value = $relationship->local_key ? $this->{$relationship->local_key} : $this->id();
 
-        if (is_null($foreign_key_name_in_current_models_table)) {
-            // Match foreign_table.{$foreign_key_name} with the value of
-            // {$this->_table}.{$this->id()}
-            $where_value = $this->id();
-        } else {
-            // Match foreign_table.{$foreign_key_name} with the value of
-            // {$this->_table}.{$foreign_key_name_in_current_models_table}
-            $where_value = $this->$foreign_key_name_in_current_models_table;
+        switch ($relationship->kind) {
+            case 'has_one':
+            case 'has_many':
+                $query->where($relationship->keys[0], $where_value);
+                break;
+
+            case 'belongs_to':
+                $query->where($relationship->related_key, $this->{$relationship->keys[0]});
+                break;
+
+            case 'has_many_through':
+                $query->where("{$relationship->table}.{$relationship->keys[0]}", $where_value);
+                break;
         }
 
-        // Added: to determine eager load relationship parameters
-        $this->relating_key = $foreign_key_name;
+        $query = self::_finish_relationship_query($query, $relationship);
 
-        return self::factory($associated_class_name, $connection_name)->stash_where()->where($foreign_key_name, $where_value)->pop_where();
+        if ($relationship->table) {
+            $query->non_associative();
+        }
+
+        $query->relationship = $relationship;
+
+        return $query;
+    }
+
+    /**
+     * Build the query that eager-loads a relationship. It carries no
+     * per-parent condition; the eager loader adds those.
+     */
+    public static function _eager_relationship_query(Relationship $relationship): Orm\Wrapper
+    {
+        return self::_finish_relationship_query(
+            self::_wrapper_for_class($relationship->class, $relationship->connection),
+            $relationship
+        );
+    }
+
+    /**
+     * The model's default filter goes on before the join: with a join
+     * present, where() prefixes bare column names with the table.
+     */
+    private static function _finish_relationship_query(Orm\Wrapper $query, Relationship $relationship): Orm\Wrapper
+    {
+        $relationship->class::_defaultFilter($query);
+
+        if ($relationship->table) {
+            $associated_table_name       = self::_get_table_name($relationship->class);
+            [, $key_to_associated_table] = $relationship->keys;
+            $query->select("{$associated_table_name}.*")
+                ->join($relationship->table, ["{$associated_table_name}.{$relationship->related_key}", '=', "{$relationship->table}.{$key_to_associated_table}"]);
+        }
+
+        foreach ($relationship->filters() as [$method, $args]) {
+            $query->$method(...$args);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Load the related models for this instance. Uses the query built by
+     * chained calls when there is one; otherwise builds it.
+     */
+    private function _load_relationship(Relationship $relationship, ?Orm\Wrapper $query = null): mixed
+    {
+        $query ??= $this->_relationship_query($relationship);
+
+        if (in_array($relationship->kind, ['has_one', 'belongs_to'])) {
+            $related_id = $relationship->kind === 'belongs_to'
+                ? $this->orm->get($relationship->keys[0])
+                : $this->id();
+
+            if ($related_id === null) {
+                return null;
+            }
+
+            $related_item = LazyItemCache::get($relationship->class, $related_id);
+            if ($related_item === null) {
+                $related_item = $query->find_one();
+                if ($related_item) {
+                    LazyItemCache::set($relationship->class, $related_id, $related_item);
+                }
+            }
+
+            return $related_item;
+        }
+
+        return $query->find_many();
     }
 
     /**
@@ -277,13 +366,23 @@ class Granada implements ArrayAccess
      * @param string $associated_class_name
      * @param string $foreign_key_name
      */
-    protected function has_one(string $associated_class_name, ?string $foreign_key_name = null, ?string $foreign_key_name_in_current_models_table = null, ?string $connection_name = null): Orm\Wrapper
+    protected function has_one(string $associated_class_name, ?string $foreign_key_name = null, ?string $foreign_key_name_in_current_models_table = null, ?string $connection_name = null): Relationship
     {
-        // Added: to determine eager load relationship parameters
+        $base_table_name  = self::_get_table_name(get_class($this));
+        $foreign_key_name = self::_build_foreign_key_name($foreign_key_name, $base_table_name);
+
         $this->relating       = 'has_one';
         $this->relating_class = self::$auto_prefix_models . $associated_class_name;
+        $this->relating_key   = $foreign_key_name;
 
-        return $this->_has_one_or_many($associated_class_name, $foreign_key_name, $foreign_key_name_in_current_models_table, $connection_name);
+        return new Relationship(
+            $this,
+            'has_one',
+            self::$auto_prefix_models . $associated_class_name,
+            [$foreign_key_name],
+            local_key: $foreign_key_name_in_current_models_table,
+            connection: $connection_name,
+        );
     }
 
     /**
@@ -292,12 +391,22 @@ class Granada implements ArrayAccess
      * @param string $associated_class_name
      * @param string $foreign_key_name
      */
-    protected function has_many(string $associated_class_name, ?string $foreign_key_name = null, ?string $foreign_key_name_in_current_models_table = null, ?string $connection_name = null): Orm\Wrapper
+    protected function has_many(string $associated_class_name, ?string $foreign_key_name = null, ?string $foreign_key_name_in_current_models_table = null, ?string $connection_name = null): Relationship
     {
-        // Added: to determine eager load relationship parameters
-        $this->relating = 'has_many';
+        $base_table_name  = self::_get_table_name(get_class($this));
+        $foreign_key_name = self::_build_foreign_key_name($foreign_key_name, $base_table_name);
 
-        return $this->_has_one_or_many($associated_class_name, $foreign_key_name, $foreign_key_name_in_current_models_table, $connection_name);
+        $this->relating     = 'has_many';
+        $this->relating_key = $foreign_key_name;
+
+        return new Relationship(
+            $this,
+            'has_many',
+            self::$auto_prefix_models . $associated_class_name,
+            [$foreign_key_name],
+            local_key: $foreign_key_name_in_current_models_table,
+            connection: $connection_name,
+        );
     }
 
     /**
@@ -306,32 +415,25 @@ class Granada implements ArrayAccess
      * @param string $associated_class_name
      * @param string $foreign_key_name
      */
-    protected function belongs_to(string $associated_class_name, ?string $foreign_key_name = null, ?string $foreign_key_name_in_associated_models_table = null, ?string $connection_name = null): Orm\Wrapper
+    protected function belongs_to(string $associated_class_name, ?string $foreign_key_name = null, ?string $foreign_key_name_in_associated_models_table = null, ?string $connection_name = null): Relationship
     {
-        // Added: to determine eager load relationship parameters
-        $this->relating       = 'belongs_to';
-        $this->relating_class = self::$auto_prefix_models . $associated_class_name;
-
-        $associated_table_name = self::_get_table_name(self::$auto_prefix_models . $associated_class_name);
+        $associated_class_name = self::$auto_prefix_models . $associated_class_name;
+        $associated_table_name = self::_get_table_name($associated_class_name);
         $foreign_key_name      = self::_build_foreign_key_name($foreign_key_name, $associated_table_name);
-        $associated_object_id  = $this->$foreign_key_name;
+        $related_key           = $foreign_key_name_in_associated_models_table ?? self::_get_id_column_name($associated_class_name);
 
-        // Added: to determine eager load relationship parameters
-        $this->relating_key = $foreign_key_name;
+        $this->relating       = 'belongs_to';
+        $this->relating_class = $associated_class_name;
+        $this->relating_key   = $foreign_key_name;
 
-        $desired_record = null;
-
-        if (is_null($foreign_key_name_in_associated_models_table)) {
-            // "{$associated_table_name}.primary_key = {$associated_object_id}"
-            // NOTE: primary_key is a placeholder for the actual primary key column's name
-            // in $associated_table_name
-            $desired_record = self::factory($associated_class_name, $connection_name)->stash_where()->where_id_is($associated_object_id)->pop_where();
-        } else {
-            // "{$associated_table_name}.{$foreign_key_name_in_associated_models_table} = {$associated_object_id}"
-            $desired_record = self::factory($associated_class_name, $connection_name)->stash_where()->where($foreign_key_name_in_associated_models_table, $associated_object_id)->pop_where();
-        }
-
-        return $desired_record;
+        return new Relationship(
+            $this,
+            'belongs_to',
+            $associated_class_name,
+            [$foreign_key_name],
+            related_key: $related_key,
+            connection: $connection_name,
+        );
     }
 
     /**
@@ -342,11 +444,8 @@ class Granada implements ArrayAccess
      * @param string $key_to_base_table
      * @param string $key_to_associated_table
      */
-    protected function has_many_through(string $associated_class_name, ?string $join_class_name = null, ?string $key_to_base_table = null, ?string $key_to_associated_table = null, ?string $key_in_base_table = null, ?string $key_in_associated_table = null, ?string $connection_name = null): Orm\Wrapper
+    protected function has_many_through(string $associated_class_name, ?string $join_class_name = null, ?string $key_to_base_table = null, ?string $key_to_associated_table = null, ?string $key_in_base_table = null, ?string $key_in_associated_table = null, ?string $connection_name = null): Relationship
     {
-        // Added: to determine eager load relationship parameters
-        $this->relating = 'has_many_through';
-
         $base_class_name = get_class($this);
 
         // The class name of the join model, if not supplied, is
@@ -365,38 +464,28 @@ class Granada implements ArrayAccess
 
         // Get table names for each class
         $base_table_name       = self::_get_table_name($base_class_name);
-        $associated_table_name = self::_get_table_name(self::$auto_prefix_models . $associated_class_name);
+        $associated_class_name = self::$auto_prefix_models . $associated_class_name;
+        $associated_table_name = self::_get_table_name($associated_class_name);
         $join_table_name       = self::_get_table_name(self::$auto_prefix_models . $join_class_name);
-
-        // Get ID column names
-        $base_table_id_column       = $key_in_base_table       ?? self::_get_id_column_name($base_class_name);
-        $associated_table_id_column = $key_in_associated_table ?? self::_get_id_column_name(self::$auto_prefix_models . $associated_class_name);
 
         // Get the column names for each side of the join table
         $key_to_base_table       = self::_build_foreign_key_name($key_to_base_table, $base_table_name);
         $key_to_associated_table = self::_build_foreign_key_name($key_to_associated_table, $associated_table_name);
 
-        /*
-                "   SELECT {$associated_table_name}.*
-                      FROM {$associated_table_name} JOIN {$join_table_name}
-                        ON {$associated_table_name}.{$associated_table_id_column} = {$join_table_name}.{$key_to_associated_table}
-                     WHERE {$join_table_name}.{$key_to_base_table} = {$this->$base_table_id_column} ;"
-            */
-
-        // Added: to determine eager load relationship parameters
-        $this->relating_key = [
-            $key_to_base_table,
-            $key_to_associated_table,
-        ];
+        $this->relating       = 'has_many_through';
+        $this->relating_key   = [$key_to_base_table, $key_to_associated_table];
         $this->relating_table = $join_table_name;
 
-        return self::factory($associated_class_name, $connection_name)
-            ->stash_where()
-            ->select("{$associated_table_name}.*")
-            ->join($join_table_name, ["{$associated_table_name}.{$associated_table_id_column}", '=', "{$join_table_name}.{$key_to_associated_table}"])
-            ->where("{$join_table_name}.{$key_to_base_table}", $this->$base_table_id_column)
-            ->non_associative()
-            ->pop_where();
+        return new Relationship(
+            $this,
+            'has_many_through',
+            $associated_class_name,
+            [$key_to_base_table, $key_to_associated_table],
+            table: $join_table_name,
+            local_key: $key_in_base_table,
+            related_key: $key_in_associated_table ?? self::_get_id_column_name($associated_class_name),
+            connection: $connection_name,
+        );
     }
 
     /**
@@ -451,38 +540,18 @@ class Granada implements ArrayAccess
         $method = $property;
         if ($_has_method[$class][$method] ??= method_exists($this, $method)) {
             if ($property !== self::_get_id_column_name($class)) {
-                $relation = $this->$property();
+                $relationship = $this->$property();
 
-                $relation_has_one    = $this->relating === 'has_one';
-                $relation_belongs_to = $this->relating === 'belongs_to';
-                $relation_finds_one  = $relation_has_one || $relation_belongs_to;
-
-                if ($relation_finds_one) {
-                    // Determine id of related item
-                    $related_id = $relation_belongs_to
-                        ? $this->orm->get($this->relating_key)
-                        : $this->id();
-
-                    if ($related_id !== null && $this->relating_class) {
-                        // We should cache this item
-                        $related_item = \Granada\LazyItemCache::get($this->relating_class, $related_id);
-
-                        if ($related_item === null) {
-                            $related_item = $relation->find_one();
-                            if ($related_item) {
-                                \Granada\LazyItemCache::set($this->relating_class, $related_id, $related_item);
-                            }
-                        }
-
-                        return $this->relationships[$property] = $related_item;
-                    }
-
-                    // No id, so doesn't exist
-                    return $this->relationships[$property] = null;
+                if ($relationship instanceof Relationship) {
+                    return $this->relationships[$property] = $this->_load_relationship($relationship);
                 }
 
-                // Relation is many
-                return $this->relationships[$property] = $relation->find_many();
+                if ($relationship instanceof Orm\Wrapper && $relationship->relationship) {
+                    return $this->relationships[$property] = $this->_load_relationship($relationship->relationship, $relationship);
+                }
+
+                // A method returning a plain query is loaded as a many relation
+                return $this->relationships[$property] = $relationship->find_many();
             }
         }
 

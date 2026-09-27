@@ -1083,6 +1083,8 @@ class ORM implements ArrayAccess
      * Save the where conditions and clear
      * Use pop_where to get them back
      *
+     * @deprecated No replacement; will be removed in a future major version.
+     *
      * @return static
      */
     public function stash_where(): static
@@ -1094,6 +1096,8 @@ class ORM implements ArrayAccess
 
     /**
      * Reinstate the stashed conditions to the end of the where list
+     *
+     * @deprecated No replacement; will be removed in a future major version.
      *
      * @return static
      */
