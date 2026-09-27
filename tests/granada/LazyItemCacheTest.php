@@ -236,4 +236,62 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
         $this->assertEquals(0, LazyItemCache::size());
     }
+
+    public function testDeleteThroughOrmInvalidatesCacheEntry()
+    {
+        $car        = Car::find_one(1);
+        $manufactor = $car->manufactor;
+        $this->assertEquals(1, LazyItemCache::size());
+
+        $manufactor->orm->delete();
+
+        $this->assertEquals(0, LazyItemCache::size());
+
+        $car_2       = Car::find_one(2);
+        $manufactor2 = $car_2->manufactor;
+
+        $this->assertNull($manufactor2);
+    }
+
+    public function testRawExecuteDeleteInvalidatesCacheEntry()
+    {
+        $car        = Car::find_one(1);
+        $manufactor = $car->manufactor;
+        $this->assertEquals(1, LazyItemCache::size());
+
+        ORM::raw_execute('DELETE FROM manufactor WHERE id = 1');
+
+        $this->assertEquals(0, LazyItemCache::size());
+
+        $car_2       = Car::find_one(2);
+        $manufactor2 = $car_2->manufactor;
+
+        $this->assertNull($manufactor2);
+    }
+
+    public function testRawExecuteSelectKeepsCache()
+    {
+        $car        = Car::find_one(1);
+        $manufactor = $car->manufactor;
+
+        ORM::raw_execute('SELECT * FROM manufactor');
+
+        $this->assertSame($manufactor, $car->manufactor);
+        $this->assertEquals(1, LazyItemCache::size());
+    }
+
+    public function testInsertInvalidatesCacheEntry()
+    {
+        $car = Car::find_one(1);
+        $car->manufactor;
+        $this->assertEquals(1, LazyItemCache::size());
+
+        Manufactor::insert([[
+            'id'      => 30,
+            'name'    => 'Manufactor30',
+            'enabled' => 1,
+        ]]);
+
+        $this->assertEquals(0, LazyItemCache::size());
+    }
 }

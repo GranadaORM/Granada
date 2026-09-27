@@ -742,13 +742,7 @@ class Granada implements ArrayAccess
      */
     public function save(bool $ignore = false)
     {
-        $result = $this->orm->save($ignore);
-
-        if ($this->id() !== null) {
-            \Granada\LazyItemCache::remove(get_class($this), $this->id());
-        }
-
-        return $result;
+        return $this->orm->save($ignore);
     }
 
     /**
@@ -756,13 +750,7 @@ class Granada implements ArrayAccess
      */
     public function delete(): ?bool
     {
-        $result = $this->orm->delete();
-
-        if ($this->id() !== null) {
-            \Granada\LazyItemCache::remove(get_class($this), $this->id());
-        }
-
-        return $result;
+        return $this->orm->delete();
     }
 
     /**

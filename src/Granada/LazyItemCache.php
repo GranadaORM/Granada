@@ -8,8 +8,9 @@ final class LazyItemCache
     private static array $_cache = [];
 
     /** @var array<int, array{0: string, 1: mixed}> */
-    private static array $_keys = [];
-    private static int $_max    = 500;
+    private static array $_keys      = [];
+    private static int $_max         = 500;
+    private static bool $_registered = false;
 
     public static function get(string $class, mixed $id): mixed
     {
@@ -18,6 +19,11 @@ final class LazyItemCache
 
     public static function set(string $class, mixed $id, mixed $model): void
     {
+        if (!self::$_registered) {
+            ORM::on_write(self::clear(...));
+            self::$_registered = true;
+        }
+
         if (self::size() >= self::$_max) {
             [$oldest_class, $oldest_id] = array_shift(self::$_keys);
             unset(self::$_cache[$oldest_class][$oldest_id]);
