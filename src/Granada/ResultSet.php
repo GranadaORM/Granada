@@ -10,8 +10,6 @@ use ArrayIterator;
 /**
  * A result set class for working with collections of model instances
  * @author Simon Holywell <treffynnon@php.net>
- *
- * @method integer id() Get the id of this record
  */
 class ResultSet implements ArrayAccess, Countable, IteratorAggregate
 {
@@ -117,31 +115,6 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate
         array_push($this->_results, $value);
 
         return $this;
-    }
-
-    public function rewind(): mixed
-    {
-        return reset($this->_results);
-    }
-
-    public function current(): mixed
-    {
-        return current($this->_results);
-    }
-
-    public function key(): mixed
-    {
-        return key($this->_results);
-    }
-
-    public function next(): mixed
-    {
-        return next($this->_results);
-    }
-
-    public function valid(): bool
-    {
-        return isset($this->_results[$this->id()]);
     }
 
     /**
