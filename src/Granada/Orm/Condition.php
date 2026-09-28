@@ -43,12 +43,12 @@ final class Condition
         return new self(self::COMPARE, column: $column, operator: $operator, values: [$value]);
     }
 
-    public static function isNull(string $column): self
+    public static function is_null(string $column): self
     {
         return new self(self::IS_NULL, column: $column);
     }
 
-    public static function isNotNull(string $column): self
+    public static function is_not_null(string $column): self
     {
         return new self(self::IS_NOT_NULL, column: $column);
     }
@@ -60,17 +60,17 @@ final class Condition
     }
 
     /** @param mixed[] $values */
-    public static function notIn(string $column, array $values): self
+    public static function not_in(string $column, array $values): self
     {
         return new self(self::NOT_IN, column: $column, values: $values);
     }
 
-    public static function inSubquery(string $column, string $subquery): self
+    public static function in_subquery(string $column, string $subquery): self
     {
         return new self(self::IN, column: $column, subquery: $subquery);
     }
 
-    public static function notInSubquery(string $column, string $subquery): self
+    public static function not_in_subquery(string $column, string $subquery): self
     {
         return new self(self::NOT_IN, column: $column, subquery: $subquery);
     }
@@ -78,19 +78,19 @@ final class Condition
     /**
      * One comparison against one value: ( column op ? OR column IS NULL )
      */
-    public static function orNull(string $column, string $operator, mixed $value): self
+    public static function or_null(string $column, string $operator, mixed $value): self
     {
         return new self(self::OR_NULL, column: $column, operator: $operator, values: [$value]);
     }
 
     /** @param mixed[] $values */
-    public static function notInOrNull(string $column, array $values): self
+    public static function not_in_or_null(string $column, array $values): self
     {
         return new self(self::NOT_IN_OR_NULL, column: $column, values: $values);
     }
 
     /** @param array<int, array<int, Condition>> $groups */
-    public static function anyIs(array $groups): self
+    public static function any_is(array $groups): self
     {
         return new self(self::ANY_IS, groups: $groups);
     }

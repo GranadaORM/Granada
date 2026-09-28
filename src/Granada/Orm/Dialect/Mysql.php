@@ -11,13 +11,13 @@ use Granada\Orm\Dialect;
  */
 class Mysql extends Dialect
 {
-    public function insertUpdateFragment(array $quoted_fields): string
+    public function insert_update_fragment(array $quoted_fields): string
     {
         // The doubled space after UPDATE matches the historical output
         return ' ON DUPLICATE KEY UPDATE  ' . implode(' = ?, ', $quoted_fields) . ' = ? ';
     }
 
-    public function orderByFieldExpression(string $quoted_column, array $values): string
+    public function order_by_field_expression(string $quoted_column, array $values): string
     {
         return 'FIELD(' . $quoted_column . ',' . implode(',', $values) . ')';
     }

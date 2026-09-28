@@ -29,7 +29,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
     {
         $defaults = [
             'table_name' => 'person',
-            'dialect'    => Dialect::forDriver(null),
+            'dialect'    => Dialect::for_driver(null),
         ];
 
         return new SelectSpec(...array_merge($defaults, $overrides));
@@ -40,7 +40,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
         $defaults = [
             'table_name' => 'person',
             'id_column'  => 'id',
-            'dialect'    => Dialect::forDriver(null),
+            'dialect'    => Dialect::for_driver(null),
         ];
 
         return new WriteSpec(...array_merge($defaults, $overrides));
@@ -51,7 +51,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
         $defaults = [
             'table_name' => 'person',
             'target'     => '',
-            'dialect'    => Dialect::forDriver(null),
+            'dialect'    => Dialect::for_driver(null),
         ];
 
         return new BulkDeleteSpec(...array_merge($defaults, $overrides));
@@ -67,7 +67,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
             'where_conditions' => [
                 Condition::raw('`p`.`age` > ?', [17]),
                 Condition::compare('p.name', '=', 'fred'),
-                Condition::isNull('p.deleted'),
+                Condition::is_null('p.deleted'),
             ],
             'group_by'          => [Term::column('p.name')],
             'having_conditions' => [Condition::raw('COUNT(*) > ?', [1])],
@@ -93,14 +93,14 @@ class RendererTest extends \PHPUnit\Framework\TestCase
     {
         $spec = $this->selectSpec([
             'where_conditions' => [
-                Condition::anyIs([
+                Condition::any_is([
                     [Condition::compare('name', '=', 'Joe'), Condition::in('age', [18, 19])],
-                    [Condition::isNotNull('name'), Condition::notInSubquery('id', 'SELECT id FROM other')],
+                    [Condition::is_not_null('name'), Condition::not_in_subquery('id', 'SELECT id FROM other')],
                 ]),
-                Condition::orNull('score', '>=', 5),
-                Condition::notInOrNull('tag', ['a', 'b']),
+                Condition::or_null('score', '>=', 5),
+                Condition::not_in_or_null('tag', ['a', 'b']),
             ],
-            'order_by' => [Term::natural('name', 'DESC'), Term::byFieldList('id', ['3', '1'])],
+            'order_by' => [Term::natural('name', 'DESC'), Term::by_field_list('id', ['3', '1'])],
             'group_by' => [Term::expression('`age`')],
         ]);
 
@@ -121,7 +121,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
     public function testDoubleQuoteIdentifiersWhenConfigured()
     {
         $statement = Renderer::select($this->selectSpec([
-            'dialect'        => Dialect::forDriver('pgsql'),
+            'dialect'        => Dialect::for_driver('pgsql'),
             'result_columns' => ['p.*'],
             'table_alias'    => 'p x',
         ]));
@@ -132,7 +132,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
     public function testTopStyleLimitPlacesTopAfterSelect()
     {
         $statement = Renderer::select($this->selectSpec([
-            'dialect' => Dialect::forDriver('sqlsrv'),
+            'dialect' => Dialect::for_driver('sqlsrv'),
             'limit'   => 5,
         ]));
 
@@ -142,7 +142,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
     public function testFirebirdUsesRowsAndTo()
     {
         $statement = Renderer::select($this->selectSpec([
-            'dialect' => Dialect::forDriver('firebird'),
+            'dialect' => Dialect::for_driver('firebird'),
             'limit'   => 5,
             'offset'  => 10,
         ]));
@@ -153,7 +153,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
     public function testInsertReturningIdForPgsql()
     {
         $statement = Renderer::insert($this->writeSpec([
-            'dialect'      => Dialect::forDriver('pgsql'),
+            'dialect'      => Dialect::for_driver('pgsql'),
             'dirty_fields' => ['name' => 'fred', 'age' => 17],
             'expr_fields'  => ['age' => true],
             'id_column'    => 'person_id',
@@ -168,7 +168,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
 
     public function testInsertUpdateDuplicatesValues()
     {
-        $statement = Renderer::insertUpdate($this->writeSpec([
+        $statement = Renderer::insert_update($this->writeSpec([
             'dirty_fields' => ['name' => 'fred'],
         ]));
 
@@ -181,8 +181,8 @@ class RendererTest extends \PHPUnit\Framework\TestCase
 
     public function testInsertUpdateRendersPlainInsertWithoutUpsertSupport()
     {
-        $statement = Renderer::insertUpdate($this->writeSpec([
-            'dialect'      => Dialect::forDriver('pgsql'),
+        $statement = Renderer::insert_update($this->writeSpec([
+            'dialect'      => Dialect::for_driver('pgsql'),
             'dirty_fields' => ['name' => 'fred'],
         ]));
 
@@ -219,7 +219,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
 
     public function testDeleteManyUsesWhereConditions()
     {
-        $statement = Renderer::deleteMany($this->bulkDeleteSpec([
+        $statement = Renderer::delete_many($this->bulkDeleteSpec([
             'where_conditions' => [Condition::raw('`age` > ?', [17])],
             'join_sources'     => ['INNER JOIN `address` ON 1'],
             'target'           => '`a`',
@@ -234,7 +234,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
 
     public function testDeleteManyWithoutJoinsOmitsJoinClause()
     {
-        $statement = Renderer::deleteMany($this->bulkDeleteSpec([
+        $statement = Renderer::delete_many($this->bulkDeleteSpec([
             'where_conditions' => [Condition::raw('`age` > ?', [17])],
         ]));
 
@@ -244,8 +244,8 @@ class RendererTest extends \PHPUnit\Framework\TestCase
 
     public function testQuotingEscapesEmbeddedQuoteCharacters()
     {
-        $this->assertSame('`we``ird`', Dialect::forDriver(null)->quoteIdentifier('we`ird'));
-        $this->assertSame('"we""ird"', Dialect::forDriver('pgsql')->quoteIdentifier('we"ird'));
+        $this->assertSame('`we``ird`', Dialect::for_driver(null)->quote_identifier('we`ird'));
+        $this->assertSame('"we""ird"', Dialect::for_driver('pgsql')->quote_identifier('we"ird'));
     }
 
     public function testBuildSelectWithoutConnection()

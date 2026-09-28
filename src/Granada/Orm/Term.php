@@ -29,7 +29,7 @@ final class Term
     }
 
     /** @param (string|int)[] $values plain SQL fragments */
-    public static function byFieldList(string $column, array $values): self
+    public static function by_field_list(string $column, array $values): self
     {
         return new self(column: $column, field_list: $values);
     }
