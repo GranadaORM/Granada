@@ -12,16 +12,16 @@ class Renderer
 {
     public static function select(SelectSpec $spec): Statement
     {
-        $where  = self::buildWhereCondition($spec->where_conditions, $spec->dialect);
-        $having = self::buildHavingCondition($spec->having_conditions, $spec->dialect);
+        $where  = self::build_where_condition($spec->where_conditions, $spec->dialect);
+        $having = self::build_having_condition($spec->having_conditions, $spec->dialect);
 
-        $sql = self::joinIfNotEmpty(' ', [
-            self::selectStart($spec),
-            self::joinFragments($spec->join_sources, $spec->dialect),
+        $sql = self::join_if_not_empty(' ', [
+            self::select_start($spec),
+            self::join_fragments($spec->join_sources, $spec->dialect),
             $where->fragment,
-            self::groupBy($spec),
+            self::group_by($spec),
             $having->fragment,
-            self::orderBy($spec),
+            self::order_by($spec),
             self::limit($spec),
             self::offset($spec),
         ]);
@@ -29,21 +29,21 @@ class Renderer
         return new Statement($sql, array_merge($where->values, $having->values));
     }
 
-    public static function selectStart(SelectSpec $spec): string
+    public static function select_start(SelectSpec $spec): string
     {
         $fragment       = 'SELECT ';
-        $result_columns = implode(', ', self::resultColumns($spec));
+        $result_columns = implode(', ', self::result_columns($spec));
 
-        $fragment .= $spec->dialect->selectTopFragment($spec->limit);
+        $fragment .= $spec->dialect->select_top_fragment($spec->limit);
 
         if ($spec->distinct) {
             $result_columns = 'DISTINCT ' . $result_columns;
         }
 
-        $fragment .= "{$result_columns} FROM " . $spec->dialect->quoteIdentifier($spec->table_name);
+        $fragment .= "{$result_columns} FROM " . $spec->dialect->quote_identifier($spec->table_name);
 
         if (!is_null($spec->table_alias)) {
-            $fragment .= ' ' . $spec->dialect->quoteIdentifier($spec->table_alias);
+            $fragment .= ' ' . $spec->dialect->quote_identifier($spec->table_alias);
         }
 
         return $fragment;
@@ -54,13 +54,13 @@ class Renderer
      * Aggregate entries get their column reference quoted here.
      * @return string[]
      */
-    private static function resultColumns(SelectSpec $spec): array
+    private static function result_columns(SelectSpec $spec): array
     {
         return array_map(function (Aggregate|string $column) use ($spec): string {
             if ($column instanceof Aggregate) {
-                $reference = $column->column === '*' ? '*' : $spec->dialect->quoteIdentifier($column->column);
+                $reference = $column->column === '*' ? '*' : $spec->dialect->quote_identifier($column->column);
 
-                return "{$column->function}({$reference}) AS {$spec->dialect->quoteIdentifier($column->alias)}";
+                return "{$column->function}({$reference}) AS {$spec->dialect->quote_identifier($column->alias)}";
             }
 
             return $column;
@@ -70,47 +70,47 @@ class Renderer
     /**
      * @param JoinSource[]|string[] $join_sources
      */
-    private static function joinFragments(array $join_sources, Dialect $dialect): string
+    private static function join_fragments(array $join_sources, Dialect $dialect): string
     {
         $parts = [];
         foreach ($join_sources as $source) {
-            $parts[] = is_string($source) ? $source : self::joinSource($source, $dialect);
+            $parts[] = is_string($source) ? $source : self::join_source($source, $dialect);
         }
 
         return implode(' ', $parts);
     }
 
-    private static function joinSource(JoinSource $source, Dialect $dialect): string
+    private static function join_source(JoinSource $source, Dialect $dialect): string
     {
         $operator = trim("{$source->operator} JOIN");
-        $table    = $dialect->quoteIdentifier($source->table);
+        $table    = $dialect->quote_identifier($source->table);
         if (!is_null($source->alias)) {
-            $table .= ' ' . $dialect->quoteIdentifier($source->alias);
+            $table .= ' ' . $dialect->quote_identifier($source->alias);
         }
 
         $constraint = $source->constraint;
         if (is_array($constraint)) {
             [$first_column, $constraint_operator, $second_column] = $constraint;
-            $constraint                                           = $dialect->quoteIdentifier($first_column) . " {$constraint_operator} " . $dialect->quoteIdentifier($second_column);
+            $constraint                                           = $dialect->quote_identifier($first_column) . " {$constraint_operator} " . $dialect->quote_identifier($second_column);
         }
 
         return "{$operator} {$table} ON {$constraint}";
     }
 
-    public static function groupBy(SelectSpec $spec): string
+    public static function group_by(SelectSpec $spec): string
     {
-        return self::termList('GROUP BY', $spec->group_by, $spec->dialect);
+        return self::term_list('GROUP BY', $spec->group_by, $spec->dialect);
     }
 
-    public static function orderBy(SelectSpec $spec): string
+    public static function order_by(SelectSpec $spec): string
     {
-        return self::termList('ORDER BY', $spec->order_by, $spec->dialect);
+        return self::term_list('ORDER BY', $spec->order_by, $spec->dialect);
     }
 
     /**
      * @param Term[] $terms
      */
-    private static function termList(string $keyword, array $terms, Dialect $dialect): string
+    private static function term_list(string $keyword, array $terms, Dialect $dialect): string
     {
         if (count($terms) === 0) {
             return '';
@@ -125,9 +125,9 @@ class Renderer
             return $term->expression;
         }
 
-        $column = $dialect->quoteIdentifier($term->column);
+        $column = $dialect->quote_identifier($term->column);
         if ($term->field_list !== []) {
-            return $dialect->orderByFieldExpression($column, $term->field_list);
+            return $dialect->order_by_field_expression($column, $term->field_list);
         }
 
         if ($term->natural) {
@@ -143,32 +143,32 @@ class Renderer
 
     public static function limit(SelectSpec $spec): string
     {
-        return $spec->dialect->limitFragment($spec->limit);
+        return $spec->dialect->limit_fragment($spec->limit);
     }
 
     public static function offset(SelectSpec $spec): string
     {
-        return $spec->dialect->offsetFragment($spec->offset);
+        return $spec->dialect->offset_fragment($spec->offset);
     }
 
-    private static function buildWhereCondition(array $conditions, Dialect $dialect): Condition
+    private static function build_where_condition(array $conditions, Dialect $dialect): Condition
     {
         if ($conditions === []) {
             return Condition::raw('');
         }
 
-        [$fragment, $values] = self::renderConditions($conditions, $dialect);
+        [$fragment, $values] = self::render_conditions($conditions, $dialect);
 
         return Condition::raw('WHERE ' . $fragment, $values);
     }
 
-    private static function buildHavingCondition(array $conditions, Dialect $dialect): Condition
+    private static function build_having_condition(array $conditions, Dialect $dialect): Condition
     {
         if ($conditions === []) {
             return Condition::raw('');
         }
 
-        [$fragment, $values] = self::renderConditions($conditions, $dialect);
+        [$fragment, $values] = self::render_conditions($conditions, $dialect);
 
         return Condition::raw('HAVING ' . $fragment, $values);
     }
@@ -178,11 +178,11 @@ class Renderer
      * @param Condition[] $conditions
      * @return array{string, mixed[]} fragment and bound values
      */
-    private static function renderConditions(array $conditions, Dialect $dialect): array
+    private static function render_conditions(array $conditions, Dialect $dialect): array
     {
         $fragments = $values = [];
         foreach ($conditions as $condition) {
-            [$fragment, $condition_values] = self::renderCondition($condition, $dialect);
+            [$fragment, $condition_values] = self::render_condition($condition, $dialect);
             $fragments[]                   = $fragment;
             $values                        = array_merge($values, $condition_values);
         }
@@ -194,25 +194,25 @@ class Renderer
      * One condition to its SQL fragment plus bound values.
      * @return array{string, mixed[]}
      */
-    private static function renderCondition(Condition $condition, Dialect $dialect): array
+    private static function render_condition(Condition $condition, Dialect $dialect): array
     {
-        $quoted = $condition->column === '' ? '' : $dialect->quoteIdentifier($condition->column);
+        $quoted = $condition->column === '' ? '' : $dialect->quote_identifier($condition->column);
 
         return match ($condition->type) {
             Condition::RAW                   => [$condition->fragment, $condition->values],
             Condition::COMPARE               => ["{$quoted} {$condition->operator} ?", $condition->values],
             Condition::IS_NULL               => ["{$quoted} IS NULL", []],
             Condition::IS_NOT_NULL           => ["{$quoted} IS NOT NULL", []],
-            Condition::IN, Condition::NOT_IN => self::renderIn($condition, $quoted),
+            Condition::IN, Condition::NOT_IN => self::render_in($condition, $quoted),
             Condition::OR_NULL               => ["( {$quoted} {$condition->operator} ? OR {$quoted} IS NULL )", $condition->values],
-            Condition::NOT_IN_OR_NULL        => self::renderInOrNull($condition, $quoted),
-            Condition::ANY_IS                => self::renderAnyIs($condition, $dialect),
+            Condition::NOT_IN_OR_NULL        => self::render_in_or_null($condition, $quoted),
+            Condition::ANY_IS                => self::render_any_is($condition, $dialect),
             default                          => throw new \LogicException("Unknown condition type {$condition->type}"),
         };
     }
 
     /** @return array{string, mixed[]} */
-    private static function renderIn(Condition $condition, string $quoted): array
+    private static function render_in(Condition $condition, string $quoted): array
     {
         switch ($condition->type) {
             case Condition::IN:
@@ -225,7 +225,7 @@ class Renderer
                 break;
 
             default:
-                throw new \LogicException("Unexpected condition type in renderIn: {$condition->type}");
+                throw new \LogicException("Unexpected condition type in render_in: {$condition->type}");
         }
 
         if ($condition->subquery !== '') {
@@ -236,9 +236,9 @@ class Renderer
     }
 
     /** @return array{string, mixed[]} */
-    private static function renderInOrNull(Condition $condition, string $quoted): array
+    private static function render_in_or_null(Condition $condition, string $quoted): array
     {
-        [$fragment, $values] = self::renderIn($condition, $quoted);
+        [$fragment, $values] = self::render_in($condition, $quoted);
 
         return ["( {$fragment} OR {$quoted} IS NULL )", $values];
     }
@@ -247,11 +247,11 @@ class Renderer
      * The groups are ANDed within and ORed between, wrapped in double
      * parens: (( a = ? AND b = ? ) OR ( c IS NULL )).
      */
-    private static function renderAnyIs(Condition $condition, Dialect $dialect): array
+    private static function render_any_is(Condition $condition, Dialect $dialect): array
     {
         $groups = $values = [];
         foreach ($condition->groups as $group) {
-            [$fragment, $group_values] = self::renderConditions($group, $dialect);
+            [$fragment, $group_values] = self::render_conditions($group, $dialect);
             $groups[]                  = "( {$fragment} )";
             $values                    = array_merge($values, $group_values);
         }
@@ -261,20 +261,20 @@ class Renderer
 
     public static function update(WriteSpec $spec): Statement
     {
-        $query  = ['UPDATE ' . $spec->dialect->quoteIdentifier($spec->table_name) . ' SET'];
+        $query  = ['UPDATE ' . $spec->dialect->quote_identifier($spec->table_name) . ' SET'];
         $values = [];
         $fields = [];
         foreach ($spec->dirty_fields as $key => $value) {
             if (array_key_exists($key, $spec->expr_fields)) {
-                $fields[] = $spec->dialect->quoteIdentifier($key) . " = {$value}";
+                $fields[] = $spec->dialect->quote_identifier($key) . " = {$value}";
             } else {
-                $fields[] = $spec->dialect->quoteIdentifier($key) . ' = ?';
+                $fields[] = $spec->dialect->quote_identifier($key) . ' = ?';
                 $values[] = $value;
             }
         }
         $query[]  = implode(', ', $fields);
         $query[]  = 'WHERE';
-        $query[]  = $spec->dialect->quoteIdentifier($spec->id_column);
+        $query[]  = $spec->dialect->quote_identifier($spec->id_column);
         $query[]  = '= ?';
         $values[] = $spec->id_value;
 
@@ -285,37 +285,37 @@ class Renderer
     {
         $query = [
             'INSERT INTO',
-            $spec->dialect->quoteIdentifier($spec->table_name),
-            '(' . implode(', ', $spec->dialect->quoteFields(array_keys($spec->dirty_fields))) . ')',
+            $spec->dialect->quote_identifier($spec->table_name),
+            '(' . implode(', ', $spec->dialect->quote_fields(array_keys($spec->dirty_fields))) . ')',
             'VALUES',
             '(' . self::placeholders($spec->dirty_fields, $spec->expr_fields) . ')',
         ];
 
-        $returning = $spec->dialect->insertReturningFragment($spec->id_column);
+        $returning = $spec->dialect->insert_returning_fragment($spec->id_column);
         if ($returning !== '') {
             $query[] = $returning;
         }
 
-        return new Statement(implode(' ', $query), self::boundValues($spec));
+        return new Statement(implode(' ', $query), self::bound_values($spec));
     }
 
     /**
      * Dialects without an upsert equivalent render a plain INSERT.
      */
-    public static function insertUpdate(WriteSpec $spec): Statement
+    public static function insert_update(WriteSpec $spec): Statement
     {
         $dialect = $spec->dialect;
-        $fields  = $dialect->quoteFields(array_keys($spec->dirty_fields));
-        $values  = self::boundValues($spec);
+        $fields  = $dialect->quote_fields(array_keys($spec->dirty_fields));
+        $values  = self::bound_values($spec);
         $query   = [
             'INSERT INTO',
-            $dialect->quoteIdentifier($spec->table_name),
+            $dialect->quote_identifier($spec->table_name),
             '(' . implode(', ', $fields) . ')',
             'VALUES',
             '(' . self::placeholders($spec->dirty_fields, $spec->expr_fields) . ')',
         ];
 
-        $upsert = $dialect->insertUpdateFragment($fields);
+        $upsert = $dialect->insert_update_fragment($fields);
         if ($upsert !== '') {
             $query[] = $upsert;
             $values  = array_merge($values, $values);
@@ -329,11 +329,11 @@ class Renderer
      */
     public static function delete(WriteSpec $spec): Statement
     {
-        $query = self::joinIfNotEmpty(' ', [
+        $query = self::join_if_not_empty(' ', [
             'DELETE FROM',
-            $spec->dialect->quoteIdentifier($spec->table_name),
+            $spec->dialect->quote_identifier($spec->table_name),
             'WHERE',
-            $spec->dialect->quoteIdentifier($spec->id_column),
+            $spec->dialect->quote_identifier($spec->id_column),
             '= ?',
         ]);
 
@@ -345,24 +345,24 @@ class Renderer
      * MySQL `DELETE target FROM table JOIN .. WHERE ..` form, where `target`
      * names the table or alias the delete removes from.
      */
-    public static function deleteMany(BulkDeleteSpec $spec): Statement
+    public static function delete_many(BulkDeleteSpec $spec): Statement
     {
-        $where = self::buildWhereCondition($spec->where_conditions, $spec->dialect);
+        $where = self::build_where_condition($spec->where_conditions, $spec->dialect);
 
         if ($spec->join_sources !== []) {
-            $query = self::joinIfNotEmpty(' ', [
+            $query = self::join_if_not_empty(' ', [
                 "DELETE {$spec->target} FROM",
-                $spec->dialect->quoteIdentifier($spec->table_name),
-                self::joinFragments($spec->join_sources, $spec->dialect),
+                $spec->dialect->quote_identifier($spec->table_name),
+                self::join_fragments($spec->join_sources, $spec->dialect),
                 $where->fragment,
             ]);
 
             return new Statement($query, $where->values);
         }
 
-        $query = self::joinIfNotEmpty(' ', [
+        $query = self::join_if_not_empty(' ', [
             'DELETE FROM',
-            $spec->dialect->quoteIdentifier($spec->table_name),
+            $spec->dialect->quote_identifier($spec->table_name),
             $where->fragment,
         ]);
 
@@ -393,7 +393,7 @@ class Renderer
      * The dirty fields that get bound, except expr fields, in field order.
      * @return mixed[]
      */
-    private static function boundValues(WriteSpec $spec): array
+    private static function bound_values(WriteSpec $spec): array
     {
         return array_values(array_diff_key($spec->dirty_fields, $spec->expr_fields));
     }
@@ -401,7 +401,7 @@ class Renderer
     /**
      * @param string[] $pieces
      */
-    public static function joinIfNotEmpty(string $glue, array $pieces): string
+    public static function join_if_not_empty(string $glue, array $pieces): string
     {
         $filtered_pieces = [];
         foreach ($pieces as $piece) {

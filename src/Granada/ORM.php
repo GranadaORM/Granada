@@ -1315,14 +1315,14 @@ class ORM implements ArrayAccess
                     if ($op === '=') {
                         $group[] = Orm\Condition::in($key, $item);
                     } elseif ($op === '!=') {
-                        $group[] = Orm\Condition::notIn($key, $item);
+                        $group[] = Orm\Condition::not_in($key, $item);
                     } else {
                         throw new \InvalidArgumentException('You only pass an array for = and !=.');
                     }
                 } elseif (is_null($item) && ($op === '=')) {
-                    $group[] = Orm\Condition::isNull($key);
+                    $group[] = Orm\Condition::is_null($key);
                 } elseif (is_null($item) && ($op === '!=')) {
-                    $group[] = Orm\Condition::isNotNull($key);
+                    $group[] = Orm\Condition::is_not_null($key);
                 } else {
                     $group[] = Orm\Condition::compare($key, $op, $item);
                 }
@@ -1330,7 +1330,7 @@ class ORM implements ArrayAccess
             $groups[] = $group;
         }
 
-        return $this->_add_where_condition(Orm\Condition::anyIs($groups));
+        return $this->_add_where_condition(Orm\Condition::any_is($groups));
     }
 
     /**
@@ -1400,7 +1400,7 @@ class ORM implements ArrayAccess
      */
     public function where_lt_or_null(string $column_name, mixed $value): static
     {
-        return $this->_add_where_condition(Orm\Condition::orNull($column_name, '<', $value));
+        return $this->_add_where_condition(Orm\Condition::or_null($column_name, '<', $value));
     }
 
     /**
@@ -1410,7 +1410,7 @@ class ORM implements ArrayAccess
      */
     public function where_lte_or_null(string $column_name, mixed $value): static
     {
-        return $this->_add_where_condition(Orm\Condition::orNull($column_name, '<=', $value));
+        return $this->_add_where_condition(Orm\Condition::or_null($column_name, '<=', $value));
     }
 
     /**
@@ -1420,7 +1420,7 @@ class ORM implements ArrayAccess
      */
     public function where_gt_or_null(string $column_name, mixed $value): static
     {
-        return $this->_add_where_condition(Orm\Condition::orNull($column_name, '>', $value));
+        return $this->_add_where_condition(Orm\Condition::or_null($column_name, '>', $value));
     }
 
     /**
@@ -1430,7 +1430,7 @@ class ORM implements ArrayAccess
      */
     public function where_gte_or_null(string $column_name, mixed $value): static
     {
-        return $this->_add_where_condition(Orm\Condition::orNull($column_name, '>=', $value));
+        return $this->_add_where_condition(Orm\Condition::or_null($column_name, '>=', $value));
     }
 
     /**
@@ -1444,7 +1444,7 @@ class ORM implements ArrayAccess
         }
 
         if (is_a($values, \Granada\Orm\Wrapper::class)) {
-            return $this->_add_where_condition(Orm\Condition::inSubquery($column_name, $values->get_select_query()));
+            return $this->_add_where_condition(Orm\Condition::in_subquery($column_name, $values->get_select_query()));
         }
 
         return $this->_add_where_condition(Orm\Condition::in($column_name, $values));
@@ -1462,10 +1462,10 @@ class ORM implements ArrayAccess
         }
 
         if (is_a($values, \Granada\Orm\Wrapper::class)) {
-            return $this->_add_where_condition(Orm\Condition::notInSubquery($column_name, $values->get_select_query()));
+            return $this->_add_where_condition(Orm\Condition::not_in_subquery($column_name, $values->get_select_query()));
         }
 
-        return $this->_add_where_condition(Orm\Condition::notIn($column_name, $values));
+        return $this->_add_where_condition(Orm\Condition::not_in($column_name, $values));
     }
 
     /**
@@ -1479,7 +1479,7 @@ class ORM implements ArrayAccess
             return $this;
         }
 
-        return $this->_add_where_condition(Orm\Condition::notInOrNull($column_name, $values));
+        return $this->_add_where_condition(Orm\Condition::not_in_or_null($column_name, $values));
     }
 
     /**
@@ -1488,7 +1488,7 @@ class ORM implements ArrayAccess
      */
     public function where_null(string $column_name): static
     {
-        return $this->_add_where_condition(Orm\Condition::isNull($column_name));
+        return $this->_add_where_condition(Orm\Condition::is_null($column_name));
     }
 
     /**
@@ -1497,7 +1497,7 @@ class ORM implements ArrayAccess
      */
     public function where_not_null(string $column_name): static
     {
-        return $this->_add_where_condition(Orm\Condition::isNotNull($column_name));
+        return $this->_add_where_condition(Orm\Condition::is_not_null($column_name));
     }
 
     /**
@@ -1718,7 +1718,7 @@ class ORM implements ArrayAccess
      */
     public function having_not_in(string $column_name, array $values): static
     {
-        return $this->_add_having_condition(Orm\Condition::notIn($column_name, $values));
+        return $this->_add_having_condition(Orm\Condition::not_in($column_name, $values));
     }
 
     /**
@@ -1727,7 +1727,7 @@ class ORM implements ArrayAccess
      */
     public function having_null(string $column_name): static
     {
-        return $this->_add_having_condition(Orm\Condition::isNull($column_name));
+        return $this->_add_having_condition(Orm\Condition::is_null($column_name));
     }
 
     /**
@@ -1736,7 +1736,7 @@ class ORM implements ArrayAccess
      */
     public function having_not_null(string $column_name): static
     {
-        return $this->_add_having_condition(Orm\Condition::isNotNull($column_name));
+        return $this->_add_having_condition(Orm\Condition::is_not_null($column_name));
     }
 
     /**
@@ -1826,7 +1826,7 @@ class ORM implements ArrayAccess
      */
     protected function _quote_identifier(string $identifier): string
     {
-        return self::_dialect($this->_connection_name)->quoteIdentifier($identifier);
+        return self::_dialect($this->_connection_name)->quote_identifier($identifier);
     }
 
     /**
@@ -2122,7 +2122,7 @@ class ORM implements ArrayAccess
         $values = array_values(array_diff_key($this->_dirty_fields, $this->_expr_fields));
 
         if ($ignore) {
-            $statement = Orm\Renderer::insertUpdate($this->_write_spec());
+            $statement = Orm\Renderer::insert_update($this->_write_spec());
         } else {
             if (!$this->_is_new) { // UPDATE
                 // If there are no dirty values, do nothing
@@ -2141,7 +2141,7 @@ class ORM implements ArrayAccess
         if ($this->_is_new) {
             $this->_is_new = false;
             if (!($this->id())) {
-                $this->_data[$this->_get_id_column_name()] = self::_dialect($this->_connection_name)->fetchNewId(
+                $this->_data[$this->_get_id_column_name()] = self::_dialect($this->_connection_name)->fetch_new_id(
                     self::get_db($this->_connection_name),
                     self::get_last_statement()
                 );
@@ -2187,7 +2187,7 @@ class ORM implements ArrayAccess
      */
     public function delete_many(string $target = ''): ?bool
     {
-        $statement = Orm\Renderer::deleteMany($this->_bulk_delete_spec($target));
+        $statement = Orm\Renderer::delete_many($this->_bulk_delete_spec($target));
 
         return self::_execute_write($statement->query, $statement->values, $this->_connection_name);
     }

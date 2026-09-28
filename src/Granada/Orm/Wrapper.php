@@ -365,7 +365,7 @@ class Wrapper extends ORM
 
         if ($method === 'order_by_list') {
             if ($parameters[1]) {
-                $this->_order_by[] = Term::byFieldList($parameters[0], $parameters[1]);
+                $this->_order_by[] = Term::by_field_list($parameters[0], $parameters[1]);
 
                 return $this;
             }

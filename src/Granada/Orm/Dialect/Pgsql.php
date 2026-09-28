@@ -14,12 +14,12 @@ class Pgsql extends Dialect
 {
     public const QUOTE_CHARACTER = '"';
 
-    public function insertReturningFragment(string $id_column): string
+    public function insert_returning_fragment(string $id_column): string
     {
-        return 'RETURNING ' . $this->quoteIdentifier($id_column);
+        return 'RETURNING ' . $this->quote_identifier($id_column);
     }
 
-    public function fetchNewId(PDO $db, PDOStatement $statement): false|string
+    public function fetch_new_id(PDO $db, PDOStatement $statement): false|string
     {
         return $statement->fetchColumn();
     }

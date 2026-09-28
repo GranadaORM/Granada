@@ -34,7 +34,7 @@ abstract class Dialect
      * (including no connection at all) get the mysql/sqlite dialect,
      * so statements can be rendered before any connection exists.
      */
-    public static function forDriver(?string $driver_name, ?string $quote_character = null, ?string $limit_clause_style = null): self
+    public static function for_driver(?string $driver_name, ?string $quote_character = null, ?string $limit_clause_style = null): self
     {
         return match ($driver_name) {
             'pgsql'                              => new Dialect\Pgsql($quote_character, $limit_clause_style),
@@ -48,7 +48,7 @@ abstract class Dialect
      * SELECT-list prefix reserving rows, eg "TOP 5 " — placed right
      * after SELECT, before the result columns.
      */
-    public function selectTopFragment(?int $limit): string
+    public function select_top_fragment(?int $limit): string
     {
         if ($limit === null) {
             return '';
@@ -63,9 +63,9 @@ abstract class Dialect
 
     /**
      * Trailing row-limit clause, eg "LIMIT 5" / "ROWS 5".
-     * Empty when this dialect reserves rows via selectTopFragment().
+     * Empty when this dialect reserves rows via select_top_fragment().
      */
-    public function limitFragment(?int $limit): string
+    public function limit_fragment(?int $limit): string
     {
         if ($limit === null) {
             return '';
@@ -81,7 +81,7 @@ abstract class Dialect
     /**
      * Trailing row-offset clause, eg "OFFSET 10" / "TO 10".
      */
-    public function offsetFragment(?int $offset): string
+    public function offset_fragment(?int $offset): string
     {
         if ($offset === null) {
             return '';
@@ -95,7 +95,7 @@ abstract class Dialect
      * the dialect reads it via lastInsertId instead. Meant to be
      * overridden by subclasses (Pgsql returns RETURNING).
      */
-    public function insertReturningFragment(string $id_column): string
+    public function insert_returning_fragment(string $id_column): string
     {
         return '';
     }
@@ -106,7 +106,7 @@ abstract class Dialect
      * overridden by subclasses (Mysql returns ON DUPLICATE KEY UPDATE).
      * @param string[] $quoted_fields
      */
-    public function insertUpdateFragment(array $quoted_fields): string
+    public function insert_update_fragment(array $quoted_fields): string
     {
         return '';
     }
@@ -116,7 +116,7 @@ abstract class Dialect
      * subclasses: dialects whose INSERT reports the id (RETURNING)
      * read it from the executed statement instead of the connection.
      */
-    public function fetchNewId(PDO $db, PDOStatement $statement): false|string
+    public function fetch_new_id(PDO $db, PDOStatement $statement): false|string
     {
         return $db->lastInsertId();
     }
@@ -127,7 +127,7 @@ abstract class Dialect
      * them. Meant to be overridden by subclasses (Mysql returns FIELD()).
      * @param (string|int)[] $values raw SQL fragments
      */
-    public function orderByFieldExpression(string $quoted_column, array $values): string
+    public function order_by_field_expression(string $quoted_column, array $values): string
     {
         $cases = '';
         foreach (array_values($values) as $index => $value) {
@@ -142,10 +142,10 @@ abstract class Dialect
      * (table names, column names etc). This method can
      * also deal with dot-separated identifiers eg table.column
      */
-    public function quoteIdentifier(string $identifier): string
+    public function quote_identifier(string $identifier): string
     {
         $parts = explode('.', $identifier);
-        $parts = array_map(fn($part) => $this->quoteIdentifierPart($part), $parts);
+        $parts = array_map(fn($part) => $this->quote_identifier_part($part), $parts);
 
         return implode('.', $parts);
     }
@@ -155,7 +155,7 @@ abstract class Dialect
      * identifier, doubling up any quote characters to escape
      * them.
      */
-    public function quoteIdentifierPart(string $part): string
+    public function quote_identifier_part(string $part): string
     {
         if ($part === '*') {
             return $part;
@@ -176,8 +176,8 @@ abstract class Dialect
      * @param string[] $fields
      * @return string[]
      */
-    public function quoteFields(array $fields): array
+    public function quote_fields(array $fields): array
     {
-        return array_map(fn($field) => $this->quoteIdentifier($field), $fields);
+        return array_map(fn($field) => $this->quote_identifier($field), $fields);
     }
 }

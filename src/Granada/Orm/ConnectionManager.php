@@ -230,7 +230,7 @@ class ConnectionManager
 
         $key = ($driver_name ?? '') . '|' . ($quote_character ?? '') . '|' . ($limit_clause_style ?? '');
 
-        return $this->dialect_cache[$key] ??= Dialect::forDriver($driver_name, $quote_character, $limit_clause_style);
+        return $this->dialect_cache[$key] ??= Dialect::for_driver($driver_name, $quote_character, $limit_clause_style);
     }
 
     /**

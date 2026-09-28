@@ -80,15 +80,42 @@ class Granada implements ArrayAccess
     public $orm;
 
     /**
+     * A stash of values held for the request, so the model does not
+     * repeat database work. Backs the $relationships property.
+     */
+    private ?ValueStash $_value_stash = null;
+
+    /**
      * The model's $relationships attributes.
      *
      * $relationships attributes will not be saved to the database, and are
      * primarily used to hold relationships.
      * __set and __get need the relationship method defined on the model to determine if the relationship exists.
-     *
-     * @var array
      */
-    public array $relationships = [];
+    public array $relationships {
+        &get {
+            return $this->value_stash()->all();
+        }
+        set(array $value) {
+            $this->value_stash()->replace_all($value);
+        }
+    }
+
+    /**
+     * A clone of the model gets its own stash.
+     */
+    public function __clone(): void
+    {
+        $this->_value_stash = clone $this->value_stash();
+    }
+
+    /**
+     * The model's stash, created on first use.
+     */
+    private function value_stash(): ValueStash
+    {
+        return $this->_value_stash ??= new ValueStash();
+    }
 
     /**
      * The relationship type the model is currently resolving.
@@ -499,15 +526,23 @@ class Granada implements ArrayAccess
 
     /**
      * Magic getter method, allows $model->property access to data.
+     */
+    public function __get(string $property): mixed
+    {
+        return $this->resolve_property($property);
+    }
+
+    /**
+     * Resolve a property access on the model.
      *
      * Resolution order:
      *      1. get_{property_name} method defined in model (if ORM value is not null)
-     *      2. Stored relationships / memoized missingonce_ values
-     *      3. missing_{property_name} method (recalculated each access)
-     *      4. missingonce_{property_name} method (computed once, memoized in relationships)
+     *      2. A value kept from an earlier read of the same property
+     *      3. missing_{property_name} method (computed on each access)
+     *      4. missingonce_{property_name} method (computed once, then kept)
      *      5. Lazy-loaded relationship if a method matching the property name exists
      */
-    public function __get(string $property): mixed
+    protected function resolve_property(string $property): mixed
     {
         $class  = static::class;
         $result = $this->orm->get($property);
@@ -534,7 +569,7 @@ class Granada implements ArrayAccess
 
         $method = 'missingonce_' . $property;
         if ($_has_method[$class][$method] ??= method_exists($this, $method)) {
-            return $this->relationships[$property] = $this->$method();
+            return $this->value_stash()->set_computed_value($property, $this->$method());
         }
 
         $method = $property;
@@ -543,19 +578,28 @@ class Granada implements ArrayAccess
                 $relationship = $this->$property();
 
                 if ($relationship instanceof Relationship) {
-                    return $this->relationships[$property] = $this->_load_relationship($relationship);
+                    return $this->value_stash()->set_computed_value($property, $this->_load_relationship($relationship));
                 }
 
                 if ($relationship instanceof Orm\Wrapper && $relationship->relationship) {
-                    return $this->relationships[$property] = $this->_load_relationship($relationship->relationship, $relationship);
+                    return $this->value_stash()->set_computed_value($property, $this->_load_relationship($relationship->relationship, $relationship));
                 }
 
                 // A method returning a plain query is loaded as a many relation
-                return $this->relationships[$property] = $relationship->find_many();
+                return $this->value_stash()->set_computed_value($property, $relationship->find_many());
             }
         }
 
         return null;
+    }
+
+    /**
+     * Drop the computed values, so the next read of those properties
+     * works them out again. Set values stay.
+     */
+    public function clear_computed_values(): void
+    {
+        $this->value_stash()->clear_computed_values();
     }
 
     /**
@@ -611,7 +655,7 @@ class Granada implements ArrayAccess
                 $property[$field] = $this->$method($val);
                 $value            = null;
             } elseif (method_exists($this, $field)) {
-                $this->relationships[$field] = $val;
+                $this->value_stash()->set_value($field, $val);
             }
         }
 
