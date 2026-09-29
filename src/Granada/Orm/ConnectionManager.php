@@ -14,6 +14,8 @@ use PDOStatement;
  * query log and the query cache. The last statement and last query
  * span all its connections. One instance stands behind the ORM's
  * static calls.
+ *
+ * @internal
  */
 class ConnectionManager
 {

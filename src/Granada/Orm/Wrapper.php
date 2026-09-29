@@ -28,7 +28,7 @@ class Wrapper extends ORM
      * The relationship this query was built from,
      * when a relationship method built it.
      */
-    public ?Relationship $relationship = null;
+    public ?Relationship $_relationship = null;
 
     /** @var array<string, mixed> */
     public array $relationships = [];

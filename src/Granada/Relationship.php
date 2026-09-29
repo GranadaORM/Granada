@@ -12,6 +12,8 @@ namespace Granada;
  * Calls chained on the relationship run on that query. Calls that change the
  * query are remembered, so eager loading can rebuild it without the parent's
  * own condition.
+ *
+ * @internal
  */
 class Relationship
 {
@@ -50,8 +52,8 @@ class Relationship
         $result = $this->query->$method(...$args);
 
         if ($result instanceof Orm\Wrapper) {
-            $this->filters[]      = [$method, $args];
-            $result->relationship = $this;
+            $this->filters[]       = [$method, $args];
+            $result->_relationship = $this;
         }
 
         return $result;

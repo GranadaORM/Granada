@@ -9,6 +9,8 @@ use Granada\Orm\Dialect;
  * The SQL Server dialect: sqlsrv, dblib, mssql, sybase. Double-quote
  * identifiers and reserve rows with SELECT TOP, leaving no trailing
  * limit clause.
+ *
+ * @internal
  */
 class Sqlsrv extends Dialect
 {

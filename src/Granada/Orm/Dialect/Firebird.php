@@ -7,6 +7,8 @@ use Granada\Orm\Dialect;
 /**
  * Firebird: double-quote identifiers; the limit/offset shape is
  * ROWS n TO m.
+ *
+ * @internal
  */
 class Firebird extends Dialect
 {
