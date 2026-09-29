@@ -9,6 +9,7 @@ namespace Granada\Orm;
  * @author Jeff Roberson <ridgerunner@fluxbb.org>
  * @author Simon Holywell <treffynnon@php.net>
  * @link http://stackoverflow.com/a/13370709/461813 StackOverflow answer
+ * @internal
  */
 class Str
 {

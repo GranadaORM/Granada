@@ -11,6 +11,8 @@ use Granada\ResultSet;
 /**
  * Turns the rows fetched by a query into keyed model instances and
  * runs the query's eager loads.
+ *
+ * @internal
  */
 class RowHydrator
 {

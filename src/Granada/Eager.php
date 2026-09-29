@@ -14,6 +14,9 @@ namespace Granada;
 
 use Exception;
 
+/**
+ * @internal
+ */
 class Eager
 {
     /**
@@ -83,7 +86,7 @@ class Eager
 
             if ($relationship instanceof Orm\Wrapper) {
                 // Chained calls return the query, with the relationship attached
-                $relationship = $relationship->relationship;
+                $relationship = $relationship->_relationship;
             }
             if (!$relationship instanceof Relationship) {
                 continue;

@@ -10,6 +10,8 @@ use PDOStatement;
  * Everything driver-specific about the database in one place, so the
  * renderer, save() and Wrapper ask a dialect object instead of
  * comparing driver names or querying a live database connection.
+ *
+ * @internal
  */
 abstract class Dialect
 {
@@ -155,7 +157,7 @@ abstract class Dialect
      * identifier, doubling up any quote characters to escape
      * them.
      */
-    public function quote_identifier_part(string $part): string
+    private function quote_identifier_part(string $part): string
     {
         if ($part === '*') {
             return $part;

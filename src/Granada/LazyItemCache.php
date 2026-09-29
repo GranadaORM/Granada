@@ -2,6 +2,9 @@
 
 namespace Granada;
 
+/**
+ * @internal
+ */
 final class LazyItemCache
 {
     /** @var array<string, array<mixed, mixed>> */
@@ -20,7 +23,7 @@ final class LazyItemCache
     public static function set(string $class, mixed $id, mixed $model): void
     {
         if (!self::$_registered) {
-            ORM::on_write(self::clear(...));
+            ORM::_on_write(self::clear(...));
             self::$_registered = true;
         }
 

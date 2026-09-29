@@ -317,7 +317,7 @@ class Granada implements ArrayAccess
             $query->non_associative();
         }
 
-        $query->relationship = $relationship;
+        $query->_relationship = $relationship;
 
         return $query;
     }
@@ -581,8 +581,8 @@ class Granada implements ArrayAccess
                     return $this->value_stash()->set_computed_value($property, $this->_load_relationship($relationship));
                 }
 
-                if ($relationship instanceof Orm\Wrapper && $relationship->relationship) {
-                    return $this->value_stash()->set_computed_value($property, $this->_load_relationship($relationship->relationship, $relationship));
+                if ($relationship instanceof Orm\Wrapper && $relationship->_relationship) {
+                    return $this->value_stash()->set_computed_value($property, $this->_load_relationship($relationship->_relationship, $relationship));
                 }
 
                 // A method returning a plain query is loaded as a many relation

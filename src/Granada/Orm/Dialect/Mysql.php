@@ -8,6 +8,8 @@ use Granada\Orm\Dialect;
  * The MySQL dialect: MySQL and SQLite, plus unknown drivers so that
  * rendering works before any connection exists. Backtick identifier
  * quoting, ON DUPLICATE KEY UPDATE upserts, FIELD() list ordering.
+ *
+ * @internal
  */
 class Mysql extends Dialect
 {

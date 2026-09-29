@@ -309,7 +309,7 @@ class ORM implements ArrayAccess
         return self::_manager()->get_db($connection_name);
     }
 
-    public static function on_write(callable $callback): void
+    public static function _on_write(callable $callback): void
     {
         self::$_on_write[] = $callback;
     }

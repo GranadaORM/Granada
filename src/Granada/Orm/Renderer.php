@@ -7,6 +7,8 @@ namespace Granada\Orm;
  *
  * Pure: it reads no global state and requires no database connection.
  * Every statement method returns [sql, parameters].
+ *
+ * @internal
  */
 class Renderer
 {
@@ -29,7 +31,7 @@ class Renderer
         return new Statement($sql, array_merge($where->values, $having->values));
     }
 
-    public static function select_start(SelectSpec $spec): string
+    private static function select_start(SelectSpec $spec): string
     {
         $fragment       = 'SELECT ';
         $result_columns = implode(', ', self::result_columns($spec));
@@ -97,12 +99,12 @@ class Renderer
         return "{$operator} {$table} ON {$constraint}";
     }
 
-    public static function group_by(SelectSpec $spec): string
+    private static function group_by(SelectSpec $spec): string
     {
         return self::term_list('GROUP BY', $spec->group_by, $spec->dialect);
     }
 
-    public static function order_by(SelectSpec $spec): string
+    private static function order_by(SelectSpec $spec): string
     {
         return self::term_list('ORDER BY', $spec->order_by, $spec->dialect);
     }
@@ -141,12 +143,12 @@ class Renderer
         return "{$column} {$term->direction}";
     }
 
-    public static function limit(SelectSpec $spec): string
+    private static function limit(SelectSpec $spec): string
     {
         return $spec->dialect->limit_fragment($spec->limit);
     }
 
-    public static function offset(SelectSpec $spec): string
+    private static function offset(SelectSpec $spec): string
     {
         return $spec->dialect->offset_fragment($spec->offset);
     }
@@ -375,7 +377,7 @@ class Renderer
      * @param array<string, mixed> $fields
      * @param array<string, mixed> $expr_fields
      */
-    public static function placeholders(array $fields, array $expr_fields = []): string
+    private static function placeholders(array $fields, array $expr_fields = []): string
     {
         if (empty($fields)) {
             return '';
@@ -401,7 +403,7 @@ class Renderer
     /**
      * @param string[] $pieces
      */
-    public static function join_if_not_empty(string $glue, array $pieces): string
+    private static function join_if_not_empty(string $glue, array $pieces): string
     {
         $filtered_pieces = [];
         foreach ($pieces as $piece) {

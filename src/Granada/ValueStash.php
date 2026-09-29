@@ -10,6 +10,8 @@ namespace Granada;
  * property is free. Set values were put in from outside the model:
  * eager-load results, set() values and direct writes.
  * clear_computed_values() drops the computed ones; set values stay.
+ *
+ * @internal
  */
 final class ValueStash
 {

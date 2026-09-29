@@ -9,6 +9,8 @@ use PDOStatement;
 /**
  * PostgreSQL: double-quote identifiers and report a new row's id
  * from the INSERT itself via RETURNING.
+ *
+ * @internal
  */
 class Pgsql extends Dialect
 {
