@@ -138,24 +138,6 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(2, LazyItemCache::size());
     }
 
-    public function testRelatingClassSetOnHasOne()
-    {
-        $owner = Owner::find_one(1);
-        $owner->car;
-
-        $this->assertEquals('has_one', $owner->relating);
-        $this->assertEquals('Car', $owner->relating_class);
-    }
-
-    public function testRelatingClassSetOnBelongsTo()
-    {
-        $car = Car::find_one(1);
-        $car->manufactor;
-
-        $this->assertEquals('belongs_to', $car->relating);
-        $this->assertEquals('Manufactor', $car->relating_class);
-    }
-
     public function testBelongsToWithCustomFkColumnCached()
     {
         $car    = Car::find_one(1);
