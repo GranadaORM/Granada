@@ -273,20 +273,6 @@ class Wrapper extends ORM
     }
 
     /**
-     * Added: Reset relation deletes the relationship "where" condition.
-     *
-     * @deprecated No replacement; will be removed in a future major version.
-     *
-     * @return static
-     */
-    public function reset_relation(): static
-    {
-        array_shift($this->_where_conditions);
-
-        return $this;
-    }
-
-    /**
      * Added: Return pairs as result array('keyrecord_value'=>'valuerecord_value',.....)
      */
     public function find_pairs(false|string $key = false, false|string $value = false): array

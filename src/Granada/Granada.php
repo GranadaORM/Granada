@@ -118,46 +118,6 @@ class Granada implements ArrayAccess
     }
 
     /**
-     * The relationship type the model is currently resolving.
-     *
-     * @deprecated Instead read from the relationship e.g. $this->cars()?->kind
-     *
-     * @var string
-     */
-    public ?string $relating = null;
-
-    /**
-     * The foreign key of the "relating" relationship.
-     *
-     * @deprecated Instead read from the relationship e.g. $this->cars()?->keys
-     *
-     * @var string
-     */
-    public null|array|string $relating_key = null;
-
-    /**
-     * The table name of the model being resolved.
-     *
-     * This is used during has_many_through eager loading.
-     *
-     * @deprecated Instead read from the relationship e.g. $this->cars()?->table
-     *
-     * @var string
-     */
-    public ?string $relating_table = null;
-
-    /**
-     * The class name of the model being resolved via a relationship.
-     *
-     * Set by has_one() and belongs_to().
-     *
-     * @deprecated Instead read from the relationship e.g. $this->cars()?->class
-     *
-     * @var string|null
-     */
-    public ?string $relating_class = null;
-
-    /**
      * First and last result flags
      *
      * @var boolean
@@ -398,10 +358,6 @@ class Granada implements ArrayAccess
         $base_table_name  = self::_get_table_name(get_class($this));
         $foreign_key_name = self::_build_foreign_key_name($foreign_key_name, $base_table_name);
 
-        $this->relating       = 'has_one';
-        $this->relating_class = self::$auto_prefix_models . $associated_class_name;
-        $this->relating_key   = $foreign_key_name;
-
         return new Relationship(
             $this,
             'has_one',
@@ -422,9 +378,6 @@ class Granada implements ArrayAccess
     {
         $base_table_name  = self::_get_table_name(get_class($this));
         $foreign_key_name = self::_build_foreign_key_name($foreign_key_name, $base_table_name);
-
-        $this->relating     = 'has_many';
-        $this->relating_key = $foreign_key_name;
 
         return new Relationship(
             $this,
@@ -448,10 +401,6 @@ class Granada implements ArrayAccess
         $associated_table_name = self::_get_table_name($associated_class_name);
         $foreign_key_name      = self::_build_foreign_key_name($foreign_key_name, $associated_table_name);
         $related_key           = $foreign_key_name_in_associated_models_table ?? self::_get_id_column_name($associated_class_name);
-
-        $this->relating       = 'belongs_to';
-        $this->relating_class = $associated_class_name;
-        $this->relating_key   = $foreign_key_name;
 
         return new Relationship(
             $this,
@@ -498,10 +447,6 @@ class Granada implements ArrayAccess
         // Get the column names for each side of the join table
         $key_to_base_table       = self::_build_foreign_key_name($key_to_base_table, $base_table_name);
         $key_to_associated_table = self::_build_foreign_key_name($key_to_associated_table, $associated_table_name);
-
-        $this->relating       = 'has_many_through';
-        $this->relating_key   = [$key_to_base_table, $key_to_associated_table];
-        $this->relating_table = $join_table_name;
 
         return new Relationship(
             $this,

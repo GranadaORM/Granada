@@ -119,9 +119,6 @@ class ORM implements ArrayAccess
     /** @var array<int, Orm\Condition> */
     protected array $_where_conditions = [];
 
-    /** @var array<int, Orm\Condition> */
-    protected array $_where_conditions_stash = [];
-
     // LIMIT
     protected ?int $_limit = null;
 
@@ -1104,38 +1101,6 @@ class ORM implements ArrayAccess
             return $this; // already present, do not duplicate
         }
         $this->_having_conditions[] = $condition;
-
-        return $this;
-    }
-
-    /**
-     * Save the where conditions and clear
-     * Use pop_where to get them back
-     *
-     * @deprecated No replacement; will be removed in a future major version.
-     *
-     * @return static
-     */
-    public function stash_where(): static
-    {
-        $this->_where_conditions_stash = $this->_where_conditions;
-
-        return $this->clear_where();
-    }
-
-    /**
-     * Reinstate the stashed conditions to the end of the where list
-     *
-     * @deprecated No replacement; will be removed in a future major version.
-     *
-     * @return static
-     */
-    public function pop_where(): static
-    {
-        foreach ($this->_where_conditions_stash as $stash) {
-            $this->_where_conditions[] = $stash;
-        }
-        $this->_where_conditions_stash = [];
 
         return $this;
     }
