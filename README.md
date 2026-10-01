@@ -100,7 +100,7 @@ foreach($results as $result){
 ```
 
 Notice that if there is no result for `avatar` on the above example it will throw a `Notice: Trying to get property of non-object...`
-Note:  Maybe worth the effort to create a NULL object for this use case and others.
+Note: Maybe worth the effort to create a NULL object for this use case and others.
 
 ### Eager loading with query control
 
@@ -135,9 +135,9 @@ $owner = Owner::with_car(fn($q) => $q->select('id, manufactor_id')
 
 **Auto-included columns.** You don't need to specify the columns the ORM uses for matching. They are added automatically:
 
-| Relationship type | Column auto-added |
-|---|---|
-| `belongs_to` | The related model's primary key |
+| Relationship type     | Column auto-added                    |
+| --------------------- | ------------------------------------ |
+| `belongs_to`          | The related model's primary key      |
 | `has_one`, `has_many` | The foreign key on the related table |
 
 If you already include these columns in your `select()`, they won't be added twice.
@@ -183,7 +183,7 @@ $results = User::with(array('posts'=>array('arg1')))->find_many();
 
 ### Custom query filters
 
-It's possible to create static functions on the model to work as filter in queries. Prepended it with "filter_":
+It's possible to create static functions on the model to work as filter in queries. Prepended it with "filter\_":
 
 ```php
 use Granada\Model;
