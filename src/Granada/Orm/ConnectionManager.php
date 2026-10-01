@@ -6,6 +6,7 @@ use Granada\ORM;
 use InvalidArgumentException;
 use PDO;
 use PDOStatement;
+use Pdo\Mysql;
 
 /**
  * Owns every connection: per name the validated settings, the PDO
@@ -427,8 +428,8 @@ class ConnectionManager
 
         if (str_starts_with($this->config($connection_name)['connection_string'], 'mysql:')) {
             $this->settings[$connection_name]['driver_options'] = [
-                PDO::MYSQL_ATTR_SSL_CA                 => true,
-                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
+                Mysql::ATTR_SSL_CA                 => true,
+                Mysql::ATTR_SSL_VERIFY_SERVER_CERT => false,
             ];
         }
     }

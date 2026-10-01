@@ -2,6 +2,7 @@
 
 use Granada\ORM;
 use Granada\Orm\ConnectionManager;
+use Pdo\Mysql;
 
 class ConnectionManagerTest extends \PHPUnit\Framework\TestCase
 {
@@ -89,8 +90,8 @@ class ConnectionManagerTest extends \PHPUnit\Framework\TestCase
         $manager = new ConnectionManager('mysql:host=localhost');
 
         $this->assertSame([
-            PDO::MYSQL_ATTR_SSL_CA                 => true,
-            PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
+            Mysql::ATTR_SSL_CA                 => true,
+            Mysql::ATTR_SSL_VERIFY_SERVER_CERT => false,
         ], $manager->get_config('driver_options'));
     }
 
