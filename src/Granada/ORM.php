@@ -392,14 +392,14 @@ class ORM implements ArrayAccess
     }
 
     /**
-     * Store an interpolated query in the query log and invoke the
+     * Store an inlined query in the query log and invoke the
      * configured logger, if logging is enabled for the connection.
-     * @param string $bound_query
+     * @param string $inlined_query
      * @param string $connection_name Which connection to use
      */
-    protected static function _record_query(string $bound_query, string $connection_name): void
+    protected static function _record_query(string $inlined_query, string $connection_name): void
     {
-        self::_manager()->record_query($bound_query, $connection_name);
+        self::_manager()->record_query($inlined_query, $connection_name);
     }
 
     /**
@@ -607,22 +607,22 @@ class ORM implements ArrayAccess
         $values = $this->_values;
 
         if (count($values) === 0) {
-            $bound_query = $query;
+            $inlined_query = $query;
         } else {
             if (!self::_manager()->has_db($connection_name)) {
-                throw new \InvalidArgumentException('Cannot interpolate bound values without a database connection');
+                throw new \InvalidArgumentException('Cannot inline bound values without a database connection');
             }
 
-            $bound_query = Orm\Renderer::interpolate(
+            $inlined_query = Orm\Renderer::inline_query(
                 $query,
                 $values,
                 fn($parameter) => self::get_db($connection_name)->quote($parameter)
             );
         }
 
-        self::_record_query($bound_query, $connection_name);
+        self::_record_query($inlined_query, $connection_name);
 
-        return $bound_query;
+        return $inlined_query;
     }
 
     /**

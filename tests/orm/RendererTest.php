@@ -307,19 +307,77 @@ class RendererTest extends \PHPUnit\Framework\TestCase
         $orm->get_select_query();
     }
 
-    public function testInterpolateLeavesQuotedStringsAlone()
+    public function testInlineQueryLeavesQuotedStringsAlone()
     {
         $this->assertSame(
             "SELECT 'a?b' FROM `t` WHERE `c` = 'x'",
-            Renderer::interpolate("SELECT 'a?b' FROM `t` WHERE `c` = ?", ['x'], fn($p) => "'$p'")
+            Renderer::inline_query("SELECT 'a?b' FROM `t` WHERE `c` = ?", ['x'], fn($p) => "'$p'")
         );
     }
 
-    public function testInterpolateRendersNullAndPreservesPercentSigns()
+    public function testInlineQueryRendersNullAndPreservesPercentSigns()
     {
         $this->assertSame(
             "SELECT * FROM `t` WHERE `a` = NULL AND `b` = '100%'",
-            Renderer::interpolate('SELECT * FROM `t` WHERE `a` = ? AND `b` = ?', [null, '100%'], fn($p) => "'$p'")
+            Renderer::inline_query('SELECT * FROM `t` WHERE `a` = ? AND `b` = ?', [null, '100%'], fn($p) => "'$p'")
         );
+    }
+
+    public function testInlineQuerySkipsPlaceholderInLiteralWithEscapedQuote()
+    {
+        $this->assertSame(
+            "WHERE x = 'it\\'s ?' AND y = 'b'",
+            Renderer::inline_query("WHERE x = 'it\\'s ?' AND y = ?", ['b'], fn($p) => "'$p'")
+        );
+    }
+
+    public function testInlineQuerySkipsPlaceholderInLiteralWithDoubledQuote()
+    {
+        $this->assertSame(
+            "SELECT 'O''Brian' FROM `t` WHERE `c` = 'x'",
+            Renderer::inline_query("SELECT 'O''Brian' FROM `t` WHERE `c` = ?", ['x'], fn($p) => "'$p'")
+        );
+    }
+
+    public function testInlineQuerySkipsPlaceholderInDoubleQuotedLiteral()
+    {
+        $this->assertSame(
+            'WHERE x = "say \"?\"" AND y = \'x\'',
+            Renderer::inline_query('WHERE x = "say \"?\"" AND y = ?', ['x'], fn($p) => "'$p'")
+        );
+    }
+
+    public function testInlineQueryThrowsOnUnbalancedQuotes()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('unbalanced quotes');
+        Renderer::inline_query("WHERE a = 'unbalanced ? quote", ['x'], fn($p) => "'$p'");
+    }
+
+    public function testInlineQueryWithoutParametersReturnsQueryUnchanged()
+    {
+        $this->assertSame(
+            'SELECT 100% FROM `t`',
+            Renderer::inline_query('SELECT 100% FROM `t`', [], fn($p) => "'$p'")
+        );
+    }
+
+    public function testInlineQueryHandlesBoundValuesContainingQuotes()
+    {
+        $quote = fn($p) => "'" . str_replace("'", "''", $p) . "'";
+        $this->assertSame(
+            "SELECT * FROM `t` WHERE `name` = 'O''Brien'",
+            Renderer::inline_query('SELECT * FROM `t` WHERE `name` = ?', ["O'Brien"], $quote)
+        );
+    }
+
+    public function testGetSelectQueryThrowsOnUnbalancedQuotes()
+    {
+        ORM::set_db(new MockPDO('sqlite::memory:'));
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('unbalanced quotes');
+        ORM::for_table('person')
+            ->where_raw("name = 'unbalanced AND id = ?", [1])
+            ->get_select_query();
     }
 }

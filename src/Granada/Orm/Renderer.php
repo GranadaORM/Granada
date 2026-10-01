@@ -419,11 +419,11 @@ class Renderer
     }
 
     /**
-     * Interpolate bound parameters into a statement, outside quoted
-     * strings.
+     * Inline bound values into the query, outside quoted strings.
+     * The result is an inlined query, ready to run as-is.
      * @param array<int|string, mixed> $parameters
      */
-    public static function interpolate(string $query, array $parameters, callable $quote): string
+    public static function inline_query(string $query, array $parameters, callable $quote): string
     {
         if (count($parameters) === 0) {
             return $query;
@@ -438,11 +438,26 @@ class Renderer
 
         // Replace placeholders in the query for vsprintf
         if (str_contains($query, "'") || str_contains($query, '"')) {
-            $query = Str::str_replace_outside_quotes('?', '%s', $query);
+            $query = self::replace_placeholders_outside_quotes($query);
         } else {
             $query = str_replace('?', '%s', $query);
         }
 
         return vsprintf($query, $parameters);
+    }
+
+    private static function replace_placeholders_outside_quotes(string $query): string
+    {
+        $re_valid = '/^(?:"(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\'|[^\'"\\\\])*\z/s';
+        if (!preg_match($re_valid, $query)) {
+            throw new \InvalidArgumentException('Cannot replace ? placeholders in a query with unbalanced quotes');
+        }
+
+        // Replace ? placeholders with inline data
+        return preg_replace_callback(
+            '/"(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\'|\?/s',
+            static fn(array $matches): string => $matches[0] === '?' ? '%s' : $matches[0],
+            $query,
+        );
     }
 }
