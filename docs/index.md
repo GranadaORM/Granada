@@ -464,9 +464,9 @@ echo $car->nameNow; // will be different
 
 Use `missing_` for lightweight computations that should reflect the current state of the model on every access.
 
-### `missingonce_` prefix — Compute once and memoize
+### `missingonce_` prefix — Compute once and keep
 
-If the property does not exist in the database (null), and a `missingonce_{property}` method exists, the method is called on the **first access only**. The result is memoized and returned on all subsequent accesses within the same object lifecycle.
+If the property does not exist in the database (null), and a `missingonce_{property}` method exists, the method is called on the **first access only**. The result is kept and returned on all subsequent accesses within the same object lifecycle.
 
 This is ideal for expensive operations such as database queries that you do not expect to change within the current request.
 
@@ -479,14 +479,14 @@ class User extends Model {
 
 $user = Model::factory('User')->find_one(1);
 echo $user->orderCount; // Queries the database
-echo $user->orderCount; // Returns the memoized value (no query)
+echo $user->orderCount; // Returns the kept value (no query)
 ```
 
 Do not have both `missing_` and `missingonce_` methods exist for the same property. Order of priority may change.
 
 ### Relationships as properties
 
-If a method matching the property name exists on the model and it returns a relationship (e.g. `has_one`, `has_many`, `belongs_to`), the related model(s) are lazy-loaded on first access and memoized for subsequent access.
+If a method matching the property name exists on the model and it returns a relationship (e.g. `has_one`, `has_many`, `belongs_to`), the related model(s) are lazy-loaded on first access and kept for subsequent access.
 
 ```php
 class Car extends Model {
@@ -501,6 +501,19 @@ echo $car->manufactor->name; // No database query
 ```
 
 See the Relationships section below for more detail.
+
+### `clear_computed_values()` — Work out computed values again
+
+Lazy-loaded relationships and `missingonce_` values are kept in the model's `$relationships` array. `clear_computed_values()` drops those kept values, so the next read of each affected property works them out again.
+
+```php
+$user = Model::factory('User')->find_one(1);
+echo $user->orderCount; // Queries the database
+$user->clear_computed_values();
+echo $user->orderCount; // Queries the database again
+```
+
+Eager-loaded results (from `with()`), values routed to `$relationships` by `set()`, and values you write to `$relationships` yourself are kept.
 
 ## First and Last items in a result
 
