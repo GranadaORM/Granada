@@ -221,7 +221,7 @@ ModelName::aname($argument1, $argument2)->....
 // In the Model
 protected function set_title($value)
 {
-    $this->alias = Str::slug($value);
+    $this->alias = strtoupper($value);
     return $value;
 }
 ```

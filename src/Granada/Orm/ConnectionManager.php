@@ -255,22 +255,22 @@ class ConnectionManager
     }
 
     /**
-     * Store an interpolated query in the query log and invoke the
+     * Store an inlined query in the query log and invoke the
      * configured logger, if logging is enabled for the connection.
      * @param string $connection_name Which connection to use
      */
-    public function record_query(string $bound_query, string $connection_name): void
+    public function record_query(string $inlined_query, string $connection_name): void
     {
         if (!$this->config($connection_name)['logging']) {
             return;
         }
 
-        $this->last_query                    = $bound_query;
-        $this->query_log[$connection_name][] = $bound_query;
+        $this->last_query                    = $inlined_query;
+        $this->query_log[$connection_name][] = $inlined_query;
 
         $logger = $this->config($connection_name)['logger'];
         if (is_callable($logger)) {
-            $logger($bound_query);
+            $logger($inlined_query);
         }
     }
 
@@ -452,7 +452,7 @@ class ConnectionManager
         }
 
         $this->record_query(
-            Renderer::interpolate(
+            Renderer::inline_query(
                 $query,
                 $parameters,
                 fn($parameter) => $this->get_db($connection_name)->quote($parameter)
