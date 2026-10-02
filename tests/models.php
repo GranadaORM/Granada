@@ -105,6 +105,12 @@ class Simple extends Model {}
 class ComplexModelClassName extends Model {}
 
 /**
+ * Its numeric column has a database default, for testing that an
+ * explicitly set zero still reaches the insert.
+ */
+class Sale extends Model {}
+
+/**
  * Its table allows duplicate, null and zero ids, for testing how
  * find_many keys its results.
  */

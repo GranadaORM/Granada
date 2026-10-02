@@ -1982,14 +1982,23 @@ class ORM implements ArrayAccess
             }
             $oldval              = array_key_exists($field, $this->_data) ? $this->_data[$field] : null;
             $this->_data[$field] = $value;
-            $set_as_dirty        = $this->is_new() || $expr;
-            if (is_float($value)) {
+            $set_as_dirty        = false;
+            if ($this->is_new() || $expr) {
+                // New field or setting as an sql expression
+                $set_as_dirty = true;
+            } elseif (is_null($oldval) != is_null($value)) {
+                // If the field is changing null status
+                $set_as_dirty = true;
+            } elseif (is_float($value)) {
+                // Float comparison can have precision errors
                 $set_as_dirty = abs($oldval - $value) > 0.000_000_000_000_01;
             } elseif (is_string($oldval)) {
                 if ($oldval !== $value) {
+                    // Strings must match exactly, e.g. '0123' == '123' so need ===
                     $set_as_dirty = true;
                 }
             } elseif ($oldval != $value) {
+                // Fall back to a loose equality match
                 $set_as_dirty = true;
             }
             if ($set_as_dirty) {

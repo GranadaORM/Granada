@@ -101,6 +101,86 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertFalse($car->is_new());
     }
 
+    public function testCreateFloatZeroWritesColumnNotDefault()
+    {
+        $sale = Model::factory('Sale')->create([
+            'name'                 => 'No discount',
+            'max_discount_percent' => 0.0,
+        ]);
+        $sale->save();
+
+        $stored = ORM::for_table('sale')->find_one($sale->id);
+        $this->assertEquals(0, $stored->max_discount_percent);
+    }
+
+    public function testAssignFloatZeroAfterCreateWritesColumnNotDefault()
+    {
+        $sale = Model::factory('Sale')->create([
+            'name' => 'No discount',
+        ]);
+        $sale->max_discount_percent = 0.0;
+        $sale->save();
+
+        $stored = ORM::for_table('sale')->find_one($sale->id);
+        $this->assertEquals(0, $stored->max_discount_percent);
+    }
+
+    public function testSetExprFloatZeroOnNewRecordWritesColumnInlined()
+    {
+        $sale = Model::factory('Sale')->create();
+        $sale->set_expr('max_discount_percent', 0.0);
+        $sale->save();
+        $insert_query = ORM::get_last_query();
+
+        $stored = ORM::for_table('sale')->find_one($sale->id);
+        $this->assertEquals(0, $stored->max_discount_percent);
+
+        $this->assertStringContainsString('max_discount_percent', $insert_query);
+        $this->assertStringNotContainsString('?', $insert_query);
+    }
+
+    public function testNewRecordFloatEqualToDefaultWritten()
+    {
+        $sale = Model::factory('Sale')->create([
+            'name'                 => 'Full discount',
+            'max_discount_percent' => 100.0,
+        ]);
+        $sale->save();
+        $insert_query = ORM::get_last_query();
+        $this->assertStringContainsString('max_discount_percent', $insert_query);
+
+        $stored = ORM::for_table('sale')->find_one($sale->id);
+        $this->assertEquals(100, $stored->max_discount_percent);
+    }
+
+    public function testSavedRecordIntZeroToNullWritten()
+    {
+        $sale = Model::factory('Sale')->create([
+            'name'                 => 'Zero discount',
+            'max_discount_percent' => 0,
+        ]);
+        $sale->save();
+        $sale->max_discount_percent = null;
+        $sale->save();
+
+        $stored = ORM::for_table('sale')->find_one($sale->id);
+        $this->assertNull($stored->max_discount_percent);
+    }
+
+    public function testSavedRecordNullToFloatZeroWritten()
+    {
+        $sale = Model::factory('Sale')->create([
+            'name'                 => 'No discount yet',
+            'max_discount_percent' => null,
+        ]);
+        $sale->save();
+        $sale->max_discount_percent = 0.0;
+        $sale->save();
+
+        $stored = ORM::for_table('sale')->find_one($sale->id);
+        $this->assertSame(0.0, $stored->max_discount_percent);
+    }
+
     public function testSetterForRelationship()
     {
         $car      = Model::factory('Car')->with('manufactor')->find_one(1);
