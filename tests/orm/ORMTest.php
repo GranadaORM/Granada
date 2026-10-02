@@ -65,6 +65,42 @@ class ORMTest extends \PHPUnit\Framework\TestCase
         $model->save();
     }
 
+    public function testNewRecordSetZeroNullNanIsDirty()
+    {
+        $model       = ORM::for_table('test')->create();
+        $model->test = 0;
+        $this->assertTrue($model->is_dirty('test'));
+
+        $model       = ORM::for_table('test')->create();
+        $model->test = 0.0;
+        $this->assertTrue($model->is_dirty('test'));
+
+        $model       = ORM::for_table('test')->create();
+        $model->test = null;
+        $this->assertTrue($model->is_dirty('test'));
+
+        $model       = ORM::for_table('test')->create();
+        $model->test = NAN;
+        $this->assertTrue($model->is_dirty('test'));
+    }
+
+    public function testNewRecordSetExprFloatZeroIsDirty()
+    {
+        $model = ORM::for_table('test')->create();
+        $model->set_expr('test', 0.0);
+        $this->assertTrue($model->is_dirty('test'));
+    }
+
+    public function testSavedRecordChangedFloatIsDirty()
+    {
+        $model       = ORM::for_table('test')->create();
+        $model->test = 5.2;
+        $model->save();
+        $this->assertFalse($model->is_dirty('test'));
+        $model->test = 9.9;
+        $this->assertTrue($model->is_dirty('test'));
+    }
+
     public function testIsDirtyIntegerType()
     {
         $model = ORM::for_table('test')->create([
@@ -131,6 +167,51 @@ class ORMTest extends \PHPUnit\Framework\TestCase
         $this->assertFalse($model->is_dirty('test'));
         $model->test = null;
         $this->assertFalse($model->is_dirty('test'));
+    }
+
+    public function testIsDirtyNullTransitions()
+    {
+        $model       = ORM::for_table('test')->create();
+        $model->test = 0;
+        $model->save();
+        $model->test = null;
+        $this->assertTrue($model->is_dirty('test'));
+
+        $model       = ORM::for_table('test')->create();
+        $model->test = 0.0;
+        $model->save();
+        $model->test = null;
+        $this->assertTrue($model->is_dirty('test'));
+
+        $model       = ORM::for_table('test')->create();
+        $model->test = false;
+        $model->save();
+        $model->test = null;
+        $this->assertTrue($model->is_dirty('test'));
+
+        $model       = ORM::for_table('test')->create();
+        $model->test = null;
+        $model->save();
+        $model->test = 0;
+        $this->assertTrue($model->is_dirty('test'));
+
+        $model       = ORM::for_table('test')->create();
+        $model->test = null;
+        $model->save();
+        $model->test = 0.0;
+        $this->assertTrue($model->is_dirty('test'));
+
+        $model       = ORM::for_table('test')->create();
+        $model->test = null;
+        $model->save();
+        $model->test = '';
+        $this->assertTrue($model->is_dirty('test'));
+
+        $model       = ORM::for_table('test')->create();
+        $model->test = null;
+        $model->save();
+        $model->test = false;
+        $this->assertTrue($model->is_dirty('test'));
     }
 
     public function testArrayAccess()

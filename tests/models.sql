@@ -77,6 +77,12 @@ CREATE TABLE keyed_row_custom (
     name TEXT
 );
 
+CREATE TABLE sale (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    max_discount_percent DOUBLE DEFAULT 100
+);
+
 INSERT INTO manufactor(id,name,enabled) VALUES (1, 'Manufactor1', 1);
 INSERT INTO manufactor(id,name,enabled) VALUES (2, 'Manufactor2', 1);
 
