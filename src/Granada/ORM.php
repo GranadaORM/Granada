@@ -2095,6 +2095,11 @@ class ORM implements ArrayAccess
         // remove any expression fields as they are already baked into the query
         $values = array_values(array_diff_key($this->_dirty_fields, $this->_expr_fields));
 
+        // A new record with nothing to write would emit an INSERT with no columns
+        if ($this->_is_new && empty($values) && empty($this->_expr_fields)) {
+            throw new \InvalidArgumentException('Cannot save a new record with no fields set');
+        }
+
         if ($ignore) {
             $statement = Orm\Renderer::insert_update($this->_write_spec());
         } else {
@@ -2111,6 +2116,12 @@ class ORM implements ArrayAccess
 
         $success = self::_execute_write($statement->query, $statement->values, $this->_connection_name);
 
+        // A failed write (a silent or warning error mode returns false)
+        // leaves the record as it is, so a retry can work
+        if (!$success) {
+            return false;
+        }
+
         // If we've just inserted a new record, set the ID of this object
         if ($this->_is_new) {
             $this->_is_new = false;
@@ -2126,7 +2137,7 @@ class ORM implements ArrayAccess
         $this->_dirty_fields = [];
         $this->_clean_data   = [];
 
-        return $success;
+        return true;
     }
 
     /**
