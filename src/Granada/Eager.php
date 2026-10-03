@@ -318,17 +318,27 @@ class Eager
             ->non_associative()
             ->find_many();
 
+        // The parent list may be position-keyed, so children match by
+        // parent id, not by list position. Repeated ids mean repeated
+        // parent rows, and each of those rows gets the children.
+        $parents_by_id = [];
+        foreach ($parents as $parent) {
+            $parents_by_id[$parent->id][] = $parent;
+        }
+
         foreach ($children as $child) {
-            $related = $child[$relating_key[0]];
+            $parent_id = $child[$relating_key[0]];
             unset($child[$relating_key[0]]);  // foreign key does not belongs to the related model
 
-            if (empty($parents[$related]->relationships[$include]) && $return_result_set) {
-                $resultSetClass = $child->get_resultSetClass();
+            foreach ($parents_by_id[$parent_id] ?? [] as $parent) {
+                if (empty($parent->relationships[$include]) && $return_result_set) {
+                    $resultSetClass = $child->get_resultSetClass();
 
-                $parents[$related]->relationships[$include] = new $resultSetClass();
+                    $parent->relationships[$include] = new $resultSetClass();
+                }
+                // no associative result sets for has_many_through, so we can have multiple rows with the same primary_key
+                $parent->relationships[$include][] = $child;
             }
-            // no associative result sets for has_many_through, so we can have multiple rows with the same primary_key
-            $parents[$related]->relationships[$include][] = $child;
         }
     }
 
