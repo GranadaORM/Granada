@@ -9,7 +9,10 @@ class MockPDOStatement extends PDOStatement
 
     public function __construct() {}
 
-    public function execute($params = null) {}
+    public function execute($params = null)
+    {
+        return true;
+    }
 
     /**
      * Return some dummy data

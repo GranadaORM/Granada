@@ -101,6 +101,118 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertFalse($car->is_new());
     }
 
+    public function testSaveOnNewRecordWithNoFieldsSetThrows()
+    {
+        $car = Model::factory('Car')->create();
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cannot save a new record with no fields set');
+        $car->save();
+    }
+
+    public function testSaveOnNewRecordWithNoFieldsSetSendsNoQuery()
+    {
+        Model::factory('Car')->find_one(1);
+        $expected = ORM::get_last_query();
+
+        $car = Model::factory('Car')->create();
+
+        try {
+            $car->save();
+            $this->fail('save() on a new record with no fields set should throw');
+        } catch (\InvalidArgumentException $e) {
+        }
+
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testUpsertOnNewRecordWithNoFieldsSetThrows()
+    {
+        $car = Model::factory('Car')->create();
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cannot save a new record with no fields set');
+        $car->save(true);
+    }
+
+    public function testSaveOnNewRecordWithOnlyBlankIdThrows()
+    {
+        $car = Model::factory('Car')->create([
+            'id' => '',
+        ]);
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cannot save a new record with no fields set');
+        $car->save();
+    }
+
+    public function testSaveOnSavedRecordWithNoChangesReturnsTrue()
+    {
+        $car      = Model::factory('Car')->find_one(1);
+        $expected = ORM::get_last_query();
+
+        $this->assertTrue($car->save());
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testFailedInsertKeepsRecordNewAndDirtySoRetryWorks()
+    {
+        $db = ORM::get_db();
+        $db->exec('CREATE TABLE tagged (id INTEGER PRIMARY KEY AUTOINCREMENT, tag TEXT UNIQUE)');
+        // The write must report false instead of throwing
+        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+
+        ORM::for_table('tagged')->create(['tag' => 'one'])->save();
+
+        $row = ORM::for_table('tagged')->create(['tag' => 'one']);
+        $this->assertFalse($row->save());
+        $this->assertTrue($row->is_new());
+        $this->assertTrue($row->is_dirty('tag'));
+
+        $row->set('tag', 'two');
+        $this->assertTrue($row->save());
+        $this->assertFalse($row->is_new());
+        $this->assertFalse($row->is_dirty('tag'));
+        $this->assertEquals(2, ORM::for_table('tagged')->count());
+    }
+
+    public function testFailedUpdateKeepsDirtyStateSoRetryWorks()
+    {
+        $db = ORM::get_db();
+        $db->exec('CREATE TABLE tagged (id INTEGER PRIMARY KEY AUTOINCREMENT, tag TEXT UNIQUE)');
+        // The write must report false instead of throwing
+        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+
+        ORM::for_table('tagged')->create(['tag' => 'one'])->save();
+        $row = ORM::for_table('tagged')->create(['tag' => 'two']);
+        $row->save();
+
+        $row->set('tag', 'one');
+        $this->assertFalse($row->save());
+        $this->assertTrue($row->is_dirty('tag'));
+
+        $row->set('tag', 'three');
+        $this->assertTrue($row->save());
+        $this->assertFalse($row->is_dirty('tag'));
+        $this->assertEquals('three', ORM::for_table('tagged')->find_one($row->id)->tag);
+    }
+
+    public function testFailedInsertThrowsAndKeepsStateInExceptionMode()
+    {
+        ORM::get_db()->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        $car = Model::factory('Car')->create([
+            'id'   => 1,
+            'name' => 'Duplicate',
+        ]);
+
+        try {
+            $car->save();
+            $this->fail('A failed insert should throw in exception error mode');
+        } catch (\PDOException $e) {
+        }
+
+        $this->assertTrue($car->is_new());
+        $this->assertTrue($car->is_dirty('name'));
+    }
+
     public function testCreateFloatZeroWritesColumnNotDefault()
     {
         $sale = Model::factory('Sale')->create([
