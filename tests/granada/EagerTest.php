@@ -2,6 +2,7 @@
 
 use Granada\ORM;
 use Granada\Model;
+use Granada\ResultSet;
 
 /**
  * Testing eager loading
@@ -586,5 +587,158 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $car1 = Car::with('manufactor')->find_one(1);
 
         $this->assertNull($car1->manufactor);
+    }
+
+    /**
+     * Eager and lazy loading must hold the same type, with child rows
+     * or without.
+     */
+    public function testEagerLoadedEmptyHasManyMatchesLazyLoading()
+    {
+        ORM::get_db()->exec("INSERT INTO manufactor(id, name, enabled) VALUES (3, 'Manufactor3', 1)");
+
+        $lazy  = Manufactor::find_one(3)->cars;
+        $eager = Manufactor::with('cars')->find_one(3)->cars;
+
+        $this->assertInstanceOf(ResultSet::class, $lazy);
+        $this->assertInstanceOf(ResultSet::class, $eager);
+        $this->assertSame(get_class($lazy), get_class($eager));
+        $this->assertCount(0, $eager);
+        $this->assertSame([], $eager->as_array());
+
+        $iterated = [];
+        foreach ($eager as $car) {
+            $iterated[] = $car;
+        }
+        $this->assertSame([], $iterated);
+    }
+
+    public function testEagerLoadedEmptyHasManyWithPlainArrayResults()
+    {
+        ORM::configure('return_result_sets', false);
+        ORM::get_db()->exec("INSERT INTO manufactor(id, name, enabled) VALUES (3, 'Manufactor3', 1)");
+
+        $lazy  = Manufactor::find_one(3)->cars;
+        $eager = Manufactor::with('cars')->find_one(3)->cars;
+
+        $this->assertIsArray($lazy);
+        $this->assertIsArray($eager);
+        $this->assertSame([], $eager);
+    }
+
+    public function testEagerHasManyMatchesPositionKeyedParentsById()
+    {
+        ORM::get_db()->exec("INSERT INTO manufactor(id, name, enabled) VALUES (3, 'Manufactor3', 1)");
+
+        $manufactors = Manufactor::non_associative()->with('cars')->find_many();
+
+        $withCars    = $manufactors[0]->cars;
+        $withoutCars = $manufactors[2]->cars;
+
+        $this->assertSame([1 => 'Car1', 2 => 'Car2'], array_map(fn($car) => $car->name, $withCars->as_array()));
+        $this->assertInstanceOf(ResultSet::class, $withoutCars);
+        $this->assertCount(0, $withoutCars);
+        $this->assertNotSame($withCars, $withoutCars);
+    }
+
+    public function testEagerHasManyMatchesPositionKeyedParentsWithPlainArrays()
+    {
+        ORM::configure('return_result_sets', false);
+        ORM::get_db()->exec("INSERT INTO manufactor(id, name, enabled) VALUES (3, 'Manufactor3', 1)");
+
+        $manufactors = Manufactor::non_associative()->with('cars')->find_many();
+
+        $this->assertSame([1 => 'Car1', 2 => 'Car2'], array_map(fn($car) => $car->name, $manufactors[0]->cars));
+        $this->assertSame([], $manufactors[2]->cars);
+    }
+
+    public function testEagerHasOneMatchesPositionKeyedParentsById()
+    {
+        $owners = Owner::non_associative()->with('car')->find_many();
+
+        $carNames = [];
+        foreach ($owners as $owner) {
+            $carNames[] = $owner->car === null ? null : $owner->car->name;
+        }
+
+        $this->assertSame(['Car1', 'Car2', 'Car3', 'Car4'], $carNames);
+    }
+
+    public function testEagerLoadedEmptyHasManyThroughMatchesLazyLoading()
+    {
+        $lazy  = Car::find_one(6)->parts;
+        $eager = Car::with('parts')->find_one(6)->parts;
+
+        $this->assertInstanceOf(ResultSet::class, $lazy);
+        $this->assertInstanceOf(ResultSet::class, $eager);
+        $this->assertSame(get_class($lazy), get_class($eager));
+        $this->assertCount(0, $eager);
+        $this->assertSame([], $eager->as_array());
+
+        $iterated = [];
+        foreach ($eager as $part) {
+            $iterated[] = $part;
+        }
+        $this->assertSame([], $iterated);
+    }
+
+    public function testEagerLoadedEmptyHasManyThroughWithPlainArrayResults()
+    {
+        ORM::configure('return_result_sets', false);
+
+        $lazy  = Car::find_one(6)->parts;
+        $eager = Car::with('parts')->find_one(6)->parts;
+
+        $this->assertIsArray($lazy);
+        $this->assertIsArray($eager);
+        $this->assertSame([], $eager);
+    }
+
+    public function testEagerValueTypeDoesNotDependOnChildRows()
+    {
+        ORM::get_db()->exec("INSERT INTO manufactor(id, name, enabled) VALUES (3, 'Manufactor3', 1)");
+
+        $manufactors = Manufactor::with('cars')->find_many()->as_array();
+
+        $withCars    = $manufactors[1]->cars;
+        $withoutCars = $manufactors[3]->cars;
+
+        $this->assertInstanceOf(ResultSet::class, $withCars);
+        $this->assertInstanceOf(ResultSet::class, $withoutCars);
+        $this->assertSame([1 => 'Car1', 2 => 'Car2'], array_map(fn($car) => $car->name, $withCars->as_array()));
+        $this->assertCount(0, $withoutCars);
+        $this->assertNotSame($withCars, $withoutCars);
+    }
+
+    public function testChainedEagerLoadKeepsEmptyNestedRelationshipAResultSet()
+    {
+        ORM::get_db()->exec("INSERT INTO manufactor(id, name, enabled) VALUES (3, 'Manufactor3', 1)");
+        ORM::get_db()->exec(
+            'INSERT INTO car(id, name, manufactor_id, owner_id, manufacture_date, enabled, is_deleted)'
+            . " VALUES (7, 'Car7', 3, 1, '2026-01-01', 1, 0)"
+        );
+
+        $manufactor = Manufactor::with('cars.parts')->find_one(3);
+
+        $cars = $manufactor->cars->as_array();
+        $this->assertSame([7 => 'Car7'], array_map(fn($car) => $car->name, $cars));
+
+        $parts = $cars[7]->parts;
+        $this->assertInstanceOf(ResultSet::class, $parts);
+        $this->assertCount(0, $parts);
+        $this->assertSame([], $parts->as_array());
+    }
+
+    public function testEagerEmptyRelationshipUsesTheRelatedModelResultSetClass()
+    {
+        ORM::get_db()->exec("INSERT INTO gadget(id, name, enabled, hidden) VALUES (5, 'Gadget5', 1, 0)");
+
+        $empty = GadgetWithCustomResultSet::with('custom_widgets')->find_one(5)->custom_widgets;
+        $full  = GadgetWithCustomResultSet::with('custom_widgets')->find_one(1)->custom_widgets;
+
+        $this->assertInstanceOf(CustomResultSet::class, $empty);
+        $this->assertCount(0, $empty);
+        $this->assertInstanceOf(CustomResultSet::class, $full);
+        $this->assertSame([1 => 'Widget1', 2 => 'Widget2'], array_map(fn($widget) => $widget->name, $full->as_array()));
     }
 }

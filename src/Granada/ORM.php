@@ -640,6 +640,19 @@ class ORM implements ArrayAccess
     }
 
     /**
+     * The class to hold results in: the given class when it extends
+     * Granada\ResultSet, Granada\ResultSet otherwise.
+     */
+    public static function _result_set_class(string $resultSetClass): string
+    {
+        if (is_a($resultSetClass, ResultSet::class, true)) {
+            return $resultSetClass;
+        }
+
+        return ResultSet::class;
+    }
+
+    /**
      * Tell the ORM that you are expecting multiple results
      * from your query, and execute it. Will return a result set object
      * containing instances of the ORM class.
@@ -647,14 +660,9 @@ class ORM implements ArrayAccess
      */
     public function find_result_set(): ResultSet
     {
-        $resultSetClass = $this->resultSetClass;
-        if (is_a($resultSetClass, 'Granada\ResultSet', true)) {
-            $result = new $resultSetClass($this->_find_many());
-        } else {
-            $result = new ResultSet($this->_find_many());
-        }
+        $resultSetClass = self::_result_set_class($this->resultSetClass);
 
-        return $result;
+        return new $resultSetClass($this->_find_many());
     }
 
     /**
