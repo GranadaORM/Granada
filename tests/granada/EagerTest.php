@@ -23,6 +23,10 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         // Create schemas and populate with data
         ORM::get_db()->exec(file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'models.sql'));
 
+        // Restore the default config so a test that turns a setting off
+        // does not leak it into the next test
+        ORM::configure('return_result_sets', true);
+
         // Enable logging
         ORM::configure('logging', true);
     }
@@ -325,6 +329,78 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         }
         // NO FATAL ERRORS OR EXCEPTIONS THROW
         $this->assertInstanceOf('Granada\Model', $car);
+    }
+
+    /**
+     * The car's parts as rows of [iteration position, part name, car names].
+     */
+    private function partRows(Model $car): array
+    {
+        $rows = [];
+        foreach ($car->parts as $position => $part) {
+            $cars = [];
+            foreach ($part->cars as $partCar) {
+                $cars[] = $partCar->name;
+            }
+            $rows[] = [$position, $part->name, $cars];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * The through child list is position-keyed, so the eager loader must
+     * match children to parents by id, not by list position.
+     */
+    public function testChainedHasManyThroughAssignsCarsToTheRightParts()
+    {
+        $car = Car::with(['parts' => ['with' => 'cars']])->find_one(1);
+
+        $this->assertSame([
+            [0, 'Part1', ['Car1', 'Car2', 'Car3', 'Car4', 'Car1']],
+            [1, 'Part2', ['Car1']],
+            [2, 'Part1', ['Car1', 'Car2', 'Car3', 'Car4', 'Car1']],
+        ], $this->partRows($car));
+    }
+
+    /**
+     * Car 4 has no part at its own list position, so a position-based
+     * match corrupts the parts and then crashes on a missing row.
+     */
+    public function testChainedHasManyThroughOnCarWithoutIdAtOwnPosition()
+    {
+        $car = Car::with(['parts' => ['with' => 'cars']])->find_one(4);
+
+        $this->assertSame([
+            [0, 'Part1', ['Car1', 'Car2', 'Car3', 'Car4', 'Car1']],
+            [1, 'Part5', ['Car4']],
+        ], $this->partRows($car));
+    }
+
+    public function testChainedHasManyThroughEagerMatchesLazy()
+    {
+        $lazy  = $this->partRows(Car::find_one(1));
+        $eager = $this->partRows(Car::with(['parts' => ['with' => 'cars']])->find_one(1));
+
+        $this->assertSame([
+            [0, 'Part1', ['Car1', 'Car2', 'Car3', 'Car4', 'Car1']],
+            [1, 'Part2', ['Car1']],
+            [2, 'Part1', ['Car1', 'Car2', 'Car3', 'Car4', 'Car1']],
+        ], $eager);
+        $this->assertSame($lazy, $eager);
+    }
+
+    public function testChainedHasManyThroughWithPlainArrayResults()
+    {
+        ORM::configure('return_result_sets', false);
+
+        $car = Car::with(['parts' => ['with' => 'cars']])->find_one(1);
+
+        $this->assertSame([
+            [0, 'Part1', ['Car1', 'Car2', 'Car3', 'Car4', 'Car1']],
+            [1, 'Part2', ['Car1']],
+            [2, 'Part1', ['Car1', 'Car2', 'Car3', 'Car4', 'Car1']],
+        ], $this->partRows($car));
     }
 
     public function testWithMagicBelongsToSelect()
