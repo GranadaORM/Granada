@@ -1,6 +1,7 @@
 <?php
 
 use Granada\Model;
+use Granada\ResultSet;
 
 /**
  * Models for use during test of eager loading
@@ -260,6 +261,24 @@ class Widget extends Model
     public function kits()
     {
         return $this->has_many_through('Kit');
+    }
+}
+
+class CustomResultSet extends ResultSet {}
+
+class WidgetWithCustomResultSet extends Model
+{
+    public static $_table                = 'widget';
+    public static string $resultSetClass = CustomResultSet::class;
+}
+
+class GadgetWithCustomResultSet extends Model
+{
+    public static $_table = 'gadget';
+
+    public function custom_widgets()
+    {
+        return $this->has_many('WidgetWithCustomResultSet');
     }
 }
 

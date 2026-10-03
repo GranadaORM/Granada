@@ -146,28 +146,38 @@ class Eager
             $query->with($include['with']);
         }
 
-        // Initialize the relationship attribute on the parents. As expected, "many" relationships
-        // are initialized to an array and "one" relationships are initialized to null.
-        // added: many relationships are reset to array since we don't know yet the resultSet applicable
+        $result_set_class = null;
+        if ($return_result_set) {
+            $result_set_class = ORM::_result_set_class($relationship->class::$resultSetClass);
+        }
+
+        // Eager and lazy loading must hold the same type. "Many"
+        // relationships start as an empty result set when
+        // return_result_sets is on, an empty array when it is off.
+        // "One" relationships start as null.
         foreach ($parents as &$parent) {
-            $parent->relationships[$include['name']] = (in_array($relationship->kind, ['has_many', 'has_many_through'])) ? [] : null;
+            if (in_array($relationship->kind, ['has_many', 'has_many_through'])) {
+                $parent->relationships[$include['name']] = $result_set_class === null ? [] : new $result_set_class();
+            } else {
+                $parent->relationships[$include['name']] = null;
+            }
         }
 
         switch ($relationship->kind) {
             case 'has_one':
-                self::has_one($query, $parents, $relationship->keys[0], $include['name'], $return_result_set);
+                self::has_one($query, $parents, $relationship->keys[0], $include['name']);
                 break;
 
             case 'has_many':
-                self::has_many($query, $parents, $relationship->keys[0], $include['name'], $return_result_set);
+                self::has_many($query, $parents, $relationship->keys[0], $include['name']);
                 break;
 
             case 'belongs_to':
-                self::belongs_to($query, $parents, $relationship->keys[0], $include['name'], $return_result_set);
+                self::belongs_to($query, $parents, $relationship->keys[0], $include['name']);
                 break;
 
             default:
-                self::has_many_through($query, $parents, $relationship->keys, $relationship->table, $include['name'], $return_result_set);
+                self::has_many_through($query, $parents, $relationship->keys, $relationship->table, $include['name']);
         }
     }
 
@@ -180,38 +190,20 @@ class Eager
      * @param  string  $include
      * @return void
      */
-    private static function has_one(Orm\Wrapper $relationship, array|ResultSet &$parents, array|string $relating_key, string $include, bool $return_result_set): void
+    private static function has_one(Orm\Wrapper $relationship, array|ResultSet &$parents, array|string $relating_key, string $include): void
     {
         $keys    = static::getKeys($parents);
         $related = $relationship->where_in($relating_key, $keys)->find_many();
 
-        // if parents is not a associative array
-        if (array_key_first((array) $parents) === 0) {
-            $results = [];
-            foreach ($related as $key => $child) {
-                if (isset($results[$child[$relating_key]])) {
+        $parents_by_id = self::parents_by_id($parents);
+
+        foreach ($related as $child) {
+            foreach ($parents_by_id[$child[$relating_key]] ?? [] as $parent) {
+                if (isset($parent->relationships[$include])) {
                     continue;
                 }
 
-                $results[$child[$relating_key]] = $child;
-            }
-
-            foreach ($parents as $p_key => $parent) {
-                foreach ($results as $r_key => $result) {
-                    if ($parent->id != $r_key) {
-                        continue;
-                    }
-
-                    $parents[$p_key]->relationships[$include] = $result;
-                }
-            }
-        } else {
-            foreach ($related as $key => $child) {
-                if (isset($parents[$child->$relating_key]->relationships[$include])) {
-                    continue;
-                }
-
-                $parents[$child->$relating_key]->relationships[$include] = $child;
+                $parent->relationships[$include] = $child;
             }
         }
     }
@@ -225,45 +217,35 @@ class Eager
      * @param  string  $include
      * @return void
      */
-    private static function has_many(Orm\Wrapper $relationship, array|ResultSet &$parents, array|string $relating_key, string $include, bool $return_result_set): void
+    private static function has_many(Orm\Wrapper $relationship, array|ResultSet &$parents, array|string $relating_key, string $include): void
     {
         $keys    = static::getKeys($parents);
         $related = $relationship->where_in($relating_key, $keys)->find_many();
 
-        // if parents is not a associative array
-        if (array_key_first((array) $parents) === 0) {
-            $results = [];
-            foreach ($related as $key => $child) {
-                if (empty($results[$child[$relating_key]]) && $return_result_set) {
-                    $resultSetClass = $child->get_resultSetClass();
+        $parents_by_id = self::parents_by_id($parents);
 
-                    $results[$child[$relating_key]] = new $resultSetClass();
-                }
-                $results[$child[$relating_key]][$child->id] = $child;
-            }
-
-            foreach ($parents as $p_key => $parent) {
-                foreach ($results as $r_key => $result) {
-                    if ($parent->id != $r_key) {
-                        continue;
-                    }
-
-                    $parents[$p_key]->relationships[$include] = $result;
-                }
-            }
-        } else {
-            // if parents is an associative array
-            foreach ($related as $key => $child) {
-                // if resultSet must be returned, create it if the relationships key is not defined
-                if (empty($parents[$child[$relating_key]]->relationships[$include]) && $return_result_set) {
-                    $resultSetClass = $child->get_resultSetClass();
-
-                    $parents[$child->$relating_key]->relationships[$include] = new $resultSetClass();
-                }
-                // add the instance to the relationship array-resultSet
-                $parents[$child->$relating_key]->relationships[$include][$child->id()] = $child;
+        foreach ($related as $child) {
+            foreach ($parents_by_id[$child[$relating_key]] ?? [] as $parent) {
+                $parent->relationships[$include][$child->id] = $child;
             }
         }
+    }
+
+    /**
+     * The parents grouped by id. A repeated id lists every parent row
+     * with that id.
+     *
+     * @param  array|ResultSet  $parents
+     * @return array<int|string, array>
+     */
+    private static function parents_by_id(array|ResultSet $parents): array
+    {
+        $parents_by_id = [];
+        foreach ($parents as $parent) {
+            $parents_by_id[$parent->id][] = $parent;
+        }
+
+        return $parents_by_id;
     }
 
     /**
@@ -275,7 +257,7 @@ class Eager
      * @param  string  $include
      * @return void
      */
-    private static function belongs_to(Orm\Wrapper $relationship, array|ResultSet &$parents, string $relating_key, string $include, bool $return_result_set): void
+    private static function belongs_to(Orm\Wrapper $relationship, array|ResultSet &$parents, string $relating_key, string $include): void
     {
         $keys = [];
         foreach ($parents as &$parent) {
@@ -308,7 +290,7 @@ class Eager
      *
      * @return void
      */
-    private static function has_many_through(Orm\Wrapper $relationship, array|ResultSet &$parents, array $relating_key, string $relating_table, string $include, bool $return_result_set): void
+    private static function has_many_through(Orm\Wrapper $relationship, array|ResultSet &$parents, array $relating_key, string $relating_table, string $include): void
     {
         $keys = static::getKeys($parents);
 
@@ -321,21 +303,13 @@ class Eager
         // The parent list may be position-keyed, so children match by
         // parent id, not by list position. Repeated ids mean repeated
         // parent rows, and each of those rows gets the children.
-        $parents_by_id = [];
-        foreach ($parents as $parent) {
-            $parents_by_id[$parent->id][] = $parent;
-        }
+        $parents_by_id = self::parents_by_id($parents);
 
         foreach ($children as $child) {
             $parent_id = $child[$relating_key[0]];
             unset($child[$relating_key[0]]);  // foreign key does not belongs to the related model
 
             foreach ($parents_by_id[$parent_id] ?? [] as $parent) {
-                if (empty($parent->relationships[$include]) && $return_result_set) {
-                    $resultSetClass = $child->get_resultSetClass();
-
-                    $parent->relationships[$include] = new $resultSetClass();
-                }
                 // no associative result sets for has_many_through, so we can have multiple rows with the same primary_key
                 $parent->relationships[$include][] = $child;
             }
