@@ -2,10 +2,11 @@
 
 use Granada\ORM;
 use Granada\Orm\Dialect;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 class DialectTest extends \PHPUnit\Framework\TestCase
 {
-    public function driverFamilies()
+    public static function driverFamilies()
     {
         return [
             'mysql'    => ['mysql', '`', ORM::LIMIT_STYLE_LIMIT, 'LIMIT', 'OFFSET'],
@@ -20,9 +21,7 @@ class DialectTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    /**
-     * @dataProvider driverFamilies
-     */
+    #[DataProvider('driverFamilies')]
     public function testFamilyFacts($driver_name, $quote_character, $limit_clause_style, $limit_keyword, $offset_keyword)
     {
         $dialect = Dialect::for_driver($driver_name);
