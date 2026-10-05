@@ -54,6 +54,18 @@ class RowHydrator
     }
 
     /**
+     * The instance for one raw row, with no array key.
+     *
+     * @param array<string, mixed> $row
+     */
+    public function instance(array $row): Granada|ORM
+    {
+        $this->resolve_connection();
+
+        return ($this->row_instance)($row);
+    }
+
+    /**
      * Loads the query's eager relationships onto the instances. Empty
      * results pass through untouched.
      *

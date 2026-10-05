@@ -102,6 +102,68 @@ foreach($results as $result){
 Notice that if there is no result for `avatar` on the above example it will throw a `Notice: Trying to get property of non-object...`
 Note: Maybe worth the effort to create a NULL object for this use case and others.
 
+### Lazy finds
+
+`find_many_lazy()` is `find_many()` for big tables. Use it when the
+result is too big to hold in memory, for example a report over many
+thousands of rows. The loop looks the same, but your script holds
+one model at a time:
+
+```php
+foreach (User::where('active', 1)->find_many_lazy() as $id => $user) {
+    echo $user->name;
+}
+```
+
+The order and the array keys are the same as `find_many()` gives
+you.
+
+#### The chunk size
+
+The method loads the rows in chunks. The first argument is the chunk
+size. The default is 1000:
+
+```php
+// 200 rows per query
+foreach (User::find_many_lazy(200) as $user) { ... }
+```
+
+A smaller chunk uses less memory and runs more queries. A bigger
+chunk does the opposite. The results you get are identical.
+
+#### Eager loading
+
+`with()` works as usual. The relationship query runs once per chunk,
+not once per model:
+
+```php
+foreach (Car::with('parts')->find_many_lazy() as $car) {
+    echo $car->parts[0]->name;
+}
+```
+
+#### Loop only once
+
+The method returns a generator. A generator cannot restart. To loop
+again, call `find_many_lazy()` again. Each call runs the queries
+again, so the data may have changed.
+
+#### Queries the method refuses
+
+The method throws an exception when the query has one of these:
+
+- `group_by()` — the method loads each row by its id, and a grouped
+  row has no single id
+- `raw_query()` — the method loads the rows by rebuilding the query,
+  and it cannot rebuild raw SQL
+- a `join()` plus a custom `select()` — the rows are loaded from the
+  table alone, so the select may only name that table's columns
+
+If you turned on `return_result_sets`, it does not apply here: the
+method always returns a generator.
+
+For small results, keep using `find_many()`.
+
 ### Eager loading with query control
 
 Use `with_{relation}()` to eager-load a relationship and optionally configure the query via a callback:
