@@ -218,6 +218,19 @@ class Wrapper extends ORM
         return $this->_row_hydrator()->many($this, parent::find_many(), $return_result_set);
     }
 
+    /**
+     * The lazy find's eager loads run once per chunk, against that
+     * chunk's parents. return_result_sets never applies: the walk
+     * generates models one at a time, so the chunk stays an array.
+     *
+     * @param array<int|string, ORM|Granada> $instances
+     * @return array<int|string, ORM|Granada>
+     */
+    protected function _lazy_eager_load(array $instances): array
+    {
+        return $this->_row_hydrator()->many($this, $instances, false);
+    }
+
     protected function _row_hydrator(): RowHydrator
     {
         return new RowHydrator(

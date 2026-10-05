@@ -588,6 +588,45 @@ class ORM implements ArrayAccess
     }
 
     /**
+     * Return a generator that retrieves the records on demand, one
+     * model at a time, with identical results as find_many(). The
+     * rows load in chunks of $chunk_size (default 1000); only the
+     * list of row ids stays in memory.
+     *
+     * The generator is single use: to loop again, call
+     * find_many_lazy() again, and every query runs again.
+     * return_result_sets does not apply.
+     *
+     * group_by, raw_query() and a join with a custom select() throw
+     * before any query runs.
+     *
+     * @param int $chunk_size How many rows to load per query.
+     * @return \Generator<int|string, ORM|Granada>
+     */
+    public function find_many_lazy(int $chunk_size = 1000): \Generator
+    {
+        if ($this->_group_by !== []) {
+            throw new \InvalidArgumentException('find_many_lazy cannot run a grouped query: one row must be one id');
+        }
+
+        if ($this->_is_raw_query) {
+            throw new \InvalidArgumentException('find_many_lazy cannot run a raw query: build the query with the chain methods');
+        }
+
+        // The rows load from the table alone, so a select() naming
+        // another table's columns cannot run.
+        if ($this->_join_sources !== [] && !$this->_using_default_result_columns) {
+            throw new \InvalidArgumentException('find_many_lazy cannot run a query with a join and a custom select()');
+        }
+
+        if ($chunk_size < 1) {
+            throw new \InvalidArgumentException('Chunk size must be at least 1');
+        }
+
+        return $this->_lazy_walk($chunk_size);
+    }
+
+    /**
      * Perform a find_many then map the results through a function
      * @param callable $func
      */
@@ -637,6 +676,142 @@ class ORM implements ArrayAccess
         $rows = $this->_run();
 
         return $this->_row_hydrator()->instances($rows);
+    }
+
+    /**
+     * Generate the records: the first query fetches the ids of all
+     * the rows, then the full rows load in chunks on demand.
+     * @return \Generator<int|string, ORM|Granada>
+     */
+    private function _lazy_walk(int $chunk_size): \Generator
+    {
+        $id_column = $this->_get_id_column_name();
+
+        $id_query = clone $this;
+        // With joins on the query, a bare id column is ambiguous, so
+        // the id pass qualifies it, as where() does.
+        $id_pass_column = $id_column;
+        if ($this->_join_sources !== []) {
+            $id_pass_column = ($this->_table_alias ?? $this->_table_name) . '.' . $id_column;
+        }
+        $id_query->_result_columns               = [$this->_quote_identifier($id_pass_column)];
+        $id_query->_using_default_result_columns = false;
+
+        // The id rows stream straight into the list, so the id pass
+        // never holds its whole result in memory.
+        $ids = [];
+        self::_execute($id_query->_build_select(), $id_query->_values, $this->_connection_name);
+        $statement = self::get_last_statement();
+        while ($row = $statement->fetch(PDO::FETCH_ASSOC)) {
+            $ids[] = $row[$id_column];
+        }
+
+        // The id column is fetched for matching and dropped again
+        // when the caller's select() did not include it, so the
+        // models come back as find_many() would build them.
+        $id_hidden = !$this->_using_default_result_columns
+            && !in_array($this->_quote_identifier($id_column), $this->_result_columns, true);
+
+        $hydrator    = $this->_row_hydrator();
+        $keyed_by_id = $this->_associative_results && $this->_instance_id_column !== null;
+        $chunk_start = 0;
+
+        foreach (array_chunk($ids, $chunk_size) as $chunk_ids) {
+            $chunk_rows = $this->_lazy_chunk_rows($chunk_ids, $id_column, $id_hidden);
+
+            $instances = [];
+            foreach ($chunk_rows as $index => $row) {
+                $instances[$index] = $hydrator->instance($row);
+            }
+            $instances = $this->_lazy_eager_load($instances);
+
+            foreach ($instances as $index => $instance) {
+                // The instance's own id. When the select() left the
+                // id out, the key falls back to the position, as
+                // find_many does.
+                $id  = $instance->id();
+                $key = ($keyed_by_id && $id) ? $id : $chunk_start + $index;
+
+                yield $key => $instance;
+            }
+
+            $chunk_start += count($chunk_ids);
+        }
+    }
+
+    /**
+     * The rows for one chunk of ids, in id-pass order, keyed by the
+     * position of each id in the chunk. A row whose id no longer
+     * matches — it was deleted between the two queries — is skipped.
+     *
+     * @param array<int, mixed> $chunk_ids
+     * @return array<int, array<string, mixed>>
+     */
+    private function _lazy_chunk_rows(array $chunk_ids, string $id_column, bool $id_hidden): array
+    {
+        $id_values = array_values(array_filter($chunk_ids, fn($id) => $id !== null));
+
+        // Each row loads by id from the table alone, so the clone
+        // drops the joins, filters, order, limit and offset. A new
+        // query clause must be listed here or it leaks in.
+        $query                     = clone $this;
+        $query->_join_sources      = [];
+        $query->_where_conditions  = [];
+        $query->_having_conditions = [];
+        $query->_order_by          = [];
+        $query->_limit             = null;
+        $query->_offset            = null;
+        $query->_distinct          = false;
+
+        if ($id_hidden) {
+            $query->_result_columns = [$this->_quote_identifier($id_column), ...$query->_result_columns];
+        }
+
+        $query->where_in($id_column, $id_values);
+
+        $rows_by_id = [];
+        $null_rows  = [];
+        foreach ($query->_run() as $row) {
+            $id = $row[$id_column] ?? null;
+            if ($id_hidden) {
+                unset($row[$id_column]);
+            }
+            if ($id === null) {
+                $null_rows[] = $row;
+            } else {
+                // An id repeated in the chunk matches several rows,
+                // and every occurrence generates its own row.
+                $rows_by_id[$id][] = $row;
+            }
+        }
+
+        $rows = [];
+        foreach ($chunk_ids as $index => $id) {
+            $row = null;
+            if ($id === null) {
+                $row = array_shift($null_rows);
+            } elseif (isset($rows_by_id[$id])) {
+                $row = array_shift($rows_by_id[$id]);
+            }
+            if ($row === null) {
+                continue;
+            }
+            $rows[$index] = $row;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * The eager loads for one chunk's instances. Meant to be
+     * overridden by subclasses that hold relationships.
+     *
+     * @param array<int|string, ORM|Granada> $instances
+     * @return array<int|string, ORM|Granada>
+     */
+    protected function _lazy_eager_load(array $instances): array
+    {
+        return $instances;
     }
 
     /**
