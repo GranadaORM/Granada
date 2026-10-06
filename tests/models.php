@@ -112,6 +112,12 @@ class ComplexModelClassName extends Model {}
 class Sale extends Model {}
 
 /**
+ * Its name column is unique, for testing transaction rollback on a
+ * mid-loop insert failure.
+ */
+class Tag extends Model {}
+
+/**
  * Its table allows duplicate, null and zero ids, for testing how
  * find_many keys its results.
  */

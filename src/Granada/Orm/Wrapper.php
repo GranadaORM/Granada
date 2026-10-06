@@ -181,14 +181,14 @@ class Wrapper extends ORM
     /** @param array<int, array<string, mixed>> $rows */
     public function insert(array $rows, bool $ignore = false): false|string
     {
-        ORM::get_db()->beginTransaction();
         $class = $this->_class_name;
-        foreach ($rows as $row) {
-            $class::create($row)->save($ignore);
-        }
-        ORM::get_db()->commit();
+        ORM::transaction(function () use ($rows, $ignore, $class): void {
+            foreach ($rows as $row) {
+                $class::create($row)->save($ignore);
+            }
+        }, $this->_connection_name);
 
-        return ORM::get_db()->lastInsertId();
+        return ORM::get_db($this->_connection_name)->lastInsertId();
     }
 
     /**

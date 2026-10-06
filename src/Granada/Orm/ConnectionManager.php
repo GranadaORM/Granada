@@ -64,6 +64,10 @@ class ConnectionManager
     /** @var array<string, Dialect> */
     private array $dialect_cache = [];
 
+    // Only a depth of one touches the database
+    /** @var array<string, int> */
+    private array $transaction_depth = [];
+
     // Reference to previously used PDOStatement object to enable low-level access, if needed
     private ?PDOStatement $last_statement = null;
 
@@ -145,6 +149,8 @@ class ConnectionManager
     {
         $this->config($connection_name);
         $this->db[$connection_name] = $db;
+        // A new handle never carries an open transaction
+        $this->transaction_depth[$connection_name] = 0;
 
         if ($db === null) {
             $this->facts[$connection_name] = [];
@@ -192,6 +198,77 @@ class ConnectionManager
     }
 
     /**
+     * Run the callable inside one transaction on the connection.
+     * Success commits and returns the callable's return value; a
+     * thrown exception rolls the work back and rethrows. A call
+     * inside an open transaction joins the outermost one.
+     * @param callable $fn
+     * @param string $connection_name Which connection to use
+     */
+    public function transaction(callable $fn, string $connection_name = self::DEFAULT_CONNECTION): mixed
+    {
+        $this->beginTransaction($connection_name);
+
+        try {
+            $result = $fn();
+        } catch (\Throwable $e) {
+            // A nested failure already rolled the whole transaction back
+            if ($this->get_db($connection_name)->inTransaction()) {
+                $this->rollBack($connection_name);
+            }
+
+            throw $e;
+        }
+        $this->commit($connection_name);
+
+        return $result;
+    }
+
+    /**
+     * Begin a transaction on the connection. A call inside an open
+     * transaction joins the outermost one and begins nothing.
+     * @param string $connection_name Which connection to use
+     */
+    public function beginTransaction(string $connection_name = self::DEFAULT_CONNECTION): void
+    {
+        $depth = $this->transaction_depth[$connection_name] ?? 0;
+        if ($depth === 0) {
+            $this->get_db($connection_name)->beginTransaction();
+        }
+
+        $this->transaction_depth[$connection_name] = $depth + 1;
+    }
+
+    /**
+     * Commit the transaction on the connection. A call inside a
+     * nested transaction joins the outermost one and commits nothing.
+     * @param string $connection_name Which connection to use
+     */
+    public function commit(string $connection_name = self::DEFAULT_CONNECTION): void
+    {
+        $depth = $this->transaction_depth[$connection_name] ?? 0;
+        if ($depth > 1) {
+            $this->transaction_depth[$connection_name] = $depth - 1;
+
+            return;
+        }
+
+        $this->get_db($connection_name)->commit();
+        $this->transaction_depth[$connection_name] = 0;
+    }
+
+    /**
+     * Roll the transaction on the connection back. The rollback ends
+     * the outermost transaction, wherever it was asked for.
+     * @param string $connection_name Which connection to use
+     */
+    public function rollBack(string $connection_name = self::DEFAULT_CONNECTION): void
+    {
+        $this->transaction_depth[$connection_name] = 0;
+        $this->get_db($connection_name)->rollBack();
+    }
+
+    /**
      * Reset every connection's settings to their defaults, forgetting
      * anything detected from a handle.
      */
@@ -207,7 +284,8 @@ class ConnectionManager
      */
     public function reset_db(): void
     {
-        $this->db = [];
+        $this->db                = [];
+        $this->transaction_depth = [];
     }
 
     /**

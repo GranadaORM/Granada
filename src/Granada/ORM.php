@@ -306,6 +306,50 @@ class ORM implements ArrayAccess
         return self::_manager()->get_db($connection_name);
     }
 
+    /**
+     * Run the callable inside one transaction on the connection:
+     * success commits and returns the callable's return value; a
+     * thrown exception rolls the work back and rethrows. A call
+     * inside an open transaction joins the outermost one.
+     * @param callable $fn
+     * @param string $connection_name Which connection to use
+     */
+    public static function transaction(callable $fn, string $connection_name = self::DEFAULT_CONNECTION): mixed
+    {
+        return self::_manager()->transaction($fn, $connection_name);
+    }
+
+    /**
+     * Begin a transaction on the connection. A call inside an open
+     * transaction joins the outermost one and begins nothing. Pairs
+     * with commit() and rollBack().
+     * @param string $connection_name Which connection to use
+     */
+    public static function beginTransaction(string $connection_name = self::DEFAULT_CONNECTION): void
+    {
+        self::_manager()->beginTransaction($connection_name);
+    }
+
+    /**
+     * Commit the transaction on the connection. A call inside a
+     * nested transaction joins the outermost one and commits nothing.
+     * @param string $connection_name Which connection to use
+     */
+    public static function commit(string $connection_name = self::DEFAULT_CONNECTION): void
+    {
+        self::_manager()->commit($connection_name);
+    }
+
+    /**
+     * Roll the transaction on the connection back. The rollback ends
+     * the outermost transaction, wherever it was asked for.
+     * @param string $connection_name Which connection to use
+     */
+    public static function rollBack(string $connection_name = self::DEFAULT_CONNECTION): void
+    {
+        self::_manager()->rollBack($connection_name);
+    }
+
     public static function _on_write(callable $callback): void
     {
         self::$_on_write[] = $callback;
