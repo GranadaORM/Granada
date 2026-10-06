@@ -589,3 +589,61 @@ foreach ($items as $item) {
     }
 }
 ```
+
+## Transactions
+
+Wrap several writes so they commit together or roll back together with `ORM::transaction()`. The callable runs inside a transaction. When it returns normally, the transaction is committed and its return value is passed through. When it throws, the transaction is rolled back and the exception is rethrown.
+
+```php
+$invoice = ORM::transaction(function () {
+    $invoice = Invoice::create(['name' => 'Inv1']);
+    $invoice->save();
+    foreach ($lines as $line) {
+        $row = InvoiceLine::create([
+            'invoice_id' => $invoice->id,
+            'name'       => $line,
+        ]);
+        $row->save();
+    }
+
+    return $invoice;
+});
+```
+
+Returning `false` is not a rollback: only a thrown exception rolls the work back.
+
+To run a transaction manually, use `beginTransaction()`, `commit()` and `rollBack()`. The names match PDO, so code written against `get_db()` moves over by dropping that prefix:
+
+```php
+ORM::beginTransaction();
+try {
+    // writes ...
+    ORM::commit();
+} catch (Throwable $e) {
+    ORM::rollBack();
+    throw $e;
+}
+```
+
+Transactions live on one connection. Every method above takes an optional connection name, defaulting to the default connection, the same way `get_db()` does:
+
+```php
+ORM::transaction(function () {
+    // writes on the reporting connection
+}, 'reporting');
+
+ORM::beginTransaction('reporting');
+```
+
+Transaction calls nest. A call made while a transaction is already open joins the outermost transaction: only the outermost begin and commit touch the database, and there is no savepoint to roll back to. A failure anywhere rolls the whole thing back:
+
+```php
+ORM::transaction(function () {
+    ORM::beginTransaction(); // joins the transaction already open
+    // writes ...
+    ORM::commit();           // ends this call only; nothing is committed yet
+});
+// the commit on the database happens here, with the outer call
+```
+
+`insert()` builds on this: the rows you pass are saved one by one inside one transaction, so a failure on any row rolls back every row instead of leaving the transaction open.

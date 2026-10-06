@@ -303,6 +303,25 @@ $content_instance->set($properties);
 $content_instance->title = 'A title';
 ```
 
+### Mass assignment
+
+`create()` and `set()` write every key they are given. There is no fillable or
+guarded list to declare: Granada does not know which fields are safe to write,
+and the model does not filter for you.
+
+If the array comes from a request, keep only the fields the request was meant
+to set before it reaches the model:
+
+```php
+$allowed = array('name', 'email', 'phone');
+$enquiry = Enquiry::create(array_intersect_key($data, array_flip($allowed)));
+```
+
+Unknown keys are not dropped. They are stored like any other field, and the
+save fails with a database error if the column does not exist. Filtering
+request data is the caller's job, because the caller is the one who knows
+which fields the form offered.
+
 ### Overload GET and MISSING property
 
 ```php

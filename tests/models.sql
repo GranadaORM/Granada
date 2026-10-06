@@ -83,6 +83,11 @@ CREATE TABLE sale (
     max_discount_percent DOUBLE DEFAULT 100
 );
 
+CREATE TABLE tag (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL
+);
+
 INSERT INTO manufactor(id,name,enabled) VALUES (1, 'Manufactor1', 1);
 INSERT INTO manufactor(id,name,enabled) VALUES (2, 'Manufactor2', 1);
 
