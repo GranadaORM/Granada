@@ -799,6 +799,39 @@ class Granada implements ArrayAccess
     }
 
     /**
+     * The query this model stands in for inside a closure. Null on
+     * ordinary models. Method calls that are not model methods go to
+     * this query.
+     */
+    public ?Orm\Wrapper $_query_standin = null;
+
+    /**
+     * The class a query closure's stand-in uses, so closures can
+     * type the parameter as a query-hint class for IDE completion.
+     * Generated model bases override this with their query-hint
+     * class.
+     */
+    public static function _query_standin_class(): string
+    {
+        return static::class;
+    }
+
+    /**
+     * A closure stand-in builds onto the query it stands in for. An
+     * ordinary model runs the call as a query for its own table, so
+     * instance calls like max('sort_order') aggregate over that
+     * table.
+     */
+    public function __call(string $method, array $parameters): mixed
+    {
+        if ($this->_query_standin !== null) {
+            return $this->_query_standin->$method(...$parameters);
+        }
+
+        return self::factory(static::class)->$method(...$parameters);
+    }
+
+    /**
      * Calls static methods directly on the Orm\Wrapper
      */
     public static function __callStatic(string $method, array $parameters): mixed

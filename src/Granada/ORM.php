@@ -3,6 +3,7 @@
 namespace Granada;
 
 use ArrayAccess;
+use Closure;
 use PDO;
 
 /**
@@ -1312,22 +1313,53 @@ class ORM implements ArrayAccess
         return $this->_add_where_condition($this->_simple_condition($column_name, $separator, $value));
     }
 
-    private function _add_where_condition(Orm\Condition $condition): static
+    /**
+     * A condition connected by OR joins the condition before it, so
+     * an or_where_* groups with the condition it ORs against instead
+     * of leaking past an AND into the rest of the query.
+     * @param Orm\Condition[] $pile
+     */
+    private function _append_connected_by(array &$pile, Orm\Condition $condition): void
+    {
+        if ($condition->connected_by !== Orm\ConnectedBy::Or
+            || $condition->type === Orm\Condition::GROUP
+            || $pile === []
+        ) {
+            $pile[] = $condition;
+
+            return;
+        }
+
+        $previous = array_pop($pile);
+
+        if ($previous->type === Orm\Condition::GROUP
+            && $previous->connected_by === Orm\ConnectedBy::Or
+            && !$previous->negate
+        ) {
+            $pile[] = Orm\Condition::group([...$previous->conditions, $condition], Orm\ConnectedBy::Or);
+
+            return;
+        }
+
+        $pile[] = Orm\Condition::group([$previous, $condition], $previous->connected_by);
+    }
+
+    protected function _add_where_condition(Orm\Condition $condition): static
     {
         if (in_array($condition, $this->_where_conditions)) {
             return $this; // already present, do not duplicate
         }
-        $this->_where_conditions[] = $condition;
+        $this->_append_connected_by($this->_where_conditions, $condition);
 
         return $this;
     }
 
-    private function _add_having_condition(Orm\Condition $condition): static
+    protected function _add_having_condition(Orm\Condition $condition): static
     {
         if (in_array($condition, $this->_having_conditions)) {
             return $this; // already present, do not duplicate
         }
-        $this->_having_conditions[] = $condition;
+        $this->_append_connected_by($this->_having_conditions, $condition);
 
         return $this;
     }
@@ -1356,6 +1388,20 @@ class ORM implements ArrayAccess
     {
         if ($condition->type === Orm\Condition::RAW) {
             return str_contains($condition->fragment, '`' . $column . '`');
+        }
+
+        if ($condition->type === Orm\Condition::EXISTS) {
+            return str_contains($condition->subquery, '`' . $column . '`');
+        }
+
+        if ($condition->type === Orm\Condition::GROUP) {
+            foreach ($condition->conditions as $inner) {
+                if (self::_condition_references_column($inner, $column)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         if ($condition->type === Orm\Condition::ANY_IS) {
@@ -1401,6 +1447,15 @@ class ORM implements ArrayAccess
      */
     private function _simple_condition(string $column_name, string $separator, mixed $value): Orm\Condition
     {
+        return Orm\Condition::compare($this->_qualified_column($column_name), $separator, $value);
+    }
+
+    /**
+     * The column name qualified with the table (or alias) when the
+     * query joins other tables and the column is unqualified.
+     */
+    private function _qualified_column(string $column_name): string
+    {
         if (count($this->_join_sources) > 0 && !str_contains($column_name, '.')) {
             $table = $this->_table_name;
             if (!is_null($this->_table_alias)) {
@@ -1410,17 +1465,16 @@ class ORM implements ArrayAccess
             $column_name = "{$table}.{$column_name}";
         }
 
-        return Orm\Condition::compare($column_name, $separator, $value);
+        return $column_name;
     }
 
     /**
-     * Optionally add to a chain
-     * To avoid breaking long chain commands, calls the function only if the first parameter is truthy.
-     * Use like:
+     * Optionally add to a query, if the condition is true
+     *
      *  Car::where('id', 3)
-     *    ->onlyif($only_enabled, function($q) {
-     *          return $q->where('enabled', 1);
-     *      });
+     *    ->onlyif($only_enabled, function(Car $q) {
+     *        $q->where('enabled', 1);
+     *    })
      *    ->find_many();
      *
      * @param boolean $condition
@@ -1430,7 +1484,7 @@ class ORM implements ArrayAccess
     public function onlyif(bool $condition, callable $callback): static
     {
         if ($condition) {
-            return $callback($this);
+            $callback($this);
         }
 
         return $this;
@@ -1441,14 +1495,112 @@ class ORM implements ArrayAccess
      * this is called in the chain, an additional WHERE will be
      * added, and these will be ANDed together when the final query
      * is built.
+     *
+     * With a closure, the closure's conditions collected on a fresh
+     * query for the same table become one AND group.
      */
-    public function where(string $column_name, mixed $value): static
+    public function where(Closure|string $column_name, mixed $value = null): static
     {
+        if ($column_name instanceof Closure) {
+            return $this->_add_group($column_name, Orm\ConnectedBy::And, false, $this->_add_where_condition(...));
+        }
+
         if (is_null($value)) {
             return $this->where_null($column_name);
         }
 
         return $this->where_equal($column_name, $value);
+    }
+
+    /**
+     * Add a WHERE clause ORed against the conditions before it.
+     * Takes a closure for a group, or a column compare.
+     */
+    public function or_where(Closure|string $column_name, mixed $value = null): static
+    {
+        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::Or, false, $this->_add_where_condition(...));
+    }
+
+    /**
+     * Add a negated WHERE clause: a closure becomes NOT ( ... ), a
+     * column compare renders NOT ( column = value ).
+     */
+    public function where_not(Closure|string $column_name, mixed $value = null): static
+    {
+        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::And, true, $this->_add_where_condition(...));
+    }
+
+    /**
+     * Add a negated WHERE clause ORed against the conditions before it.
+     */
+    public function or_where_not(Closure|string $column_name, mixed $value = null): static
+    {
+        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::Or, true, $this->_add_where_condition(...));
+    }
+
+    /**
+     * Adds one condition to the WHERE or HAVING list: the closure's
+     * group, or a column compare. The connected_by value says
+     * whether it ANDs or ORs against the conditions before it;
+     * negate renders it with NOT.
+     * @param callable(Orm\Condition): static $add_condition
+     */
+    protected function _add_composed_condition(Closure|string $column_name, mixed $value, Orm\ConnectedBy $connected_by, bool $negate, callable $add_condition, string $list = 'where'): static
+    {
+        if ($column_name instanceof Closure) {
+            return $this->_add_group($column_name, $connected_by, $negate, $add_condition, $list);
+        }
+
+        $condition = is_null($value)
+            ? Orm\Condition::is_null($column_name)
+            : $this->_simple_condition($column_name, '=', $value);
+
+        return $add_condition($condition->negate_if($negate)->joined_by($connected_by));
+    }
+
+    /**
+     * Runs the closure on a fresh query for the same table and
+     * collects the conditions it built into one group. A closure
+     * that builds no conditions adds no group.
+     * @param callable(Orm\Condition): static $add_condition
+     */
+    protected function _add_group(Closure $closure, Orm\ConnectedBy $connected_by, bool $negate, callable $add_condition, string $list = 'where'): static
+    {
+        $group_query = $this->_group_query();
+        $closure($this->_query_standin($group_query));
+
+        $conditions = $list === 'having'
+            ? $group_query->_having_conditions
+            : $group_query->_where_conditions;
+        if ($conditions === []) {
+            return $this;
+        }
+
+        return $add_condition(Orm\Condition::group($conditions, $connected_by, $negate));
+    }
+
+    /**
+     * What a query closure receives. Queries without a model class
+     * receive the query itself.
+     */
+    protected function _query_standin(self $query): object
+    {
+        return $query;
+    }
+
+    /**
+     * A fresh query for the same table, to collect the conditions of
+     * one group closure. Alias and joins carry over, so column
+     * qualification matches the outer query.
+     */
+    protected function _group_query(): static
+    {
+        $query                      = new static($this->_table_name, [], $this->_connection_name);
+        $query->_table_alias        = $this->_table_alias;
+        $query->_join_sources       = $this->_join_sources;
+        $query->_instance_id_column = $this->_instance_id_column;
+
+        return $query;
     }
 
     /**
@@ -1461,7 +1613,7 @@ class ORM implements ArrayAccess
             return $this->where_null($column_name);
         }
 
-        return $this->_add_simple_where($column_name, '=', $value);
+        return $this->_add_where_suffix_condition('where_equal', $this->_qualified_column($column_name), $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1475,7 +1627,7 @@ class ORM implements ArrayAccess
             return $this->where_not_null($column_name);
         }
 
-        return $this->_add_simple_where($column_name, '!=', $value);
+        return $this->_add_where_suffix_condition('where_not_equal', $this->_qualified_column($column_name), $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1532,7 +1684,7 @@ class ORM implements ArrayAccess
      */
     public function where_like(string $column_name, mixed $value): static
     {
-        return $this->_add_simple_where($column_name, 'LIKE', $value);
+        return $this->_add_where_suffix_condition('where_like', $this->_qualified_column($column_name), $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1542,7 +1694,7 @@ class ORM implements ArrayAccess
      */
     public function where_not_like(string $column_name, mixed $value): static
     {
-        return $this->_add_simple_where($column_name, 'NOT LIKE', $value);
+        return $this->_add_where_suffix_condition('where_not_like', $this->_qualified_column($column_name), $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1552,7 +1704,7 @@ class ORM implements ArrayAccess
      */
     public function where_gt(string $column_name, mixed $value): static
     {
-        return $this->_add_simple_where($column_name, '>', $value);
+        return $this->_add_where_suffix_condition('where_gt', $this->_qualified_column($column_name), $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1562,7 +1714,7 @@ class ORM implements ArrayAccess
      */
     public function where_lt(string $column_name, mixed $value): static
     {
-        return $this->_add_simple_where($column_name, '<', $value);
+        return $this->_add_where_suffix_condition('where_lt', $this->_qualified_column($column_name), $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1572,7 +1724,7 @@ class ORM implements ArrayAccess
      */
     public function where_gte(string $column_name, mixed $value): static
     {
-        return $this->_add_simple_where($column_name, '>=', $value);
+        return $this->_add_where_suffix_condition('where_gte', $this->_qualified_column($column_name), $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1582,7 +1734,7 @@ class ORM implements ArrayAccess
      */
     public function where_lte(string $column_name, mixed $value): static
     {
-        return $this->_add_simple_where($column_name, '<=', $value);
+        return $this->_add_where_suffix_condition('where_lte', $this->_qualified_column($column_name), $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1592,7 +1744,7 @@ class ORM implements ArrayAccess
      */
     public function where_lt_or_null(string $column_name, mixed $value): static
     {
-        return $this->_add_where_condition(Orm\Condition::or_null($column_name, '<', $value));
+        return $this->_add_where_suffix_condition('where_lt_or_null', $column_name, $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1602,7 +1754,7 @@ class ORM implements ArrayAccess
      */
     public function where_lte_or_null(string $column_name, mixed $value): static
     {
-        return $this->_add_where_condition(Orm\Condition::or_null($column_name, '<=', $value));
+        return $this->_add_where_suffix_condition('where_lte_or_null', $column_name, $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1612,7 +1764,7 @@ class ORM implements ArrayAccess
      */
     public function where_gt_or_null(string $column_name, mixed $value): static
     {
-        return $this->_add_where_condition(Orm\Condition::or_null($column_name, '>', $value));
+        return $this->_add_where_suffix_condition('where_gt_or_null', $column_name, $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1622,42 +1774,55 @@ class ORM implements ArrayAccess
      */
     public function where_gte_or_null(string $column_name, mixed $value): static
     {
-        return $this->_add_where_condition(Orm\Condition::or_null($column_name, '>=', $value));
+        return $this->_add_where_suffix_condition('where_gte_or_null', $column_name, $value, Orm\ConnectedBy::And);
     }
 
     /**
      * Add a WHERE ... IN clause to your query
-     * @param string[]|Orm\Wrapper $values
+     * @param mixed[]|self $values A subquery's values bind into this query
      */
     public function where_in(string $column_name, mixed $values): static
     {
-        if (!$values) {
-            return $this->_add_where('0');
-        }
-
-        if (is_a($values, \Granada\Orm\Wrapper::class)) {
-            return $this->_add_where_condition(Orm\Condition::in_subquery($column_name, $values->get_select_query()));
-        }
-
-        return $this->_add_where_condition(Orm\Condition::in($column_name, $values));
+        return $this->_add_in_condition($column_name, $values, Orm\ConnectedBy::And, false);
     }
 
     /**
      * Add a WHERE ... NOT IN clause to your query
-     * @param string $column_name
-     * @param string[]|Orm\Wrapper $values
+     * @param mixed[]|self $values A subquery's values bind into this query
      */
     public function where_not_in(string $column_name, mixed $values): static
     {
+        return $this->_add_in_condition($column_name, $values, Orm\ConnectedBy::And, true);
+    }
+
+    /**
+     * One IN condition over a list or a subquery. A subquery renders
+     * with bound placeholders; its values merge into this query's
+     * statement. An empty list matches no rows; with NOT, an empty
+     * list is left out so every row matches.
+     */
+    protected function _add_in_condition(string $column_name, mixed $values, Orm\ConnectedBy $connected_by, bool $negate): static
+    {
         if (!$values) {
-            return $this;
+            if ($negate) {
+                return $this;
+            }
+
+            return $this->_add_where_condition(Orm\Condition::raw('0')->joined_by($connected_by));
         }
 
-        if (is_a($values, \Granada\Orm\Wrapper::class)) {
-            return $this->_add_where_condition(Orm\Condition::not_in_subquery($column_name, $values->get_select_query()));
+        if ($values instanceof self) {
+            $query     = $values->_build_select();
+            $condition = $negate
+                ? Orm\Condition::not_in_subquery($column_name, $query, $values->_values)
+                : Orm\Condition::in_subquery($column_name, $query, $values->_values);
+
+            return $this->_add_where_condition($condition->joined_by($connected_by));
         }
 
-        return $this->_add_where_condition(Orm\Condition::not_in($column_name, $values));
+        $condition = $negate ? Orm\Condition::not_in($column_name, $values) : Orm\Condition::in($column_name, $values);
+
+        return $this->_add_where_condition($condition->joined_by($connected_by));
     }
 
     /**
@@ -1667,11 +1832,7 @@ class ORM implements ArrayAccess
      */
     public function where_not_in_or_null(string $column_name, array $values): static
     {
-        if (!$values) {
-            return $this;
-        }
-
-        return $this->_add_where_condition(Orm\Condition::not_in_or_null($column_name, $values));
+        return $this->_add_where_suffix_condition('where_not_in_or_null', $column_name, $values, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1680,7 +1841,7 @@ class ORM implements ArrayAccess
      */
     public function where_null(string $column_name): static
     {
-        return $this->_add_where_condition(Orm\Condition::is_null($column_name));
+        return $this->_add_where_suffix_condition('where_null', $column_name, null, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1689,7 +1850,43 @@ class ORM implements ArrayAccess
      */
     public function where_not_null(string $column_name): static
     {
-        return $this->_add_where_condition(Orm\Condition::is_not_null($column_name));
+        return $this->_add_where_suffix_condition('where_not_null', $column_name, null, Orm\ConnectedBy::And);
+    }
+
+    /**
+     * The condition one where_* suffix stands for, ANDing or ORing
+     * as asked.
+     */
+    protected function _add_where_suffix_condition(string $target_method, string $column_name, mixed $value, Orm\ConnectedBy $connected_by): static
+    {
+        if ($target_method === 'where_in' || $target_method === 'where_not_in') {
+            return $this->_add_in_condition($column_name, $value, $connected_by, $target_method === 'where_not_in');
+        }
+
+        if ($target_method === 'where_not_in_or_null' && !$value) {
+            return $this;
+        }
+
+        $condition = match ($target_method) {
+            'where_not_in_or_null' => Orm\Condition::not_in_or_null($column_name, (array) $value),
+            'where_lte_or_null'    => Orm\Condition::or_null($column_name, '<=', $value),
+            'where_gte_or_null'    => Orm\Condition::or_null($column_name, '>=', $value),
+            'where_lt_or_null'     => Orm\Condition::or_null($column_name, '<', $value),
+            'where_gt_or_null'     => Orm\Condition::or_null($column_name, '>', $value),
+            'where_not_equal'      => is_null($value) ? Orm\Condition::is_not_null($column_name) : Orm\Condition::compare($column_name, '!=', $value),
+            'where_not_like'       => Orm\Condition::compare($column_name, 'NOT LIKE', $value),
+            'where_not_null'       => Orm\Condition::is_not_null($column_name),
+            'where_like'           => Orm\Condition::compare($column_name, 'LIKE', $value),
+            'where_null'           => Orm\Condition::is_null($column_name),
+            'where_gte'            => Orm\Condition::compare($column_name, '>=', $value),
+            'where_lte'            => Orm\Condition::compare($column_name, '<=', $value),
+            'where_gt'             => Orm\Condition::compare($column_name, '>', $value),
+            'where_lt'             => Orm\Condition::compare($column_name, '<', $value),
+            'where_equal'          => is_null($value) ? Orm\Condition::is_null($column_name) : Orm\Condition::compare($column_name, '=', $value),
+            default                => throw new \LogicException("Unknown where suffix target {$target_method}"),
+        };
+
+        return $this->_add_where_condition($condition->joined_by($connected_by));
     }
 
     /**
@@ -1701,6 +1898,34 @@ class ORM implements ArrayAccess
     public function where_raw(string $clause, mixed $parameters = []): static
     {
         return $this->_add_where($clause, $parameters);
+    }
+
+    /**
+     * Add an EXISTS ( subquery ) condition. The subquery is a query
+     * for another table; correlation is spelled inside it with
+     * where_raw. Its bound values merge into this query.
+     */
+    public function where_exists(self $subquery): static
+    {
+        return $this->_add_subquery_exists($subquery, false, $this->_add_where_condition(...));
+    }
+
+    /**
+     * Add a NOT EXISTS ( subquery ) condition.
+     */
+    public function where_not_exists(self $subquery): static
+    {
+        return $this->_add_subquery_exists($subquery, true, $this->_add_where_condition(...));
+    }
+
+    /**
+     * @param callable(Orm\Condition): static $add_condition
+     */
+    protected function _add_subquery_exists(self $subquery, bool $negate, callable $add_condition): static
+    {
+        $query = $subquery->_build_select();
+
+        return $add_condition(Orm\Condition::exists($query, $subquery->_values, $negate));
     }
 
     /**
@@ -1800,10 +2025,59 @@ class ORM implements ArrayAccess
      * this is called in the chain, an additional HAVING will be
      * added, and these will be ANDed together when the final query
      * is built.
+     *
+     * With a closure, the closure's conditions collected on a fresh
+     * query for the same table become one AND group.
      */
-    public function having(string $column_name, mixed $value): static
+    public function having(Closure|string $column_name, mixed $value = null): static
     {
+        if ($column_name instanceof Closure) {
+            return $this->_add_group($column_name, Orm\ConnectedBy::And, false, $this->_add_having_condition(...), 'having');
+        }
+
         return $this->having_equal($column_name, $value);
+    }
+
+    /**
+     * Add a HAVING clause ORed against the conditions before it.
+     * Takes a closure for a group, or a column compare.
+     */
+    public function or_having(Closure|string $column_name, mixed $value = null): static
+    {
+        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::Or, false, $this->_add_having_condition(...), 'having');
+    }
+
+    /**
+     * Add a negated HAVING clause: a closure becomes NOT ( ... ), a
+     * column compare renders NOT ( column = value ).
+     */
+    public function having_not(Closure|string $column_name, mixed $value = null): static
+    {
+        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::And, true, $this->_add_having_condition(...), 'having');
+    }
+
+    /**
+     * Add a negated HAVING clause ORed against the conditions before it.
+     */
+    public function or_having_not(Closure|string $column_name, mixed $value = null): static
+    {
+        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::Or, true, $this->_add_having_condition(...), 'having');
+    }
+
+    /**
+     * Add an EXISTS ( subquery ) condition to HAVING.
+     */
+    public function having_exists(self $subquery): static
+    {
+        return $this->_add_subquery_exists($subquery, false, $this->_add_having_condition(...));
+    }
+
+    /**
+     * Add a NOT EXISTS ( subquery ) condition to HAVING.
+     */
+    public function having_not_exists(self $subquery): static
+    {
+        return $this->_add_subquery_exists($subquery, true, $this->_add_having_condition(...));
     }
 
     /**

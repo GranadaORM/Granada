@@ -836,6 +836,302 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertSame("SELECT * FROM `part` WHERE ( `part`.`name` NOT IN ('5', '6') OR `part`.`name` IS NULL )", ORM::get_last_query());
     }
 
+    public function testOrWhereName()
+    {
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE ( `part`.`name` = 'Part1' OR `part`.`name` = 'Part2' )",
+            Part::where_name('Part1')->or_where_name('Part2')->get_select_query()
+        );
+    }
+
+    public function testOrWhereNameNotEqual()
+    {
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE ( `part`.`name` = 'Part1' OR `part`.`name` != 'Part2' )",
+            Part::where_name('Part1')->or_where_name_not_equal('Part2')->get_select_query()
+        );
+    }
+
+    public function testOrWhereNameNotNull()
+    {
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE ( `part`.`name` = 'Part1' OR `part`.`name` IS NOT NULL )",
+            Part::where_name('Part1')->or_where_name_not_null()->get_select_query()
+        );
+    }
+
+    public function testOrWherePriceGt()
+    {
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE ( `part`.`name` = 'Part1' OR `part`.`price` > '10' )",
+            Part::where_name('Part1')->or_where_price_gt(10)->get_select_query()
+        );
+    }
+
+    public function testOrWhereNameIn()
+    {
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE ( `part`.`name` = 'Part1' OR `part`.`name` IN ('Part2', 'Part3') )",
+            Part::where_name('Part1')->or_where_name_in(['Part2', 'Part3'])->get_select_query()
+        );
+    }
+
+    public function testOrWhereNameLike()
+    {
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE ( `part`.`name` = 'Part1' OR `part`.`name` LIKE '%2' )",
+            Part::where_name('Part1')->or_where_name_like('%2')->get_select_query()
+        );
+    }
+
+    public function testOrWhereNameLtOrNull()
+    {
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE ( `part`.`name` = 'Part1' OR ( `part`.`price` < '10' OR `part`.`price` IS NULL ) )",
+            Part::where_name('Part1')->or_where_price_lt_or_null(10)->get_select_query()
+        );
+    }
+
+    public function testMagicOrWhereInsideClosure()
+    {
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE ( ( `part`.`name` = 'Part1' OR `part`.`name` = 'Part2' ) )",
+            Part::where(function ($q): void {
+                $q->where_name('Part1')->or_where_name('Part2');
+            })->get_select_query()
+        );
+    }
+
+    public function testFilterInsideClosure()
+    {
+        $this->assertSame(
+            "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND ( `name` = 'Car1' )",
+            Car::where(function ($q) {
+                return $q->byName('Car1');
+            })->get_select_query()
+        );
+    }
+
+    public function testGroupClosureFiltersRows()
+    {
+        $names = [];
+        foreach (Part::where_name('Part1')->or_where(function ($q): void {
+            $q->where_price_gt(14)->where_name_not_equal('Part4');
+        })->find_many() as $part) {
+            $names[] = $part->name;
+        }
+
+        $this->assertSame(['Part1', 'Part2', 'Part5'], $names);
+    }
+
+    public function testWhereNotFiltersRows()
+    {
+        $names = [];
+        foreach (Part::where_not(function ($q): void {
+            $q->where_name('Part1')->or_where_name('Part2');
+        })->find_many() as $part) {
+            $names[] = $part->name;
+        }
+
+        $this->assertSame(['Part3', 'Part4', 'Part5'], $names);
+    }
+
+    public function testWhereExistsFiltersRows()
+    {
+        $names = [];
+        foreach (Car::where_exists(
+            Manufactor::select('id')->where_raw('manufactor.id = car.manufactor_id')->where_name('Manufactor2')
+        )->find_many() as $car) {
+            $names[] = $car->name;
+        }
+
+        $this->assertSame(['Car3', 'Car4', 'Car6'], $names);
+    }
+
+    public function testWhereNotExistsFiltersRows()
+    {
+        $names = [];
+        foreach (Car::where_not_exists(
+            Manufactor::select('id')->where_raw('manufactor.id = car.manufactor_id')->where_name('Manufactor2')
+        )->find_many() as $car) {
+            $names[] = $car->name;
+        }
+
+        $this->assertSame(['Car1', 'Car2'], $names);
+    }
+
+    public function testWhereInSubqueryBindsValues()
+    {
+        $names = [];
+        foreach (Car::where_manufactor_id_in(
+            Manufactor::where_name('Manufactor2')->select('id')
+        )->find_many() as $car) {
+            $names[] = $car->name;
+        }
+
+        $this->assertSame(['Car3', 'Car4', 'Car6'], $names);
+    }
+
+    public function testWhereNotInSubqueryBindsValues()
+    {
+        $names = [];
+        foreach (Car::where_manufactor_id_not_in(
+            Manufactor::where_name('Manufactor2')->select('id')
+        )->find_many() as $car) {
+            $names[] = $car->name;
+        }
+
+        $this->assertSame(['Car1', 'Car2'], $names);
+    }
+
+    public function testWhereNameNotInOrNullEmptyListAddsNoCondition()
+    {
+        $this->assertSame(
+            'SELECT * FROM `part`',
+            Part::where_name_not_in_or_null([])->get_select_query()
+        );
+
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE `part`.`name` = 'Part1'",
+            Part::where_name('Part1')->or_where_name_not_in_or_null([])->get_select_query()
+        );
+    }
+
+    public function testCamelCaseAliasInsideClosure()
+    {
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE ( `price` > '10' AND `part`.`name` = 'Part1' )",
+            Part::where(function ($q): void {
+                $q->whereGt('price', 10)->where_name('Part1');
+            })->get_select_query()
+        );
+    }
+
+    public function testTypedClosureReceivesTheModel()
+    {
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE ( ( `part`.`name` = 'Part1' OR `part`.`name` = 'Part2' ) )",
+            Part::where(function (Part $q): void {
+                $q->where_name('Part1')->or_where_name('Part2');
+            })->get_select_query()
+        );
+    }
+
+    public function testTypedOnlyIfCallbackReceivesTheModel()
+    {
+        $query = Part::onlyif(true, function (Part $q): void {
+            $q->where_name('Part1');
+        });
+
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE `part`.`name` = 'Part1'",
+            $query->get_select_query()
+        );
+    }
+
+    public function testQueryStandInUsesTheDeclaredQueryClass()
+    {
+        $query = QueryHintModel::where(function (QueryHintQuery $q): void {
+            $q->where('enabled', 1);
+        });
+
+        $this->assertSame(
+            "SELECT * FROM `query_hint_model` WHERE ( `enabled` = '1' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testDefaultFilterStaysGroupedBeforeOrWhere()
+    {
+        $this->assertSame(
+            "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND ( `car`.`manufacture_date` < '2019-01-01' OR `car`.`manufacture_date` > '2020-01-01' )",
+            Car::where_manufacture_date_lt('2019-01-01')
+                ->or_where_manufacture_date_gt('2020-01-01')
+                ->get_select_query()
+        );
+    }
+
+    public function testDefaultFilterContainingOrStaysGrouped()
+    {
+        $this->assertSame(
+            "SELECT * FROM `gadget` WHERE ( `enabled` = '1' OR `hidden` = '1' ) AND `gadget`.`name` = 'Gadget1'",
+            OrDefaultFilterGadget::where_name('Gadget1')->get_select_query()
+        );
+    }
+
+    public function testNestedModelTypedClosures()
+    {
+        $this->assertSame(
+            "SELECT * FROM `part` WHERE ( `part`.`name` = 'Part1' AND ( `part`.`price` > '10' ) )",
+            Part::where(function (Part $q): void {
+                $q->where_name('Part1')->where(function (Part $inner): void {
+                    $inner->where_price_gt(10);
+                });
+            })->get_select_query()
+        );
+    }
+
+    public function testUnknownModelMethodRunsAgainstItsTable()
+    {
+        $part = Part::find_one(1);
+
+        $this->assertSame(25.99, $part->max('price'));
+    }
+
+    public function testUnknownMethodOnOrdinaryModelThrows()
+    {
+        $part = new Part();
+
+        $this->expectException(\Exception::class);
+        $part->noSuchMethodAnywhere();
+    }
+
+    public function testGroupConditionsWorkInLazyFind()
+    {
+        $names = [];
+        foreach (Part::where(function ($q): void {
+            $q->where_price_gt(10)->where_price_lt(20);
+        })->order_by_asc('id')->find_many_lazy() as $part) {
+            $names[] = $part->name;
+        }
+
+        $this->assertSame(['Part2', 'Part3', 'Part5'], $names);
+    }
+
+    public function testHavingGroupExecutes()
+    {
+        // A HAVING alias has no column affinity on sqlite, so the
+        // group works on the grouped column.
+        $rows = ORM::for_table('car_part')
+            ->select('part_id')
+            ->group_by('part_id')
+            ->having(function ($q): void {
+                $q->having_not('part_id', 2)->or_having('part_id', 3);
+            })
+            ->find_many();
+
+        $part_ids = [];
+        foreach ($rows as $row) {
+            $part_ids[] = (int) $row->part_id;
+        }
+
+        $this->assertSame([1, 3, 4, 5], $part_ids);
+    }
+
+    public function testNestedGroupsExecute()
+    {
+        $names = [];
+        foreach (Part::where(function (Part $q): void {
+            $q->where_price_gte(10)->where(function (Part $inner): void {
+                $inner->where_name('Part2')->or_where_name('Part3');
+            });
+        })->find_many() as $part) {
+            $names[] = $part->name;
+        }
+
+        $this->assertSame(['Part2', 'Part3'], $names);
+    }
+
     public function testSubSelectIn()
     {
         Car::where_manufactor_id_in(

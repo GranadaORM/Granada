@@ -176,7 +176,7 @@ class Renderer
     }
 
     /**
-     * Render each condition and AND them together.
+     * Render each condition, joining each with its own AND or OR.
      * @param Condition[] $conditions
      * @return array{string, mixed[]} fragment and bound values
      */
@@ -185,18 +185,37 @@ class Renderer
         $fragments = $values = [];
         foreach ($conditions as $condition) {
             [$fragment, $condition_values] = self::render_condition($condition, $dialect);
-            $fragments[]                   = $fragment;
-            $values                        = array_merge($values, $condition_values);
+            if ($fragments !== []) {
+                $fragments[] = $condition->connected_by->value;
+            }
+            $fragments[] = $fragment;
+            $values      = array_merge($values, $condition_values);
         }
 
-        return [implode(' AND ', $fragments), $values];
+        return [implode(' ', $fragments), $values];
     }
 
     /**
-     * One condition to its SQL fragment plus bound values.
+     * One condition to its SQL fragment plus bound values. Group and
+     * EXISTS conditions wrap themselves in parens and carry their own
+     * NOT; every other negated condition renders as NOT ( condition ).
      * @return array{string, mixed[]}
      */
     private static function render_condition(Condition $condition, Dialect $dialect): array
+    {
+        [$fragment, $values] = self::render_bare_condition($condition, $dialect);
+
+        if ($condition->negate && !in_array($condition->type, [Condition::GROUP, Condition::EXISTS], true)) {
+            $fragment = "NOT ( {$fragment} )";
+        }
+
+        return [$fragment, $values];
+    }
+
+    /**
+     * @return array{string, mixed[]}
+     */
+    private static function render_bare_condition(Condition $condition, Dialect $dialect): array
     {
         $quoted = $condition->column === '' ? '' : $dialect->quote_identifier($condition->column);
 
@@ -209,8 +228,36 @@ class Renderer
             Condition::OR_NULL               => ["( {$quoted} {$condition->operator} ? OR {$quoted} IS NULL )", $condition->values],
             Condition::NOT_IN_OR_NULL        => self::render_in_or_null($condition, $quoted),
             Condition::ANY_IS                => self::render_any_is($condition, $dialect),
+            Condition::GROUP                 => self::render_group($condition, $dialect),
+            Condition::EXISTS                => self::render_exists($condition),
             default                          => throw new \LogicException("Unknown condition type {$condition->type}"),
         };
+    }
+
+    private static function render_group(Condition $condition, Dialect $dialect): array
+    {
+        [$fragment, $values] = self::render_conditions($condition->conditions, $dialect);
+        $fragment            = "( {$fragment} )";
+        if ($condition->negate) {
+            $fragment = "NOT {$fragment}";
+        }
+
+        return [$fragment, $values];
+    }
+
+    /**
+     * The subquery's placeholders stay bound; its values merge into
+     * the outer statement.
+     * @return array{string, mixed[]}
+     */
+    private static function render_exists(Condition $condition): array
+    {
+        $fragment = "EXISTS ( {$condition->subquery} )";
+        if ($condition->negate) {
+            $fragment = "NOT {$fragment}";
+        }
+
+        return [$fragment, $condition->values];
     }
 
     /** @return array{string, mixed[]} */
@@ -231,7 +278,7 @@ class Renderer
         }
 
         if ($condition->subquery !== '') {
-            return ["{$quoted} {$word} ({$condition->subquery})", []];
+            return ["{$quoted} {$word} ({$condition->subquery})", $condition->values];
         }
 
         return ["{$quoted} {$word} (" . self::placeholders($condition->values) . ')', $condition->values];

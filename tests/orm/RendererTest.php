@@ -4,6 +4,7 @@ use Granada\ORM;
 use Granada\Orm\Aggregate;
 use Granada\Orm\BulkDeleteSpec;
 use Granada\Orm\Condition;
+use Granada\Orm\ConnectedBy;
 use Granada\Orm\Dialect;
 use Granada\Orm\JoinSource;
 use Granada\Orm\Renderer;
@@ -116,6 +117,90 @@ class RendererTest extends \PHPUnit\Framework\TestCase
             $statement->query
         );
         $this->assertSame(['Joe', 18, 19, 5, 'a', 'b'], $statement->values);
+    }
+
+    public function testSelectRendersGroupConditions()
+    {
+        $spec = $this->selectSpec([
+            'where_conditions' => [
+                Condition::compare('deleted', '=', 0),
+                Condition::group([Condition::compare('name', '=', 'Joe'), Condition::compare('age', '>', 18)]),
+                Condition::group([Condition::compare('role', '=', 'admin')], ConnectedBy::Or),
+            ],
+        ]);
+
+        $statement = Renderer::select($spec);
+
+        $this->assertSame(
+            'SELECT * FROM `person`'
+            . ' WHERE `deleted` = ? AND ( `name` = ? AND `age` > ? ) OR ( `role` = ? )',
+            $statement->query
+        );
+        $this->assertSame([0, 'Joe', 18, 'admin'], $statement->values);
+    }
+
+    public function testGroupConditionsNest()
+    {
+        $spec = $this->selectSpec([
+            'where_conditions' => [
+                Condition::group([
+                    Condition::compare('name', '=', 'Joe'),
+                    Condition::group([
+                        Condition::compare('age', '>', 18),
+                        Condition::compare('age', '<', 65),
+                    ], ConnectedBy::Or),
+                ], ConnectedBy::Or),
+            ],
+        ]);
+
+        $statement = Renderer::select($spec);
+
+        $this->assertSame(
+            'SELECT * FROM `person`'
+            . ' WHERE ( `name` = ? OR ( `age` > ? AND `age` < ? ) )',
+            $statement->query
+        );
+        $this->assertSame(['Joe', 18, 65], $statement->values);
+    }
+
+    public function testSelectRendersExistsConditionsWithBoundValues()
+    {
+        $spec = $this->selectSpec([
+            'where_conditions' => [
+                Condition::exists('SELECT id FROM role WHERE user_id = user.id AND name = ?', ['admin']),
+                Condition::exists('SELECT id FROM ban WHERE user_id = user.id', [], negate: true),
+            ],
+        ]);
+
+        $statement = Renderer::select($spec);
+
+        $this->assertSame(
+            'SELECT * FROM `person`'
+            . ' WHERE EXISTS ( SELECT id FROM role WHERE user_id = user.id AND name = ? )'
+            . ' AND NOT EXISTS ( SELECT id FROM ban WHERE user_id = user.id )',
+            $statement->query
+        );
+        $this->assertSame(['admin'], $statement->values);
+    }
+
+    public function testInSubqueryRendersBoundValues()
+    {
+        $spec = $this->selectSpec([
+            'where_conditions' => [
+                Condition::in_subquery('id', 'SELECT id FROM other WHERE tag = ?', ['a']),
+                Condition::not_in_subquery('id', 'SELECT id FROM other'),
+            ],
+        ]);
+
+        $statement = Renderer::select($spec);
+
+        $this->assertSame(
+            'SELECT * FROM `person`'
+            . ' WHERE `id` IN (SELECT id FROM other WHERE tag = ?)'
+            . ' AND `id` NOT IN (SELECT id FROM other)',
+            $statement->query
+        );
+        $this->assertSame(['a'], $statement->values);
     }
 
     public function testDoubleQuoteIdentifiersWhenConfigured()

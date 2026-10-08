@@ -6,13 +6,14 @@ parameters:
     # for_table() is the Active Record factory: @return static is the API
     # contract and new static() is how subclasses get instantiated. Row
     # instances are created through _create_instance_from_row() for the
-    # same reason: they must match the query's class. Finalising
-    # constructors to satisfy this would break subclasses that override
-    # them.
+    # same reason: they must match the query's class. _group_query()
+    # builds the group closure's fresh query for the same class for the
+    # same reason. Finalising constructors to satisfy this would break
+    # subclasses that override them.
     -
       identifier: new.static
       path: src/Granada/ORM.php
-      count: 2
+      count: 3
     # Same factory pattern as ORM::for_table, kept in sync by design.
     -
       identifier: new.static

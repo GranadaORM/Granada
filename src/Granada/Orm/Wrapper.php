@@ -343,6 +343,58 @@ class Wrapper extends ORM
     }
 
     /**
+     * A query closure receives a model of the query's class standing
+     * in for the query, so the closure can type the parameter as the
+     * model class. Queries without a model class receive the query
+     * itself.
+     */
+    protected function _query_standin(ORM $query): object
+    {
+        if ($this->_class_name === null) {
+            return $query;
+        }
+
+        assert($query instanceof Wrapper);
+
+        $class_name = $this->_class_name;
+
+        /** @var \Granada\Granada $model */
+        $model                 = new ($class_name::_query_standin_class())();
+        $model->_query_standin = $query;
+
+        return $model;
+    }
+
+    /**
+     * The callback builds onto this query when the condition is
+     * true. With a model class, the callback receives a model
+     * standing in for the query, so it can type the parameter as
+     * the model.
+     */
+    public function onlyif(bool $condition, callable $callback): static
+    {
+        if ($condition) {
+            $callback($this->_query_standin($this));
+        }
+
+        return $this;
+    }
+
+    /**
+     * The group closure's query carries the model class name, so the
+     * where_* suffix magic and filter_* methods work inside.
+     */
+    protected function _group_query(): static
+    {
+        $query = parent::_group_query();
+        if ($this->_class_name !== null) {
+            $query->set_class_name($this->_class_name);
+        }
+
+        return $query;
+    }
+
+    /**
      * Overrides __call to check for filter_$method names defined
      * You can now define filters methods on the Granada Model as
      * public static function filter_{filtermethodname} and call it from a static call
@@ -380,8 +432,12 @@ class Wrapper extends ORM
         }
 
         // Handle where_*
+        if (str_starts_with($method, 'or_where_')) {
+            return $this->_handleWhereMethod('where_' . substr($method, 9), $parameters, ConnectedBy::Or);
+        }
+
         if (str_starts_with($method, 'where_')) {
-            return $this->_handleWhereMethod($method, $parameters);
+            return $this->_handleWhereMethod($method, $parameters, ConnectedBy::And);
         }
 
         // Handle order_by_*
@@ -399,9 +455,10 @@ class Wrapper extends ORM
     }
 
     /**
-     * Performance optimized handler for where_* methods
+     * Performance optimized handler for where_* methods. Each suffix
+     * builds one condition that ANDs or ORs as asked.
      */
-    private function _handleWhereMethod(string $method, array $parameters): mixed
+    private function _handleWhereMethod(string $method, array $parameters, ConnectedBy $connected_by = ConnectedBy::And): mixed
     {
         $tablename       = $this->_table_name . '.';
         $method_name     = substr($method, 6);
@@ -415,26 +472,19 @@ class Wrapper extends ORM
             $varname     = substr($method_name, 0, -$config['length']);
             $column_name = $tablename . $varname;
 
-            $target_method  = $config['method'];
-            $needs_timezone = $config['timezone'];
-
-            if ($needs_timezone && $adjust_timezone) {
+            if ($config['timezone'] && $adjust_timezone) {
                 $parameters[0] = $this->adjustTimezoneForWhere($varname, $parameters[0]);
             }
 
-            if (count($parameters)) {
-                return call_user_func([$this, $target_method], $column_name, $parameters[0]);
-            }
-
-            return call_user_func([$this, $target_method], $column_name);
+            return $this->_add_where_suffix_condition($config['method'], $column_name, $parameters[0] ?? null, $connected_by);
         }
 
         $varname     = $method_name;
         $column_name = $tablename . $varname;
 
-        $adjusted_value = $adjust_timezone ? $this->adjustTimezoneForWhere($varname, $parameters[0]) : null;
+        $value = $adjust_timezone ? $this->adjustTimezoneForWhere($varname, $parameters[0]) : null;
 
-        return $this->where_equal($column_name, $adjusted_value);
+        return $this->_add_where_suffix_condition('where_equal', $column_name, $value, $connected_by);
     }
 
     /**
