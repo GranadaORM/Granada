@@ -216,6 +216,8 @@ $items = User::where_id_in(
 // SELECT * FROM user WHERE id IN (SELECT user_id FROM invoice WHERE is_paid = 0)
 ```
 
+The subquery's values bind into the outer statement as placeholders.
+
 ### Some built-in OR filters
 
 To reduce complexity of the OR filtering (below) a few shortened filters are available to check whether a field is NULL as well.
@@ -304,6 +306,7 @@ $items = User::where_any_is(
         ['name' => NULL, 'age' => 20],
     ])->find_many();
 // SELECT * FROM `user` WHERE (( `name` = 'Joe' AND `age` IS NULL ) OR ( `name` IS NULL AND `age` = '20' ))
+```
 
 They also work with the `!=` operator:
 
@@ -341,18 +344,79 @@ Optionally apply a where, use this to avoid breaking long chains. Can also be us
 $min_age = 5;
 $order = true;
 $items = User::where('class', 'Test')
-        ->onlyif(false, function($q) { // Will skip this filter
-            return $q->where_lt('age', 10);
+        ->onlyif(false, function(User $q) { // Will skip this filter
+            $q->where_lt('age', 10);
         })
-        ->onlyif($min_age > 0, function($q) use ($min_age) { // Will apply this filter only when min_age is greater than 0
-            return $q->where_gt('age', $min_age);
+        ->onlyif($min_age > 0, function(User $q) use ($min_age) { // Will apply this filter only when min_age is greater than 0
+            $q->where_gt('age', $min_age);
         })
-        ->onlyif($order, function($q) {
-            return $q->order_by_asc('age);
+        ->onlyif($order, function(User $q) {
+            $q->order_by_asc('age');
         })
         ->find_many();
-// SELECT * FROM `user` WHERE `class` = 'Test' AND `age` > 5;
+// SELECT * FROM `user` WHERE `class` = 'Test' AND `age` > '5' ORDER BY `age` ASC
 ```
+
+### Grouping conditions
+
+Some queries need to have sub-conditions grouped.
+In SQL that means putting in parenthesis.
+Particularly useful for OR logic when we also need an AND.
+Pass a closure to group conditions together.
+For example:
+
+```php
+$items = User::where('enabled', 1)
+    ->or_where(function (User $q) {
+        $q->where_name('Jack')->where_verified(1);
+    })
+    ->find_many();
+// SELECT * FROM `user` WHERE `enabled` = 1 OR ( `user`.`name` = 'Jack' AND `user`.`verified` = '1' )
+```
+
+Inside the closure, `$q` is a clean starting point for building a sub-condition.
+
+A closure can hold another closure, which nests the groups:
+
+```php
+$items = User::where(function (User $q) {
+    $q->where('enabled', 1)->where(function (User $inner) {
+        $inner->where('role', 'admin')->or_where('role', 'owner');
+    });
+})->find_many();
+// SELECT * FROM `user` WHERE `enabled` = 1 AND ( `role` = 'admin' OR `role` = 'owner' )
+```
+
+### NOT conditions
+
+`where_not()` and `or_where_not()` prefix the sub-condition with NOT:
+
+```php
+$items = User::where_not('role', 'banned')->find_many();
+// SELECT * FROM `user` WHERE NOT ( `role` = 'banned' )
+
+$items = User::where_not(function (User $q) {
+    $q->where('role', 'banned')->where('enabled', 0);
+})->find_many();
+// SELECT * FROM `user` WHERE NOT ( `role` = 'banned' AND `enabled` = 0 )
+```
+
+A magic method exists so that wherever there was a `where_*` there is also an `or_where_*` so e.g. `or_where_price_gt(10)` adds `OR price > 10`.
+The `or_where_*` condition connects to the condition before it, so an OR can not leak past an AND, and a default filter stays intact.
+
+### EXISTS conditions
+
+In sql, you can return just the rows that exist in a subquery.
+Use `where_exists()` to declare the query that is used in the EXISTS portion. `where_not_exists()` outputs NOT EXISTS.
+
+```php
+$items = User::where_exists(
+    Invoice::where_raw('invoice.user_id = user.id')->where('is_paid', 0)
+)->find_many();
+// SELECT * FROM `user` WHERE EXISTS ( SELECT * FROM `invoice` WHERE invoice.user_id = user.id AND `is_paid` = 0 )
+```
+
+HAVING has the same methods: `having()` takes a closure, `or_having()`, `having_not()` and `or_having_not()` are the HAVING forms of `or_where()`, `where_not()` and `or_where_not()`, and `having_exists()` / `having_not_exists()` render `EXISTS` in HAVING.
 
 ### Setting the order of results
 
@@ -440,7 +504,7 @@ $items = User::where('name', 'Fred')
 
 ### Getting all fields when previously selected fields
 
-If a situation where a field to select is already specified, and you want all fields, just select('*') and the `*` goes to the front of the list:
+If a situation where a field to select is already specified, and you want all fields, just select('_') and the `_` goes to the front of the list:
 
 ```php
 $items = User::select('name')
@@ -647,3 +711,20 @@ ORM::transaction(function () {
 ```
 
 `insert()` builds on this: the rows you pass are saved one by one inside one transaction, so a failure on any row rolls back every row instead of leaving the transaction open.
+
+## Concurrent writes
+
+Granada has no row locks — there is no `SELECT ... FOR UPDATE`. Transactions plus atomic writes cover the work row locks usually do.
+
+A transaction makes several writes succeed or fail together, but it does not stop two processes reading the same value and writing afterwards. This read-then-write shape races no matter what wraps it:
+
+```php
+// Two requests can read the same max and both save 431
+$max = Quote::where('estimator_id', $id)->max('quote_number');
+$quote->quote_number = $max + 1;
+$quote->save();
+```
+
+Give each series its own counter row and bump it with one atomic write — a single UPDATE that adds to the stored value — instead of computing a number from the rows themselves. Two processes then never compute from the same starting number. Put a unique index on the number column as the backstop and retry the save when the index rejects a duplicate.
+
+Check-then-act limits race the same way: reading a stock level, then writing the movement after payment, lets two buyers pass the same check. Do the check inside the write — one UPDATE that subtracts the amount and matches rows only where enough is left — and treat zero matched rows as out of stock.

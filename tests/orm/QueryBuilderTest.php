@@ -1128,4 +1128,337 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         ], ['age' => '>'])->get_select_query());
         $this->assertSame('SELECT * FROM `widget` WHERE username LIKE "ben%"', ORM::for_table('widget')->where_raw('username LIKE "ben%"')->get_select_query());
     }
+
+    public function testWhereClosureBuildsGroup()
+    {
+        $query = ORM::for_table('widget')
+            ->where('name', 'Fred')
+            ->where(function ($q): void {
+                $q->where('age', 18)->where('role', 'admin');
+            });
+
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE `name` = 'Fred' AND ( `age` = '18' AND `role` = 'admin' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testOrWhereClosureJoinsGroupWithOr()
+    {
+        $query = ORM::for_table('widget')
+            ->where('name', 'Fred')
+            ->or_where(function ($q): void {
+                $q->where('age', 18)->where('role', 'admin');
+            });
+
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE `name` = 'Fred' OR ( `age` = '18' AND `role` = 'admin' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testNestedClosuresBuildNestedGroups()
+    {
+        $query = ORM::for_table('widget')
+            ->where(function ($q): void {
+                $q->where('role', 'admin')
+                    ->or_where(function ($inner): void {
+                        $inner->where_gt('age', 18)->where_lt('age', 65);
+                    });
+            });
+
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE ( `role` = 'admin' OR ( `age` > '18' AND `age` < '65' ) )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testClosureReturnValueIgnored()
+    {
+        $query = ORM::for_table('widget')->where(function ($q) {
+            return $q->where('age', 18)->where('name', 'Fred');
+        });
+
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE ( `age` = '18' AND `name` = 'Fred' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testEmptyClosureAddsNoCondition()
+    {
+        $query = ORM::for_table('widget')
+            ->where('name', 'Fred')
+            ->where(function ($q): void {});
+
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE `name` = 'Fred'",
+            $query->get_select_query()
+        );
+    }
+
+    public function testTypedClosureReceivesTheQuery()
+    {
+        $query = ORM::for_table('widget')->where(function (ORM $q): void {
+            $q->where('age', 18)->where('role', 'admin');
+        });
+
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE ( `age` = '18' AND `role` = 'admin' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testClosureOnAWrapperWithoutModelClass()
+    {
+        $query = \Granada\Orm\Wrapper::for_table('widget')->where(function ($q): void {
+            $q->where('age', 18);
+        });
+
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE ( `age` = '18' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testWhereNotWithCompareRendersNot()
+    {
+        $query = ORM::for_table('widget')->where_not('role', 'banned');
+
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE NOT ( `role` = 'banned' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testWhereNotWithClosure()
+    {
+        $query = ORM::for_table('widget')->where_not(function ($q): void {
+            $q->where('role', 'banned')->where('active', 0);
+        });
+
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE NOT ( `role` = 'banned' AND `active` = '0' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testWhereNotWithNullCompare()
+    {
+        $query = ORM::for_table('widget')->where_not('role', null);
+
+        $this->assertSame(
+            'SELECT * FROM `widget` WHERE NOT ( `role` IS NULL )',
+            $query->get_select_query()
+        );
+    }
+
+    public function testOrWhereCompareJoinsWithOr()
+    {
+        $query = ORM::for_table('widget')
+            ->where('role', 'admin')
+            ->or_where('role', 'owner');
+
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE ( `role` = 'admin' OR `role` = 'owner' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testOrWhereNotCompare()
+    {
+        $query = ORM::for_table('widget')
+            ->where('role', 'admin')
+            ->or_where_not('role', 'banned');
+
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE ( `role` = 'admin' OR NOT ( `role` = 'banned' ) )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testOrWhereNotClosure()
+    {
+        $query = ORM::for_table('widget')
+            ->where('role', 'admin')
+            ->or_where_not(function ($q): void {
+                $q->where('active', 0);
+            });
+
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE `role` = 'admin' OR NOT ( `active` = '0' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testWhereExistsRendersBoundSubquery()
+    {
+        $subquery = ORM::for_table('role')
+            ->select('id')
+            ->where_raw('user_id = widget.id')
+            ->where('name', 'admin');
+
+        $query = ORM::for_table('widget')->where_exists($subquery);
+
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE EXISTS ( SELECT `id` FROM `role` WHERE user_id = widget.id AND `name` = 'admin' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testWhereNotExists()
+    {
+        $query = ORM::for_table('widget')->where_not_exists(
+            ORM::for_table('ban')->where_raw('ban.user_id = widget.id')
+        );
+
+        $this->assertSame(
+            'SELECT * FROM `widget` WHERE NOT EXISTS ( SELECT * FROM `ban` WHERE ban.user_id = widget.id )',
+            $query->get_select_query()
+        );
+    }
+
+    public function testWhereExistsInsideClosure()
+    {
+        $query = ORM::for_table('widget')->where(function ($q): void {
+            $q->where('active', 1)->where_exists(
+                ORM::for_table('ban')->where_raw('ban.user_id = widget.id')
+            );
+        });
+
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE ( `active` = '1' AND EXISTS ( SELECT * FROM `ban` WHERE ban.user_id = widget.id ) )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testWhereInSubqueryLogsOnlyTheOuterQuery()
+    {
+        $logged   = count(ORM::get_query_log());
+        $subquery = ORM::for_table('other')->select('widget_id')->where('tag', 'x');
+
+        ORM::for_table('widget')->where_in('id', $subquery)->find_many();
+
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE `id` IN (SELECT `widget_id` FROM `other` WHERE `tag` = 'x')",
+            ORM::get_last_query()
+        );
+        $this->assertCount($logged + 1, ORM::get_query_log());
+    }
+
+    public function testHavingClosureBuildsGroup()
+    {
+        $query = ORM::for_table('widget')
+            ->group_by('role')
+            ->having('count', 3)
+            ->having(function ($q): void {
+                $q->having_gt('total', 10)->having_lt('total', 100);
+            });
+
+        $this->assertSame(
+            "SELECT * FROM `widget` GROUP BY `role` HAVING `count` = '3' AND ( `total` > '10' AND `total` < '100' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testOrHavingCompare()
+    {
+        $query = ORM::for_table('widget')
+            ->group_by('role')
+            ->having('count', 3)
+            ->or_having('count', 5);
+
+        $this->assertSame(
+            "SELECT * FROM `widget` GROUP BY `role` HAVING ( `count` = '3' OR `count` = '5' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testOrHavingClosure()
+    {
+        $query = ORM::for_table('widget')
+            ->group_by('role')
+            ->having('count', 3)
+            ->or_having(function ($q): void {
+                $q->having_gt('total', 10)->having_lt('total', 100);
+            });
+
+        $this->assertSame(
+            "SELECT * FROM `widget` GROUP BY `role` HAVING `count` = '3' OR ( `total` > '10' AND `total` < '100' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testHavingNotClosure()
+    {
+        $query = ORM::for_table('widget')
+            ->group_by('role')
+            ->having_not(function ($q): void {
+                $q->having_gt('total', 10);
+            });
+
+        $this->assertSame(
+            "SELECT * FROM `widget` GROUP BY `role` HAVING NOT ( `total` > '10' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testHavingNotCompare()
+    {
+        $query = ORM::for_table('widget')
+            ->group_by('role')
+            ->having_not('count', 3);
+
+        $this->assertSame(
+            "SELECT * FROM `widget` GROUP BY `role` HAVING NOT ( `count` = '3' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testOrHavingNotClosure()
+    {
+        $query = ORM::for_table('widget')
+            ->group_by('role')
+            ->having('count', 3)
+            ->or_having_not(function ($q): void {
+                $q->having_gt('total', 10);
+            });
+
+        $this->assertSame(
+            "SELECT * FROM `widget` GROUP BY `role` HAVING `count` = '3' OR NOT ( `total` > '10' )",
+            $query->get_select_query()
+        );
+    }
+
+    public function testHavingExists()
+    {
+        $query = ORM::for_table('widget')
+            ->group_by('role')
+            ->having_exists(ORM::for_table('role')->where_raw('role.count = widget.count'))
+            ->having_not_exists(ORM::for_table('role')->where_raw('role.count = widget.count'));
+
+        $this->assertSame(
+            'SELECT * FROM `widget` GROUP BY `role`'
+            . ' HAVING EXISTS ( SELECT * FROM `role` WHERE role.count = widget.count )'
+            . ' AND NOT EXISTS ( SELECT * FROM `role` WHERE role.count = widget.count )',
+            $query->get_select_query()
+        );
+    }
+
+    public function testRemoveWhereReachesIntoGroups()
+    {
+        $query = ORM::for_table('widget')
+            ->where('name', 'Fred')
+            ->where(function ($q): void {
+                $q->where('age', 10);
+            })
+            ->where_exists(ORM::for_table('ban')->where_raw('`name` = 1'));
+
+        $query->remove_where('name');
+
+        $this->assertSame(
+            "SELECT * FROM `widget` WHERE ( `age` = '10' )",
+            $query->get_select_query()
+        );
+    }
 }

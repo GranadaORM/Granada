@@ -306,3 +306,23 @@ class MockPrefix_TableSpecified extends Model
 {
     public static $_table = 'simple';
 }
+
+class QueryHintModel extends Model
+{
+    public static function _query_standin_class(): string
+    {
+        return QueryHintQuery::class;
+    }
+}
+
+class QueryHintQuery extends Model {}
+
+class OrDefaultFilterGadget extends Model
+{
+    public static $_table = 'gadget';
+
+    protected static function _defaultFilter($query)
+    {
+        return $query->where('enabled', 1)->or_where('hidden', 1);
+    }
+}

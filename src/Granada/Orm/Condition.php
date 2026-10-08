@@ -18,10 +18,13 @@ final class Condition
     public const OR_NULL        = 'or_null';
     public const NOT_IN_OR_NULL = 'not_in_or_null';
     public const ANY_IS         = 'any_is';
+    public const GROUP          = 'group';
+    public const EXISTS         = 'exists';
 
     /**
      * @param mixed[]                           $values
      * @param array<int, array<int, Condition>> $groups ANY_IS: ORed groups, ANDed within
+     * @param Condition[]                       $conditions GROUP: the conditions inside the group
      */
     public function __construct(
         public readonly string $type,
@@ -31,6 +34,9 @@ final class Condition
         public readonly string $subquery = '',
         public readonly array $values = [],
         public readonly array $groups = [],
+        public readonly array $conditions = [],
+        public readonly ConnectedBy $connected_by = ConnectedBy::And,
+        public readonly bool $negate = false,
     ) {}
 
     public static function raw(string $fragment, array $values = []): self
@@ -65,14 +71,32 @@ final class Condition
         return new self(self::NOT_IN, column: $column, values: $values);
     }
 
-    public static function in_subquery(string $column, string $subquery): self
+    /**
+     * The subquery's placeholders stay bound; its values merge into
+     * the outer statement.
+     * @param mixed[] $values
+     */
+    public static function in_subquery(string $column, string $subquery, array $values = []): self
     {
-        return new self(self::IN, column: $column, subquery: $subquery);
+        return new self(self::IN, column: $column, subquery: $subquery, values: $values);
     }
 
-    public static function not_in_subquery(string $column, string $subquery): self
+    /**
+     * @param mixed[] $values
+     */
+    public static function not_in_subquery(string $column, string $subquery, array $values = []): self
     {
-        return new self(self::NOT_IN, column: $column, subquery: $subquery);
+        return new self(self::NOT_IN, column: $column, subquery: $subquery, values: $values);
+    }
+
+    /**
+     * One EXISTS ( subquery ) condition, or NOT EXISTS when negated.
+     * The subquery's bound values merge into the outer statement.
+     * @param mixed[] $values
+     */
+    public static function exists(string $subquery, array $values = [], bool $negate = false): self
+    {
+        return new self(self::EXISTS, subquery: $subquery, values: $values, negate: $negate);
     }
 
     /**
@@ -93,5 +117,59 @@ final class Condition
     public static function any_is(array $groups): self
     {
         return new self(self::ANY_IS, groups: $groups);
+    }
+
+    /**
+     * Other conditions connected to the list by one word, AND or OR,
+     * rendered in parens.
+     * @param Condition[] $conditions
+     */
+    public static function group(array $conditions, ConnectedBy $connected_by = ConnectedBy::And, bool $negate = false): self
+    {
+        return new self(self::GROUP, conditions: $conditions, connected_by: $connected_by, negate: $negate);
+    }
+
+    /**
+     * The constructor arguments that the copy-with methods pass
+     * through unchanged.
+     * @return mixed[]
+     */
+    private function args(): array
+    {
+        return [
+            $this->type,
+            $this->column,
+            $this->operator,
+            $this->fragment,
+            $this->subquery,
+            $this->values,
+            $this->groups,
+            $this->conditions,
+        ];
+    }
+
+    /**
+     * A copy of this condition that ANDs or ORs against the
+     * conditions before it.
+     */
+    public function joined_by(ConnectedBy $connected_by): self
+    {
+        return new self(...$this->args(), connected_by: $connected_by, negate: $this->negate);
+    }
+
+    /**
+     * This condition negated: rendered as NOT ( condition ).
+     */
+    public function negated(): self
+    {
+        return new self(...$this->args(), connected_by: $this->connected_by, negate: !$this->negate);
+    }
+
+    /**
+     * This condition negated when the flag is set.
+     */
+    public function negate_if(bool $negate): self
+    {
+        return $negate ? $this->negated() : $this;
     }
 }
