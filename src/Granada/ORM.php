@@ -274,17 +274,6 @@ class ORM implements ArrayAccess
     }
 
     /**
-     * Detect and initialise the limit clause style ("SELECT TOP 5" /
-     * "... LIMIT 5"). If this has been specified manually using
-     * ORM::configure('limit_clause_style', 'top'), this will do nothing.
-     * @param string $connection_name Which connection to use
-     */
-    public static function _setup_limit_clause_style(string $connection_name): void
-    {
-        self::_manager()->setup_limit_clause_style($connection_name);
-    }
-
-    /**
      * The Dialect for a connection: every driver-specific fact the
      * renderer, save() and Wrapper need.
      * @param string $connection_name Which connection to use
@@ -1107,15 +1096,7 @@ class ORM implements ArrayAccess
     }
 
     /**
-     * Internal method to add a HAVING condition to the query
-     */
-    protected function _add_having(string $fragment, mixed $values = []): static
-    {
-        return $this->_add_having_condition(Orm\Condition::raw($fragment, is_array($values) ? $values : [$values]));
-    }
-
-    /**
-     * Internal method to add a HAVING condition to the query
+     * The having-side builder behind the having_* comparison methods.
      */
     protected function _add_simple_having(string $column_name, string $separator, mixed $value): static
     {
@@ -1123,15 +1104,8 @@ class ORM implements ArrayAccess
     }
 
     /**
-     * Internal method to add a WHERE condition to the query
-     */
-    protected function _add_where(string $fragment, mixed $values = []): static
-    {
-        return $this->_add_where_condition(Orm\Condition::raw($fragment, is_array($values) ? $values : [$values]));
-    }
-
-    /**
-     * Internal method to add a WHERE condition to the query
+     * The where-side twin of _add_simple_having. Kept for a future
+     * where_* method that needs it.
      */
     protected function _add_simple_where(string $column_name, string $separator, mixed $value): static
     {
@@ -1291,28 +1265,6 @@ class ORM implements ArrayAccess
         }
 
         return $column_name;
-    }
-
-    /**
-     * Optionally add to a query, if the condition is true
-     *
-     *  Car::where('id', 3)
-     *    ->onlyif($only_enabled, function(Car $q) {
-     *        $q->where('enabled', 1);
-     *    })
-     *    ->find_many();
-     *
-     * @param boolean $condition
-     * @param callable $callback
-     * @return static
-     */
-    public function onlyif(bool $condition, callable $callback): static
-    {
-        if ($condition) {
-            $callback($this);
-        }
-
-        return $this;
     }
 
     /**
@@ -1696,7 +1648,7 @@ class ORM implements ArrayAccess
      */
     public function where_raw(string $clause, mixed $parameters = []): static
     {
-        return $this->_add_where($clause, $parameters);
+        return $this->_add_where_condition(Orm\Condition::raw($clause, is_array($parameters) ? $parameters : [$parameters]));
     }
 
     /**
@@ -1952,7 +1904,7 @@ class ORM implements ArrayAccess
      */
     public function having_raw(string $clause, array $parameters = []): static
     {
-        return $this->_add_having($clause, $parameters);
+        return $this->_add_having_condition(Orm\Condition::raw($clause, $parameters));
     }
 
     /**
@@ -2482,7 +2434,6 @@ class ORM implements ArrayAccess
     public function __call(string $name, array $arguments): mixed
     {
         $method = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $name));
-        // return call_user_func_array(array($this, $method), $arguments);
 
         if (method_exists($this, $method)) {
             return $this->$method(...$arguments);
