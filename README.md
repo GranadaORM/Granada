@@ -152,11 +152,11 @@ again, so the data may have changed.
 
 The method throws an exception when the query has one of these:
 
-- `group_by()` — the method loads each row by its id, and a grouped
+- `group_by()` - the method loads each row by its id, and a grouped
   row has no single id
-- `raw_query()` — the method loads the rows by rebuilding the query,
+- `raw_query()` - the method loads the rows by rebuilding the query,
   and it cannot rebuild raw SQL
-- a `join()` plus a custom `select()` — the rows are loaded from the
+- a `join()` plus a custom `select()` - the rows are loaded from the
   table alone, so the select may only name that table's columns
 
 If you turned on `return_result_sets`, it does not apply here: the
@@ -169,14 +169,14 @@ For small results, keep using `find_many()`.
 Use `with_{relation}()` to eager-load a relationship and optionally configure the query via a callback:
 
 ```php
-// Basic — equivalent to with('manufactor')
+// Basic - equivalent to with('manufactor')
 $car = Car::with_manufactor()->find_one(1);
 
 // Limit columns selected
 $car = Car::with_manufactor(fn($q) => $q->select('id, name'))->find_one(1);
 // SELECT `id`, `name` FROM `manufactor` WHERE ...
 
-// Add ordering (has_many — multiple related records)
+// Add ordering (has_many - multiple related records)
 $manufactor = Manufactor::with_cars(fn($q) => $q->select('id, name')->order_by_desc('name'))->find_one(1);
 // SELECT `id`, `name`, `manufactor_id` FROM `car` WHERE ... ORDER BY `name` DESC
 ```
@@ -204,7 +204,7 @@ $owner = Owner::with_car(fn($q) => $q->select('id, manufactor_id')
 
 If you already include these columns in your `select()`, they won't be added twice.
 
-**Column names.** Use comma-separated strings for multiple columns: `select('id, name')`. Do not use `select('id', 'name')` — the second argument is an alias.
+**Column names.** Use comma-separated strings for multiple columns: `select('id, name')`. Do not use `select('id', 'name')` - the second argument is an alias.
 
 **has_many_through.** Qualify column names with the table because the query involves a join:
 

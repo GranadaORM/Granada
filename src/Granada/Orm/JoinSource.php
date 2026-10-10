@@ -4,7 +4,7 @@ namespace Granada\Orm;
 
 /**
  * One JOIN entry as plain data: the operator word, the table with its
- * optional alias, and the ON constraint — either the three-part
+ * optional alias, and the ON constraint - either the three-part
  * [first column, operator, second column] form or raw SQL.
  */
 final class JoinSource

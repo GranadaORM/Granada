@@ -542,9 +542,11 @@ class Granada implements ArrayAccess
      * Drop the computed values, so the next read of those properties
      * works them out again. Set values stay.
      */
-    public function clear_computed_values(): void
+    public function clear_computed_values(): static
     {
         $this->value_stash()->clear_computed_values();
+
+        return $this;
     }
 
     /**
@@ -611,9 +613,11 @@ class Granada implements ArrayAccess
      * Setter method, allows $model->set_expr('property', 'value') access to data.
      * @param string|null $value
      */
-    public function set_expr(string $property, mixed $value = null): void
+    public function set_expr(string $property, mixed $value = null): static
     {
         $this->orm->set_expr($property, $value);
+
+        return $this;
     }
 
     /**
@@ -774,9 +778,11 @@ class Granada implements ArrayAccess
      * corresponding database table. If any keys are supplied which
      * do not match up with columns, the database will throw an error.
      */
-    public function hydrate(array $data): void
+    public function hydrate(array $data): static
     {
         $this->orm->hydrate($data)->force_all_dirty();
+
+        return $this;
     }
 
     public function get_resultSetClass(): string
