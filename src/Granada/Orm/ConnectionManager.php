@@ -425,7 +425,7 @@ class ConnectionManager
      * configure('limit_clause_style', 'top'), this will do nothing.
      * @param string $connection_name Which connection to use
      */
-    public function setup_limit_clause_style(string $connection_name = self::DEFAULT_CONNECTION): void
+    private function setup_limit_clause_style(string $connection_name): void
     {
         if ($this->config($connection_name)['limit_clause_style'] !== null) {
             return;
