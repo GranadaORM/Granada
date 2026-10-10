@@ -51,7 +51,10 @@ use PDO;
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @implements ArrayAccess<string, mixed> */
+/**
+ * @internal
+ * @implements ArrayAccess<string, mixed>
+ */
 class ORM implements ArrayAccess
 {
     // ----------------------- //
@@ -226,16 +229,13 @@ class ORM implements ArrayAccess
     }
 
     /**
-     * Despite its slightly odd name, this is actually the factory
-     * method used to acquire instances of the class. It is named
-     * this way for the sake of a readable interface, ie
-     * ORM::for_table('table_name')->find_one()-> etc. As such,
-     * this will normally be the first method called in a chain.
+     * Build a query bound to a table. Queries start at
+     * Granada::for_table(), which builds through this method.
      * @param string $table_name
      * @param string $connection_name Which connection to use
      * @return static
      */
-    public static function for_table(string $table_name, string $connection_name = self::DEFAULT_CONNECTION): static
+    public static function _for_table(string $table_name, string $connection_name = self::DEFAULT_CONNECTION): static
     {
         self::_setup_db($connection_name);
 
@@ -633,45 +633,6 @@ class ORM implements ArrayAccess
     }
 
     /**
-     * Return a generator that retrieves the records on demand, one
-     * model at a time, with identical results as find_many(). The
-     * rows load in chunks of $chunk_size (default 1000); only the
-     * list of row ids stays in memory.
-     *
-     * The generator is single use: to loop again, call
-     * find_many_lazy() again, and every query runs again.
-     * return_result_sets does not apply.
-     *
-     * group_by, raw_query() and a join with a custom select() throw
-     * before any query runs.
-     *
-     * @param int $chunk_size How many rows to load per query.
-     * @return \Generator<int|string, ORM|Granada>
-     */
-    public function find_many_lazy(int $chunk_size = 1000): \Generator
-    {
-        if ($this->_group_by !== []) {
-            throw new \InvalidArgumentException('find_many_lazy cannot run a grouped query: one row must be one id');
-        }
-
-        if ($this->_is_raw_query) {
-            throw new \InvalidArgumentException('find_many_lazy cannot run a raw query: build the query with the chain methods');
-        }
-
-        // The rows load from the table alone, so a select() naming
-        // another table's columns cannot run.
-        if ($this->_join_sources !== [] && !$this->_using_default_result_columns) {
-            throw new \InvalidArgumentException('find_many_lazy cannot run a query with a join and a custom select()');
-        }
-
-        if ($chunk_size < 1) {
-            throw new \InvalidArgumentException('Chunk size must be at least 1');
-        }
-
-        return $this->_lazy_walk($chunk_size);
-    }
-
-    /**
      * Perform a find_many then map the results through a function
      * @param callable $func
      */
@@ -721,142 +682,6 @@ class ORM implements ArrayAccess
         $rows = $this->_run();
 
         return $this->_row_hydrator()->instances($rows);
-    }
-
-    /**
-     * Generate the records: the first query fetches the ids of all
-     * the rows, then the full rows load in chunks on demand.
-     * @return \Generator<int|string, ORM|Granada>
-     */
-    private function _lazy_walk(int $chunk_size): \Generator
-    {
-        $id_column = $this->_get_id_column_name();
-
-        $id_query = clone $this;
-        // With joins on the query, a bare id column is ambiguous, so
-        // the id pass qualifies it, as where() does.
-        $id_pass_column = $id_column;
-        if ($this->_join_sources !== []) {
-            $id_pass_column = ($this->_table_alias ?? $this->_table_name) . '.' . $id_column;
-        }
-        $id_query->_result_columns               = [$this->_quote_identifier($id_pass_column)];
-        $id_query->_using_default_result_columns = false;
-
-        // The id rows stream straight into the list, so the id pass
-        // never holds its whole result in memory.
-        $ids = [];
-        self::_execute($id_query->_build_select(), $id_query->_values, $this->_connection_name);
-        $statement = self::get_last_statement();
-        while ($row = $statement->fetch(PDO::FETCH_ASSOC)) {
-            $ids[] = $row[$id_column];
-        }
-
-        // The id column is fetched for matching and dropped again
-        // when the caller's select() did not include it, so the
-        // models come back as find_many() would build them.
-        $id_hidden = !$this->_using_default_result_columns
-            && !in_array($this->_quote_identifier($id_column), $this->_result_columns, true);
-
-        $hydrator    = $this->_row_hydrator();
-        $keyed_by_id = $this->_associative_results && $this->_instance_id_column !== null;
-        $chunk_start = 0;
-
-        foreach (array_chunk($ids, $chunk_size) as $chunk_ids) {
-            $chunk_rows = $this->_lazy_chunk_rows($chunk_ids, $id_column, $id_hidden);
-
-            $instances = [];
-            foreach ($chunk_rows as $index => $row) {
-                $instances[$index] = $hydrator->instance($row);
-            }
-            $instances = $this->_lazy_eager_load($instances);
-
-            foreach ($instances as $index => $instance) {
-                // The instance's own id. When the select() left the
-                // id out, the key falls back to the position, as
-                // find_many does.
-                $id  = $instance->id();
-                $key = ($keyed_by_id && $id) ? $id : $chunk_start + $index;
-
-                yield $key => $instance;
-            }
-
-            $chunk_start += count($chunk_ids);
-        }
-    }
-
-    /**
-     * The rows for one chunk of ids, in id-pass order, keyed by the
-     * position of each id in the chunk. A row whose id no longer
-     * matches - it was deleted between the two queries - is skipped.
-     *
-     * @param array<int, mixed> $chunk_ids
-     * @return array<int, array<string, mixed>>
-     */
-    private function _lazy_chunk_rows(array $chunk_ids, string $id_column, bool $id_hidden): array
-    {
-        $id_values = array_values(array_filter($chunk_ids, fn($id) => $id !== null));
-
-        // Each row loads by id from the table alone, so the clone
-        // drops the joins, filters, order, limit and offset. A new
-        // query clause must be listed here or it leaks in.
-        $query                     = clone $this;
-        $query->_join_sources      = [];
-        $query->_where_conditions  = [];
-        $query->_having_conditions = [];
-        $query->_order_by          = [];
-        $query->_limit             = null;
-        $query->_offset            = null;
-        $query->_distinct          = false;
-
-        if ($id_hidden) {
-            $query->_result_columns = [$this->_quote_identifier($id_column), ...$query->_result_columns];
-        }
-
-        $query->where_in($id_column, $id_values);
-
-        $rows_by_id = [];
-        $null_rows  = [];
-        foreach ($query->_run() as $row) {
-            $id = $row[$id_column] ?? null;
-            if ($id_hidden) {
-                unset($row[$id_column]);
-            }
-            if ($id === null) {
-                $null_rows[] = $row;
-            } else {
-                // An id repeated in the chunk matches several rows,
-                // and every occurrence generates its own row.
-                $rows_by_id[$id][] = $row;
-            }
-        }
-
-        $rows = [];
-        foreach ($chunk_ids as $index => $id) {
-            $row = null;
-            if ($id === null) {
-                $row = array_shift($null_rows);
-            } elseif (isset($rows_by_id[$id])) {
-                $row = array_shift($rows_by_id[$id]);
-            }
-            if ($row === null) {
-                continue;
-            }
-            $rows[$index] = $row;
-        }
-
-        return $rows;
-    }
-
-    /**
-     * The eager loads for one chunk's instances. Meant to be
-     * overridden by subclasses that hold relationships.
-     *
-     * @param array<int|string, ORM|Granada> $instances
-     * @return array<int|string, ORM|Granada>
-     */
-    protected function _lazy_eager_load(array $instances): array
-    {
-        return $instances;
     }
 
     /**
@@ -1513,32 +1338,6 @@ class ORM implements ArrayAccess
     }
 
     /**
-     * Add a WHERE clause ORed against the conditions before it.
-     * Takes a closure for a group, or a column compare.
-     */
-    public function or_where(Closure|string $column_name, mixed $value = null): static
-    {
-        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::Or, false, $this->_add_where_condition(...));
-    }
-
-    /**
-     * Add a negated WHERE clause: a closure becomes NOT ( ... ), a
-     * column compare renders NOT ( column = value ).
-     */
-    public function where_not(Closure|string $column_name, mixed $value = null): static
-    {
-        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::And, true, $this->_add_where_condition(...));
-    }
-
-    /**
-     * Add a negated WHERE clause ORed against the conditions before it.
-     */
-    public function or_where_not(Closure|string $column_name, mixed $value = null): static
-    {
-        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::Or, true, $this->_add_where_condition(...));
-    }
-
-    /**
      * Adds one condition to the WHERE or HAVING list: the closure's
      * group, or a column compare. The connected_by value says
      * whether it ANDs or ORs against the conditions before it;
@@ -1901,24 +1700,6 @@ class ORM implements ArrayAccess
     }
 
     /**
-     * Add an EXISTS ( subquery ) condition. The subquery is a query
-     * for another table; correlation is spelled inside it with
-     * where_raw. Its bound values merge into this query.
-     */
-    public function where_exists(self $subquery): static
-    {
-        return $this->_add_subquery_exists($subquery, false, $this->_add_where_condition(...));
-    }
-
-    /**
-     * Add a NOT EXISTS ( subquery ) condition.
-     */
-    public function where_not_exists(self $subquery): static
-    {
-        return $this->_add_subquery_exists($subquery, true, $this->_add_where_condition(...));
-    }
-
-    /**
      * @param callable(Orm\Condition): static $add_condition
      */
     protected function _add_subquery_exists(self $subquery, bool $negate, callable $add_condition): static
@@ -2036,48 +1817,6 @@ class ORM implements ArrayAccess
         }
 
         return $this->having_equal($column_name, $value);
-    }
-
-    /**
-     * Add a HAVING clause ORed against the conditions before it.
-     * Takes a closure for a group, or a column compare.
-     */
-    public function or_having(Closure|string $column_name, mixed $value = null): static
-    {
-        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::Or, false, $this->_add_having_condition(...), 'having');
-    }
-
-    /**
-     * Add a negated HAVING clause: a closure becomes NOT ( ... ), a
-     * column compare renders NOT ( column = value ).
-     */
-    public function having_not(Closure|string $column_name, mixed $value = null): static
-    {
-        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::And, true, $this->_add_having_condition(...), 'having');
-    }
-
-    /**
-     * Add a negated HAVING clause ORed against the conditions before it.
-     */
-    public function or_having_not(Closure|string $column_name, mixed $value = null): static
-    {
-        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::Or, true, $this->_add_having_condition(...), 'having');
-    }
-
-    /**
-     * Add an EXISTS ( subquery ) condition to HAVING.
-     */
-    public function having_exists(self $subquery): static
-    {
-        return $this->_add_subquery_exists($subquery, false, $this->_add_having_condition(...));
-    }
-
-    /**
-     * Add a NOT EXISTS ( subquery ) condition to HAVING.
-     */
-    public function having_not_exists(self $subquery): static
-    {
-        return $this->_add_subquery_exists($subquery, true, $this->_add_having_condition(...));
     }
 
     /**
@@ -2767,6 +2506,12 @@ class ORM implements ArrayAccess
     public static function __callStatic(string $name, array $arguments): mixed
     {
         $method = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $name));
+
+        // A snake_case name maps to itself here, so an unknown name
+        // would re-enter this dispatch; refuse it instead.
+        if (!method_exists(static::class, $method)) {
+            throw new \BadMethodCallException("Method {$name} does not exist");
+        }
 
         return call_user_func_array([static::class, $method], $arguments);
     }

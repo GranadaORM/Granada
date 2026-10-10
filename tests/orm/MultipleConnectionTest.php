@@ -1,6 +1,7 @@
 <?php
 
 use Granada\ORM;
+use Granada\Granada;
 use Granada\Orm\ConnectionManager;
 
 class MultipleConnectionTest extends \PHPUnit\Framework\TestCase
@@ -39,11 +40,11 @@ class MultipleConnectionTest extends \PHPUnit\Framework\TestCase
 
     public function testFindOneOverDifferentConnections()
     {
-        ORM::for_table('widget')->find_one();
+        Granada::for_table('widget')->find_one();
         $statementOne = ORM::get_last_statement();
         $this->assertInstanceOf('MockPDOStatement', $statementOne);
 
-        ORM::for_table('person', self::ALTERNATE)->find_one();
+        Granada::for_table('person', self::ALTERNATE)->find_one();
         $statementOne = ORM::get_last_statement(); // get_statement is *not* per connection
         $this->assertInstanceOf('MockDifferentPDOStatement', $statementOne);
 

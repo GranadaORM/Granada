@@ -2,6 +2,7 @@
 
 namespace Granada\Orm;
 
+use Closure;
 use Granada\ORM;
 use Granada\Granada;
 use Granada\Relationship;
@@ -15,6 +16,8 @@ use Exception;
  * You shouldn't need to interact with this class
  * directly. It is used internally by the Model base
  * class.
+ *
+ * @internal
  */
 class Wrapper extends ORM
 {
@@ -89,26 +92,16 @@ class Wrapper extends ORM
     {
         array_unshift($args, $this);
 
-        if (method_exists($this->_class_name, $filter_function)) {
-            return call_user_func_array([$this->_class_name, $filter_function], $args);
+        // A wrapper without a model class has no filters to look up.
+        if (!$this->_class_name) {
+            return $this;
         }
 
-        return $this;
-    }
+        if (!method_exists($this->_class_name, $filter_function)) {
+            return $this;
+        }
 
-    /**
-     * Factory method, return an instance of this
-     * class bound to the supplied table name.
-     *
-     * A repeat of content in parent::for_table, so that
-     * created class is Wrapper, not ORM
-     * @return static
-     */
-    public static function for_table(string $table_name, string $connection_name = parent::DEFAULT_CONNECTION): static
-    {
-        self::_setup_db($connection_name);
-
-        return new static($table_name, [], $connection_name);
+        return call_user_func_array([$this->_class_name, $filter_function], $args);
     }
 
     /**
@@ -121,6 +114,11 @@ class Wrapper extends ORM
         if (is_null($orm)) {
             return null;
         }
+
+        if ($this->_class_name === null) {
+            return $orm;
+        }
+
         $model               = new $this->_class_name();
         $orm->resultSetClass = $model->get_resultSetClass();
         $orm->set_class_name($this->_class_name);
@@ -221,16 +219,138 @@ class Wrapper extends ORM
     }
 
     /**
-     * The lazy find's eager loads run once per chunk, against that
-     * chunk's parents. return_result_sets never applies: the walk
-     * generates models one at a time, so the chunk stays an array.
+     * Return a generator that retrieves the records on demand, one
+     * model at a time, with identical results as find_many(). The
+     * rows load in chunks of $chunk_size (default 1000); only the
+     * list of row ids stays in memory.
      *
-     * @param array<int|string, ORM|Granada> $instances
-     * @return array<int|string, ORM|Granada>
+     * The generator is single use: to loop again, call
+     * find_many_lazy() again, and every query runs again.
+     * return_result_sets does not apply.
+     *
+     * group_by, raw_query() and a join with a custom select() throw
+     * before any query runs.
+     *
+     * @param int $chunk_size How many rows to load per query.
+     * @return \Generator<int|string, ORM|Granada>
      */
-    protected function _lazy_eager_load(array $instances): array
+    public function find_many_lazy(int $chunk_size = 1000): \Generator
     {
-        return $this->_row_hydrator()->many($this, $instances, false);
+        if ($this->_group_by !== []) {
+            throw new \InvalidArgumentException('find_many_lazy cannot run a grouped query: one row must be one id');
+        }
+
+        if ($this->_is_raw_query) {
+            throw new \InvalidArgumentException('find_many_lazy cannot run a raw query: build the query with the chain methods');
+        }
+
+        // The rows load from the table alone, so a select() naming
+        // another table's columns cannot run.
+        if ($this->_join_sources !== [] && !$this->_using_default_result_columns) {
+            throw new \InvalidArgumentException('find_many_lazy cannot run a query with a join and a custom select()');
+        }
+
+        if ($chunk_size < 1) {
+            throw new \InvalidArgumentException('Chunk size must be at least 1');
+        }
+
+        return $this->_lazy_walk($chunk_size);
+    }
+
+    /**
+     * Generate the records: the first query fetches the ids of all
+     * the rows, then the rows load in chunks on demand.
+     * @return \Generator<int|string, ORM|Granada>
+     */
+    private function _lazy_walk(int $chunk_size): \Generator
+    {
+        $id_column = $this->_get_id_column_name();
+
+        // The id pass keeps every clause of the caller's query and
+        // narrows the select to the id column. With joins on the
+        // query, a bare id column is ambiguous, so it is qualified,
+        // as where() does.
+        $id_query = clone $this;
+        $id_query->clear_select();
+        $id_pass_column = $id_column;
+        if ($this->_join_sources !== []) {
+            $id_pass_column = ($this->_table_alias ?? $this->_table_name) . '.' . $id_column;
+        }
+        $id_query->select($id_pass_column);
+        $ids = array_column($id_query->find_array(), $id_column);
+
+        // The id column is fetched for matching and dropped again
+        // when the caller's select() did not include it, so the
+        // models come back as find_many() would build them.
+        $id_hidden = !$this->_using_default_result_columns
+            && !in_array($this->_quote_identifier($id_column), $this->_result_columns, true);
+
+        $hydrator    = $this->_row_hydrator();
+        $keyed_by_id = $this->_associative_results && $this->_instance_id_column !== null;
+        $chunk_start = 0;
+
+        foreach (array_chunk($ids, $chunk_size) as $chunk_ids) {
+            // Each chunk's rows load by id from the table alone.
+            $query = static::_for_table($this->_table_name, $this->_connection_name);
+            if ($this->_table_alias !== null) {
+                $query->table_alias($this->_table_alias);
+            }
+            if ($this->_instance_id_column !== null) {
+                $query->use_id_column($this->_instance_id_column);
+            }
+            if (!$this->_using_default_result_columns) {
+                foreach ($this->_result_columns as $column) {
+                    $query->select_expr($column);
+                }
+            }
+            if ($id_hidden) {
+                $query->select_expr($this->_quote_identifier($id_column));
+            }
+            $query->where_in($id_column, $chunk_ids);
+
+            // The row query returns the rows in database order.
+            // Grouping them by id lets the loop below yield them
+            // in $chunk_ids order instead. A chunk id with no row
+            // was deleted between the two queries.
+            $rows_by_id = [];
+            foreach ($query->find_array() as $row) {
+                $rows_by_id[$row[$id_column]][] = $row;
+            }
+
+            $instances = [];
+            foreach ($chunk_ids as $index => $id) {
+                $row = null;
+                if (isset($rows_by_id[$id])) {
+                    $row = array_shift($rows_by_id[$id]);
+                }
+                if ($row === null) {
+                    continue;
+                }
+                if ($id_hidden) {
+                    unset($row[$id_column]);
+                }
+                $instances[$index] = $hydrator->instance($row);
+            }
+
+            // The query's with() eager loads run here, once per
+            // chunk against the chunk's parents. The walk yields
+            // one model at a time, so return_result_sets does
+            // not apply and the chunk stays an array.
+            $instances = $hydrator->many($this, $instances, false);
+
+            foreach ($instances as $index => $instance) {
+                // The yielded key is the instance's id, the way
+                // find_many keys its results. When the caller's
+                // select() left the id out - or the id is zero -
+                // the key falls back to the position.
+                $id  = $instance->id();
+                $key = ($keyed_by_id && $id) ? $id : $chunk_start + $index;
+
+                yield $key => $instance;
+            }
+
+            $chunk_start += count($chunk_ids);
+        }
     }
 
     protected function _row_hydrator(): RowHydrator
@@ -239,7 +359,7 @@ class Wrapper extends ORM
             $this->_connection_name,
             $this->_instance_id_column,
             $this->_associative_results,
-            fn(array $row): Granada => $this->_create_model_instance($this->_create_instance_from_row($row)),
+            fn(array $row): Granada|ORM => $this->_create_model_instance($this->_create_instance_from_row($row)),
         );
     }
 
@@ -334,6 +454,10 @@ class Wrapper extends ORM
 
     public function adjustTimezoneForWhere(string $varname, mixed $parameters): mixed
     {
+        if ($this->_class_name === null) {
+            return $parameters;
+        }
+
         $classname = $this->_class_name;
         self::$_has_timezone_adjustment_cache[$classname] ??= method_exists($classname, 'adjustTimezoneForWhere');
 
@@ -383,6 +507,92 @@ class Wrapper extends ORM
     }
 
     /**
+     * Add a WHERE clause ORed against the conditions before it.
+     * Takes a closure for a group, or a column compare.
+     */
+    public function or_where(Closure|string $column_name, mixed $value = null): static
+    {
+        return $this->_add_composed_condition($column_name, $value, ConnectedBy::Or, false, $this->_add_where_condition(...));
+    }
+
+    /**
+     * Add a negated WHERE clause: a closure becomes NOT ( ... ), a
+     * column compare renders NOT ( column = value ).
+     */
+    public function where_not(Closure|string $column_name, mixed $value = null): static
+    {
+        return $this->_add_composed_condition($column_name, $value, ConnectedBy::And, true, $this->_add_where_condition(...));
+    }
+
+    /**
+     * Add a negated WHERE clause ORed against the conditions before it.
+     */
+    public function or_where_not(Closure|string $column_name, mixed $value = null): static
+    {
+        return $this->_add_composed_condition($column_name, $value, ConnectedBy::Or, true, $this->_add_where_condition(...));
+    }
+
+    /**
+     * Add an EXISTS ( subquery ) condition. The subquery is a query
+     * for another table; correlation is spelled inside it with
+     * where_raw. Its bound values merge into this query.
+     */
+    public function where_exists(ORM $subquery): static
+    {
+        return $this->_add_subquery_exists($subquery, false, $this->_add_where_condition(...));
+    }
+
+    /**
+     * Add a NOT EXISTS ( subquery ) condition.
+     */
+    public function where_not_exists(ORM $subquery): static
+    {
+        return $this->_add_subquery_exists($subquery, true, $this->_add_where_condition(...));
+    }
+
+    /**
+     * Add a HAVING clause ORed against the conditions before it.
+     * Takes a closure for a group, or a column compare.
+     */
+    public function or_having(Closure|string $column_name, mixed $value = null): static
+    {
+        return $this->_add_composed_condition($column_name, $value, ConnectedBy::Or, false, $this->_add_having_condition(...), 'having');
+    }
+
+    /**
+     * Add a negated HAVING clause: a closure becomes NOT ( ... ), a
+     * column compare renders NOT ( column = value ).
+     */
+    public function having_not(Closure|string $column_name, mixed $value = null): static
+    {
+        return $this->_add_composed_condition($column_name, $value, ConnectedBy::And, true, $this->_add_having_condition(...), 'having');
+    }
+
+    /**
+     * Add a negated HAVING clause ORed against the conditions before it.
+     */
+    public function or_having_not(Closure|string $column_name, mixed $value = null): static
+    {
+        return $this->_add_composed_condition($column_name, $value, ConnectedBy::Or, true, $this->_add_having_condition(...), 'having');
+    }
+
+    /**
+     * Add an EXISTS ( subquery ) condition to HAVING.
+     */
+    public function having_exists(ORM $subquery): static
+    {
+        return $this->_add_subquery_exists($subquery, false, $this->_add_having_condition(...));
+    }
+
+    /**
+     * Add a NOT EXISTS ( subquery ) condition to HAVING.
+     */
+    public function having_not_exists(ORM $subquery): static
+    {
+        return $this->_add_subquery_exists($subquery, true, $this->_add_having_condition(...));
+    }
+
+    /**
      * The group closure's query carries the model class name, so the
      * where_* suffix magic and filter_* methods work inside.
      */
@@ -404,8 +614,10 @@ class Wrapper extends ORM
      */
     public function __call(string $method, array $parameters): mixed
     {
-        // Check for filter methods first (as they override)
-        if (method_exists($this->_class_name, 'filter_' . $method)) {
+        // Check for filter methods first (as they override).
+        // A wrapper without a model class falls through to the
+        // suffix dispatch.
+        if ($this->_class_name && method_exists($this->_class_name, 'filter_' . $method)) {
             array_unshift($parameters, $this);
 
             return call_user_func_array([$this->_class_name, 'filter_' . $method], $parameters);

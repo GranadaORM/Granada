@@ -1,6 +1,7 @@
 <?php
 
 use Granada\ORM;
+use Granada\Granada;
 
 class QueryBuilderMssqlTest extends \PHPUnit\Framework\TestCase
 {
@@ -22,16 +23,16 @@ class QueryBuilderMssqlTest extends \PHPUnit\Framework\TestCase
 
     public function testFindOne()
     {
-        ORM::for_table('widget')->find_one();
+        Granada::for_table('widget')->find_one();
         $expected = 'SELECT TOP 1 * FROM "widget"';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testLimit()
     {
-        ORM::for_table('widget')->limit(5)->find_many();
+        Granada::for_table('widget')->limit(5)->find_many();
         $expected = 'SELECT TOP 5 * FROM "widget"';
-        $this->assertSame($expected, ORM::for_table('widget')->limit(5)->get_select_query());
+        $this->assertSame($expected, Granada::for_table('widget')->limit(5)->get_select_query());
         $this->assertEquals($expected, ORM::get_last_query());
     }
 }

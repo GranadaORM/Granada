@@ -205,6 +205,20 @@ class Granada implements ArrayAccess
     }
 
     /**
+     * The table-first entry point: build a query on a table without a
+     * model class.
+     * Finds return query objects, not models, and named filters and the
+     * default filter do not apply, since both live on a model class.
+     */
+    public static function for_table(string $table_name, ?string $connection_name = null): Orm\Wrapper
+    {
+        return Orm\Wrapper::_for_table(
+            $table_name,
+            $connection_name ?? Orm\Wrapper::DEFAULT_CONNECTION
+        );
+    }
+
+    /**
      * Factory method used to acquire instances of the given class.
      * The class name should be supplied as a string, and the class
      * should already have been loaded by PHP (or a suitable autoloader
@@ -239,7 +253,7 @@ class Granada implements ArrayAccess
             );
         }
 
-        $wrapper = Orm\Wrapper::for_table($table_name, $connection_name);
+        $wrapper = Orm\Wrapper::_for_table($table_name, $connection_name);
         $wrapper->set_class_name($class_name);
         $wrapper->use_id_column(self::_get_id_column_name($class_name));
         $wrapper->resultSetClass = $class_name::$resultSetClass;

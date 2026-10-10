@@ -1,6 +1,7 @@
 <?php
 
 use Granada\ORM;
+use Granada\Granada;
 use Granada\Orm\Aggregate;
 use Granada\Orm\BulkDeleteSpec;
 use Granada\Orm\Condition;
@@ -335,7 +336,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
 
     public function testBuildSelectWithoutConnection()
     {
-        $orm = ORM::for_table('person');
+        $orm = Granada::for_table('person');
         $orm->select('name');
         $orm->where('age', 17);
         $orm->limit(5);
@@ -357,7 +358,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
         ORM::configure('driver_name', 'pgsql');
         ORM::configure('identifier_quote_character', '"');
 
-        $orm = ORM::for_table('person');
+        $orm = Granada::for_table('person');
         $orm->use_id_column('person_id');
         $orm->set('name', 'fred');
 
@@ -375,14 +376,14 @@ class RendererTest extends \PHPUnit\Framework\TestCase
 
     public function testGetSelectQueryWithoutConnectionAndNoValues()
     {
-        $orm = ORM::for_table('person');
+        $orm = Granada::for_table('person');
 
         $this->assertSame('SELECT * FROM `person`', $orm->get_select_query());
     }
 
     public function testGetSelectQueryWithoutConnectionWithBoundValuesThrows()
     {
-        $orm = ORM::for_table('person');
+        $orm = Granada::for_table('person');
         $orm->where('name', "O'Brien");
 
         ORM::reset_db();
@@ -461,7 +462,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
         ORM::set_db(new MockPDO('sqlite::memory:'));
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('unbalanced quotes');
-        ORM::for_table('person')
+        Granada::for_table('person')
             ->where_raw("name = 'unbalanced AND id = ?", [1])
             ->get_select_query();
     }

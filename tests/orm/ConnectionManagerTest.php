@@ -1,6 +1,7 @@
 <?php
 
 use Granada\ORM;
+use Granada\Granada;
 use Granada\Orm\ConnectionManager;
 use Pdo\Mysql;
 
@@ -165,11 +166,11 @@ class ConnectionManagerTest extends \PHPUnit\Framework\TestCase
         ORM::set_connection_manager($manager);
 
         $expected = "SELECT * FROM `widget` WHERE `name` = 'Fred' LIMIT 1";
-        ORM::for_table('widget')->where('name', 'Fred')->find_one();
+        Granada::for_table('widget')->where('name', 'Fred')->find_one();
 
         $this->assertCount(0, $manager->get_query_log(self::ALTERNATE));
 
-        ORM::for_table('widget', self::ALTERNATE)->where('name', 'Fred')->find_one();
+        Granada::for_table('widget', self::ALTERNATE)->where('name', 'Fred')->find_one();
 
         $this->assertSame(
             [$expected],

@@ -1,6 +1,7 @@
 <?php
 
 use Granada\ORM;
+use Granada\Granada;
 use Granada\ResultSet;
 use Granada\Orm\ConnectionManager;
 
@@ -169,7 +170,7 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
 
     public function testPlainOrmFindManyNumbersRowsWithoutAnIdColumn()
     {
-        $results = ORM::for_table('keyed_row')->find_many();
+        $results = Granada::for_table('keyed_row')->find_many();
 
         $this->assertSame([0, 1, 2, 3, 4], array_keys($results));
         $this->assertSame(['a', 'a-dup', 'null-id', 'c', 'zero'], $this->names($results));
@@ -177,7 +178,7 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
 
     public function testPlainOrmFindManyKeysByRowIdWithUseIdColumn()
     {
-        $results = ORM::for_table('keyed_row')->use_id_column('id')->find_many();
+        $results = Granada::for_table('keyed_row')->use_id_column('id')->find_many();
 
         $this->assertSame([1, 2, 3, 4], array_keys($results));
         $this->assertSame(['a-dup', 'null-id', 'c', 'zero'], $this->names($results));

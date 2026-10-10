@@ -14,6 +14,20 @@ If you want to contribute to the documentation, please feel free to submit a pul
 Note: in the examples below, it shows the query as executed on the SQL database.
 Internally it does use placeholders so you only need to escape data if you are sending your data inline in a raw query.
 
+## Table-first queries
+
+`Granada::for_table()` starts a query on a table without a model class.
+It takes the table name and returns a query that chains conditions, ordering, and finds like any model query.
+
+```php
+$items = Granada::for_table('legacy_user')->where_gt('age', 21)->find_many();
+// SELECT * FROM legacy_user WHERE age > '21';
+```
+
+The query has no model class, so its finds return query objects rather than models - read fields off a row directly, or call `as_array()` on it.
+Named filters and the default filter do not apply, since both live on a model class.
+For a table that has a model, `Model::factory()` is the entry point, and its finds return models.
+
 ## By primary key
 
 To load a model by its primary key, use the `find_one()` function, specifying the primary key:

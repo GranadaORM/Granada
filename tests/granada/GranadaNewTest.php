@@ -1,6 +1,7 @@
 <?php
 
 use Granada\ORM;
+use Granada\Granada;
 use Granada\Model;
 
 /**
@@ -159,9 +160,9 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         // The write must report false instead of throwing
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
 
-        ORM::for_table('tagged')->create(['tag' => 'one'])->save();
+        Granada::for_table('tagged')->create(['tag' => 'one'])->save();
 
-        $row = ORM::for_table('tagged')->create(['tag' => 'one']);
+        $row = Granada::for_table('tagged')->create(['tag' => 'one']);
         $this->assertFalse($row->save());
         $this->assertTrue($row->is_new());
         $this->assertTrue($row->is_dirty('tag'));
@@ -170,7 +171,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertTrue($row->save());
         $this->assertFalse($row->is_new());
         $this->assertFalse($row->is_dirty('tag'));
-        $this->assertEquals(2, ORM::for_table('tagged')->count());
+        $this->assertEquals(2, Granada::for_table('tagged')->count());
     }
 
     public function testFailedUpdateKeepsDirtyStateSoRetryWorks()
@@ -180,8 +181,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         // The write must report false instead of throwing
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
 
-        ORM::for_table('tagged')->create(['tag' => 'one'])->save();
-        $row = ORM::for_table('tagged')->create(['tag' => 'two']);
+        Granada::for_table('tagged')->create(['tag' => 'one'])->save();
+        $row = Granada::for_table('tagged')->create(['tag' => 'two']);
         $row->save();
 
         $row->set('tag', 'one');
@@ -191,7 +192,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $row->set('tag', 'three');
         $this->assertTrue($row->save());
         $this->assertFalse($row->is_dirty('tag'));
-        $this->assertEquals('three', ORM::for_table('tagged')->find_one($row->id)->tag);
+        $this->assertEquals('three', Granada::for_table('tagged')->find_one($row->id)->tag);
     }
 
     public function testFailedInsertThrowsAndKeepsStateInExceptionMode()
@@ -221,7 +222,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         ]);
         $sale->save();
 
-        $stored = ORM::for_table('sale')->find_one($sale->id);
+        $stored = Granada::for_table('sale')->find_one($sale->id);
         $this->assertEquals(0, $stored->max_discount_percent);
     }
 
@@ -233,7 +234,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $sale->max_discount_percent = 0.0;
         $sale->save();
 
-        $stored = ORM::for_table('sale')->find_one($sale->id);
+        $stored = Granada::for_table('sale')->find_one($sale->id);
         $this->assertEquals(0, $stored->max_discount_percent);
     }
 
@@ -244,7 +245,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $sale->save();
         $insert_query = ORM::get_last_query();
 
-        $stored = ORM::for_table('sale')->find_one($sale->id);
+        $stored = Granada::for_table('sale')->find_one($sale->id);
         $this->assertEquals(0, $stored->max_discount_percent);
 
         $this->assertStringContainsString('max_discount_percent', $insert_query);
@@ -261,7 +262,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $insert_query = ORM::get_last_query();
         $this->assertStringContainsString('max_discount_percent', $insert_query);
 
-        $stored = ORM::for_table('sale')->find_one($sale->id);
+        $stored = Granada::for_table('sale')->find_one($sale->id);
         $this->assertEquals(100, $stored->max_discount_percent);
     }
 
@@ -275,7 +276,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $sale->max_discount_percent = null;
         $sale->save();
 
-        $stored = ORM::for_table('sale')->find_one($sale->id);
+        $stored = Granada::for_table('sale')->find_one($sale->id);
         $this->assertNull($stored->max_discount_percent);
     }
 
@@ -289,7 +290,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $sale->max_discount_percent = 0.0;
         $sale->save();
 
-        $stored = ORM::for_table('sale')->find_one($sale->id);
+        $stored = Granada::for_table('sale')->find_one($sale->id);
         $this->assertSame(0.0, $stored->max_discount_percent);
     }
 
@@ -1102,7 +1103,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         // A HAVING alias has no column affinity on sqlite, so the
         // group works on the grouped column.
-        $rows = ORM::for_table('car_part')
+        $rows = Granada::for_table('car_part')
             ->select('part_id')
             ->group_by('part_id')
             ->having(function ($q): void {
@@ -1502,10 +1503,10 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         ORM::get_db()->exec('CREATE TABLE IF NOT EXISTS aggregate_test (id INTEGER PRIMARY KEY AUTOINCREMENT, value REAL)');
         ORM::get_db()->exec('INSERT INTO aggregate_test (value) VALUES (1.1)');
         ORM::get_db()->exec('INSERT INTO aggregate_test (value) VALUES (1.1)');
-        $sum = ORM::for_table('aggregate_test')->sum('value');
+        $sum = Granada::for_table('aggregate_test')->sum('value');
         $this->assertEqualsWithDelta(2.2, $sum, 0.01);
         $this->assertIsFloat($sum);
-        $avg = ORM::for_table('aggregate_test')->avg('value');
+        $avg = Granada::for_table('aggregate_test')->avg('value');
         $this->assertEqualsWithDelta(1.1, $avg, 0.01);
         $this->assertIsFloat($avg);
     }

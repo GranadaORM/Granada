@@ -1,6 +1,7 @@
 <?php
 
 use Granada\ORM;
+use Granada\Granada;
 use Granada\Orm\ConnectionManager;
 
 class ConfigTest extends \PHPUnit\Framework\TestCase
@@ -23,7 +24,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
 
     public function testSettingIdColumn()
     {
-        ORM::for_table('widget')->find_one(5);
+        Granada::for_table('widget')->find_one(5);
         $expected = "SELECT * FROM `widget` WHERE `primary_key` = '5' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
@@ -34,7 +35,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
             'widget' => 'widget_id',
         ]);
 
-        ORM::for_table('widget')->find_one(5);
+        Granada::for_table('widget')->find_one(5);
         $expected = "SELECT * FROM `widget` WHERE `widget_id` = '5' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
@@ -45,7 +46,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
             'widget_handle' => 'widget_handle_id',
         ]);
 
-        ORM::for_table('widget_handle')->find_one(5);
+        Granada::for_table('widget_handle')->find_one(5);
         $expected = "SELECT * FROM `widget_handle` WHERE `widget_handle_id` = '5' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
@@ -57,14 +58,14 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
             'widget_handle' => 'widget_handle_id',
         ]);
 
-        ORM::for_table('widget_nozzle')->find_one(5);
+        Granada::for_table('widget_nozzle')->find_one(5);
         $expected = "SELECT * FROM `widget_nozzle` WHERE `primary_key` = '5' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testInstanceIdColumnOne()
     {
-        ORM::for_table('widget')->use_id_column('new_id')->find_one(5);
+        Granada::for_table('widget')->use_id_column('new_id')->find_one(5);
         $expected = "SELECT * FROM `widget` WHERE `new_id` = '5' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
@@ -75,14 +76,14 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
             'widget_handle' => 'widget_handle_id',
         ]);
 
-        ORM::for_table('widget_handle')->use_id_column('new_id')->find_one(5);
+        Granada::for_table('widget_handle')->use_id_column('new_id')->find_one(5);
         $expected = "SELECT * FROM `widget_handle` WHERE `new_id` = '5' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testInstanceIdColumnThree()
     {
-        ORM::for_table('widget_nozzle')->use_id_column('new_id')->find_one(5);
+        Granada::for_table('widget_nozzle')->use_id_column('new_id')->find_one(5);
         $expected = "SELECT * FROM `widget_nozzle` WHERE `new_id` = '5' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
