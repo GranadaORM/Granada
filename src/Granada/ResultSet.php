@@ -192,7 +192,7 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate
      * Call a method on all models in a result set. This allows for method
      * chaining such as setting a property on all models in a result set or
      * any other batch operation across models.
-     * @example ORM::for_table('Widget')->find_many()->set('field', 'value')->save();
+     * @example Granada::for_table('Widget')->find_many()->set('field', 'value')->save();
      * @param string $method
      * @param array $params
      * @return static

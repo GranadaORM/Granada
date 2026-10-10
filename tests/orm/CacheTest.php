@@ -1,6 +1,7 @@
 <?php
 
 use Granada\ORM;
+use Granada\Granada;
 
 class CacheTest extends \PHPUnit\Framework\TestCase
 {
@@ -28,20 +29,20 @@ class CacheTest extends \PHPUnit\Framework\TestCase
     // Test caching. This is a bit of a hack.
     public function testQueryGenerationOnlyOccursOnce()
     {
-        ORM::for_table('widget')->where('name', 'Fred')->where('age', 17)->find_one();
-        ORM::for_table('widget')->where('name', 'Bob')->where('age', 42)->find_one();
+        Granada::for_table('widget')->where('name', 'Fred')->where('age', 17)->find_one();
+        Granada::for_table('widget')->where('name', 'Bob')->where('age', 42)->find_one();
         $expected = ORM::get_last_query();
-        ORM::for_table('widget')->where('name', 'Fred')->where('age', 17)->find_one(); // this shouldn't run a query!
+        Granada::for_table('widget')->where('name', 'Fred')->where('age', 17)->find_one(); // this shouldn't run a query!
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testQueryGenerationOnlyOccursOnceWithMultipleConnections()
     {
         // Test caching with multiple connections (also a bit of a hack)
-        ORM::for_table('widget', self::ALTERNATE)->where('name', 'Steve')->where('age', 80)->find_one();
-        ORM::for_table('widget', self::ALTERNATE)->where('name', 'Tom')->where('age', 120)->find_one();
+        Granada::for_table('widget', self::ALTERNATE)->where('name', 'Steve')->where('age', 80)->find_one();
+        Granada::for_table('widget', self::ALTERNATE)->where('name', 'Tom')->where('age', 120)->find_one();
         $expected = ORM::get_last_query();
-        ORM::for_table('widget', self::ALTERNATE)->where('name', 'Steve')->where('age', 80)->find_one(); // this shouldn't run a query!
+        Granada::for_table('widget', self::ALTERNATE)->where('name', 'Steve')->where('age', 80)->find_one(); // this shouldn't run a query!
         $this->assertEquals($expected, ORM::get_last_query(self::ALTERNATE));
     }
 }

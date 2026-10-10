@@ -1,6 +1,7 @@
 <?php
 
 use Granada\ORM;
+use Granada\Granada;
 
 /**
  * Tests for lazy finds: find_many_lazy() gives one model at a time.
@@ -63,16 +64,16 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
         $this->assertSame([0, 1, 2, 3, 4], array_keys(iterator_to_array($walked)));
     }
 
-    public function testPlainOrmWithoutAnIdColumnNumbersRowsPositionally()
+    public function testAWrapperQueryWithoutAnIdColumnNumbersRowsPositionally()
     {
-        $walked = ORM::for_table('car')->find_many_lazy();
+        $walked = Granada::for_table('car')->find_many_lazy();
 
         $this->assertSame([0, 1, 2, 3, 4, 5], array_keys(iterator_to_array($walked)));
     }
 
-    public function testPlainOrmWithAnIdColumnKeysRowsById()
+    public function testAWrapperQueryWithAnIdColumnKeysRowsById()
     {
-        $walked = ORM::for_table('car')->use_id_column('id')->find_many_lazy();
+        $walked = Granada::for_table('car')->use_id_column('id')->find_many_lazy();
 
         $this->assertSame([1, 2, 3, 4, 5, 6], array_keys(iterator_to_array($walked)));
     }
