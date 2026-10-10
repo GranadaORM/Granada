@@ -787,7 +787,7 @@ class ORM implements ArrayAccess
     /**
      * The rows for one chunk of ids, in id-pass order, keyed by the
      * position of each id in the chunk. A row whose id no longer
-     * matches — it was deleted between the two queries — is skipped.
+     * matches - it was deleted between the two queries - is skipped.
      *
      * @param array<int, mixed> $chunk_ids
      * @return array<int, array<string, mixed>>
@@ -980,7 +980,7 @@ class ORM implements ArrayAccess
      * This will usually be called only from inside the class,
      * but it's public in case you need to call it directly.
      */
-    public function hydrate(array $data = [])
+    public function hydrate(array $data = []): static
     {
         $this->_data       = $data;
         $this->_clean_data = [];
@@ -2455,7 +2455,7 @@ class ORM implements ArrayAccess
      * @param string|array $key
      * @param string|null $value
      */
-    public function set_expr(array|string $key, mixed $value = null)
+    public function set_expr(array|string $key, mixed $value = null): static
     {
         return $this->_set_orm_property($key, $value, true);
     }

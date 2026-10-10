@@ -77,6 +77,17 @@ class RelationshipValuesTest extends \PHPUnit\Framework\TestCase
         $this->assertSame($second, $gadget->relationships['widgets']);
     }
 
+    public function testClearComputedValuesChainsIntoPropertyRead()
+    {
+        $gadget = Model::factory('Gadget')->find_one(1);
+        $first  = $gadget->widgets;
+
+        $second = $gadget->clear_computed_values()->widgets;
+
+        $this->assertNotSame($first, $second, 'The chained read loads the relationship again');
+        $this->assertCount(count($first), $second);
+    }
+
     public function testClearComputedValuesKeepsEagerResults()
     {
         $gadget = Model::factory('Gadget')->with('widgets')->find_one(1);

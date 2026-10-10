@@ -47,7 +47,7 @@ abstract class Dialect
     }
 
     /**
-     * SELECT-list prefix reserving rows, eg "TOP 5 " — placed right
+     * SELECT-list prefix reserving rows, eg "TOP 5 " - placed right
      * after SELECT, before the result columns.
      */
     public function select_top_fragment(?int $limit): string

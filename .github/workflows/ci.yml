@@ -45,6 +45,27 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
 
+  phpstan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo, sqlite, pdo_sqlite
+          coverage: none
+
+      - name: Run composer install
+        run: composer install
+
+      - name: Run phpstan
+        run: composer phpstan
+
+
   php-tests:
     needs: [code-style]
     runs-on: ubuntu-latest

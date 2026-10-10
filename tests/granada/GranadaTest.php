@@ -137,6 +137,30 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
+    public function testHydrateChainsIntoSave()
+    {
+        $widget = Model::factory('Simple')->create();
+        $widget->hydrate(['name' => 'Fred', 'age' => 10])->save();
+        $expected = "INSERT INTO `simple` (`name`, `age`) VALUES ('Fred', '10')";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testSetExprChainsIntoSave()
+    {
+        $widget       = Model::factory('Simple')->create();
+        $widget->name = 'Fred';
+        $widget->age  = 10;
+        $widget->set_expr('added', 'NOW()')->save();
+        $expected = "INSERT INTO `simple` (`name`, `age`, `added`) VALUES ('Fred', '10', NOW())";
+        $this->assertEquals($expected, ORM::get_last_query());
+    }
+
+    public function testSetClassNameChainsIntoFind()
+    {
+        $widget = Model::factory('Simple')->set_class_name('Simple')->find_one(1);
+        $this->assertInstanceOf('Simple', $widget);
+    }
+
     public function testRelationshipQueryAsSubquery()
     {
         $gadget = Gadget::find_one(1);

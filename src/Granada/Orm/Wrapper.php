@@ -69,9 +69,11 @@ class Wrapper extends ORM
      * methods should return instances of.
      * @param string $class_name
      */
-    public function set_class_name(string $class_name): void
+    public function set_class_name(string $class_name): static
     {
         $this->_class_name = $class_name;
+
+        return $this;
     }
 
     /**

@@ -110,11 +110,11 @@ again, so the data may have changed.
 
 The method throws an exception when the query has one of these:
 
-- `group_by()` — the method loads each row by its id, and a grouped
+- `group_by()` - the method loads each row by its id, and a grouped
   row has no single id
-- `raw_query()` — the method loads the rows by rebuilding the query,
+- `raw_query()` - the method loads the rows by rebuilding the query,
   and it cannot rebuild raw SQL
-- a `join()` plus a custom `select()` — the rows are loaded from the
+- a `join()` plus a custom `select()` - the rows are loaded from the
   table alone, so the select may only name that table's columns
 
 If you turned on `return_result_sets`, it does not apply here: the
@@ -553,7 +553,7 @@ $count = Car::count();
 
 When accessing a property on a model (e.g. `$model->property`), Granada checks several method prefixes in order to resolve the value.
 
-### `get_` prefix — Transform an existing value
+### `get_` prefix - Transform an existing value
 
 If the property exists in the database (not null), and a `get_{property}` method exists, the raw database value is passed to the method and the return value is used. This is recalculated every time the property is accessed.
 
@@ -568,7 +568,7 @@ $car = Model::factory('Car')->find_one(1);
 echo $car->brand; // e.g. Toyota
 ```
 
-### `missing_` prefix — Compute when not in the database
+### `missing_` prefix - Compute when not in the database
 
 If the property does not exist in the database (null), and a `missing_{property}` method exists, the method is called with no arguments. The result is **recalculated every time** the property is accessed.
 
@@ -587,7 +587,7 @@ echo $car->nameNow; // will be different
 
 Use `missing_` for lightweight computations that should reflect the current state of the model on every access.
 
-### `missingonce_` prefix — Compute once and keep
+### `missingonce_` prefix - Compute once and keep
 
 If the property does not exist in the database (null), and a `missingonce_{property}` method exists, the method is called on the **first access only**. The result is kept and returned on all subsequent accesses within the same object lifecycle.
 
@@ -625,7 +625,7 @@ echo $car->manufactor->name; // No database query
 
 See the Relationships section below for more detail.
 
-### `clear_computed_values()` — Work out computed values again
+### `clear_computed_values()` - Work out computed values again
 
 Lazy-loaded relationships and `missingonce_` values are kept in the model's `$relationships` array. `clear_computed_values()` drops those kept values, so the next read of each affected property works them out again.
 
@@ -714,7 +714,7 @@ ORM::transaction(function () {
 
 ## Concurrent writes
 
-Granada has no row locks — there is no `SELECT ... FOR UPDATE`. Transactions plus atomic writes cover the work row locks usually do.
+Granada has no row locks - there is no `SELECT ... FOR UPDATE`. Transactions plus atomic writes cover the work row locks usually do.
 
 A transaction makes several writes succeed or fail together, but it does not stop two processes reading the same value and writing afterwards. This read-then-write shape races no matter what wraps it:
 
@@ -725,6 +725,6 @@ $quote->quote_number = $max + 1;
 $quote->save();
 ```
 
-Give each series its own counter row and bump it with one atomic write — a single UPDATE that adds to the stored value — instead of computing a number from the rows themselves. Two processes then never compute from the same starting number. Put a unique index on the number column as the backstop and retry the save when the index rejects a duplicate.
+Give each series its own counter row and bump it with one atomic write - a single UPDATE that adds to the stored value - instead of computing a number from the rows themselves. Two processes then never compute from the same starting number. Put a unique index on the number column as the backstop and retry the save when the index rejects a duplicate.
 
-Check-then-act limits race the same way: reading a stock level, then writing the movement after payment, lets two buyers pass the same check. Do the check inside the write — one UPDATE that subtracts the amount and matches rows only where enough is left — and treat zero matched rows as out of stock.
+Check-then-act limits race the same way: reading a stock level, then writing the movement after payment, lets two buyers pass the same check. Do the check inside the write - one UPDATE that subtracts the amount and matches rows only where enough is left - and treat zero matched rows as out of stock.
