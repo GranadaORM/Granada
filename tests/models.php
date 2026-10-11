@@ -231,6 +231,10 @@ class BookThree extends Model
  */
 class Gadget extends Model
 {
+    protected static bool $_soft_delete = true;
+
+    protected static string $_soft_delete_column = 'hidden';
+
     protected static function _defaultFilter($query): \Granada\Orm\Wrapper
     {
         return $query->where('enabled', 1)->where('hidden', 0);

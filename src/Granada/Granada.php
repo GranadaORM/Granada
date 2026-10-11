@@ -61,6 +61,18 @@ class Granada implements ArrayAccess
     // Default foreign key suffix used by relationship methods
     public const DEFAULT_FOREIGN_KEY_SUFFIX = '_id';
 
+    /**
+     * Set on a model to make delete() flag rows instead of removing
+     * them. Flagged rows drop out of finds, counts, and relationship
+     * queries for that model.
+     */
+    protected static bool $_soft_delete = false;
+
+    /**
+     * The column the soft-delete flag is written to.
+     */
+    protected static string $_soft_delete_column = 'is_deleted';
+
     public static string $resultSetClass = 'Granada\ResultSet';
 
     /**
@@ -231,10 +243,8 @@ class Granada implements ArrayAccess
     public static function factory(string $class_name, ?string $connection_name = null): Orm\Wrapper
     {
         $class_name = self::$auto_prefix_models . $class_name;
-        $wrapper    = self::_wrapper_for_class($class_name, $connection_name);
-        $class_name::_defaultFilter($wrapper);
 
-        return $wrapper;
+        return self::_apply_default_filter($class_name, self::_wrapper_for_class($class_name, $connection_name));
     }
 
     /**
@@ -258,7 +268,25 @@ class Granada implements ArrayAccess
         $wrapper->use_id_column(self::_get_id_column_name($class_name));
         $wrapper->resultSetClass = $class_name::$resultSetClass;
 
+        if ($class_name::$_soft_delete) {
+            $wrapper->_soft_delete = true;
+        }
+        $wrapper->_soft_delete_column = $class_name::$_soft_delete_column;
+
         return $wrapper;
+    }
+
+    /**
+     * The soft-delete hiding goes on before the model's own default
+     * filter, so a filter only carries conditions of its own.
+     */
+    private static function _apply_default_filter(string $class_name, Orm\Wrapper $query): Orm\Wrapper
+    {
+        if ($query->_soft_delete) {
+            $query->where(self::_get_table_name($class_name) . '.' . $query->_soft_delete_column, 0);
+        }
+
+        return $class_name::_defaultFilter($query);
     }
 
     /**
@@ -314,7 +342,7 @@ class Granada implements ArrayAccess
      */
     private static function _finish_relationship_query(Orm\Wrapper $query, Relationship $relationship): Orm\Wrapper
     {
-        $relationship->class::_defaultFilter($query);
+        $query = self::_apply_default_filter($relationship->class, $query);
 
         if ($relationship->table) {
             $associated_table_name       = self::_get_table_name($relationship->class);
@@ -772,10 +800,54 @@ class Granada implements ArrayAccess
 
     /**
      * Delete the database row associated with this model instance.
+     * On a model with $_soft_delete set, writes the flag and keeps
+     * the row; delete_forced() removes it.
      */
     public function delete(): ?bool
     {
+        if (static::$_soft_delete) {
+            return $this->_write_soft_delete_flag(true);
+        }
+
+        return $this->delete_forced();
+    }
+
+    /**
+     * Delete the record from the database even if it has soft deletion enabled
+     */
+    public function delete_forced(): ?bool
+    {
         return $this->orm->delete();
+    }
+
+    /**
+     * Restore the soft-deleted record
+     */
+    public function restore(): ?bool
+    {
+        if (!static::$_soft_delete) {
+            return false;
+        }
+
+        return $this->_write_soft_delete_flag(false);
+    }
+
+    /**
+     * Set or clear the soft-delete flag on this row and save.
+     */
+    private function _write_soft_delete_flag(bool $deleted): ?bool
+    {
+        if ($this->is_new()) {
+            return true;
+        }
+
+        if ($this->id() === null) {
+            return true;
+        }
+
+        $this->{static::$_soft_delete_column} = $deleted ? 1 : 0;
+
+        return $this->save();
     }
 
     /**

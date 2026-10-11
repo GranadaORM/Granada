@@ -28,6 +28,13 @@ class Wrapper extends ORM
     protected ?string $_class_name = null;
 
     /**
+     * This model uses soft-delete
+     */
+    public bool $_soft_delete = false;
+
+    public string $_soft_delete_column = 'is_deleted';
+
+    /**
      * The relationship this query was built from,
      * when a relationship method built it.
      */
@@ -235,6 +242,31 @@ class Wrapper extends ORM
         unset($this->_dirty_fields[$column], $this->_expr_fields[$column]);
 
         return $value;
+    }
+
+    /**
+     * Flag every matching row instead of deleting it, on a model with
+     * soft deletes. `$target` names the table or alias the hard delete
+     * removes from in the join form.
+     */
+    public function delete_many(string $target = ''): ?bool
+    {
+        if (!$this->_soft_delete) {
+            return parent::delete_many($target);
+        }
+
+        if ($this->_join_sources !== []) {
+            throw new \InvalidArgumentException('delete_many() on a soft-delete model does not support joined queries');
+        }
+
+        $statement = Renderer::update_many(new BulkUpdateSpec(
+            table_name: $this->_table_name,
+            dialect: self::_dialect($this->_connection_name),
+            set: [$this->_soft_delete_column => 1],
+            where_conditions: $this->_where_conditions,
+        ));
+
+        return self::_execute_write($statement->query, $statement->values, $this->_connection_name);
     }
 
     /**

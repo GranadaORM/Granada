@@ -390,6 +390,31 @@ class Renderer
     }
 
     /**
+     * UPDATE every row matching the where conditions with the same values.
+     */
+    public static function update_many(BulkUpdateSpec $spec): Statement
+    {
+        $fields = [];
+        $values = [];
+        foreach ($spec->set as $column => $value) {
+            $fields[] = $spec->dialect->quote_identifier($column) . ' = ?';
+            $values[] = $value;
+        }
+
+        $where = self::build_where_condition($spec->where_conditions, $spec->dialect);
+
+        $query = self::join_if_not_empty(' ', [
+            'UPDATE',
+            $spec->dialect->quote_identifier($spec->table_name),
+            'SET',
+            implode(', ', $fields),
+            $where->fragment,
+        ]);
+
+        return new Statement($query, [...$values, ...$where->values]);
+    }
+
+    /**
      * DELETE from the accumulated WHERE conditions. With join sources, the
      * MySQL `DELETE target FROM table JOIN .. WHERE ..` form, where `target`
      * names the table or alias the delete removes from.
