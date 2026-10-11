@@ -294,6 +294,44 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(0.0, $stored->max_discount_percent);
     }
 
+    public function testWrittenFalseStoresZero()
+    {
+        $gadget = Model::factory('Gadget')->create([
+            'name'    => 'Gadget5',
+            'enabled' => false,
+        ]);
+        $gadget->save();
+
+        $stored = Granada::for_table('gadget')->find_one($gadget->id);
+        $this->assertSame(0, $stored->enabled);
+    }
+
+    public function testWhereFalseMatchesRowsStoringZero()
+    {
+        // Gadget2 stores enabled = 0 in the seed data.
+        $this->assertSame(1, Granada::for_table('gadget')->where('enabled', false)->count());
+    }
+
+    public function testWrittenTrueStoresOne()
+    {
+        $gadget = Model::factory('Gadget')->create([
+            'name'    => 'Gadget6',
+            'enabled' => true,
+        ]);
+        $gadget->save();
+
+        $stored = Granada::for_table('gadget')->find_one($gadget->id);
+        $this->assertSame(1, $stored->enabled);
+    }
+
+    public function testSelectQueryWithFalseConditionIsExecutable()
+    {
+        $query = Granada::for_table('gadget')->where('enabled', false)->get_select_query();
+
+        ORM::raw_execute($query);
+        $this->assertSame('Gadget2', ORM::get_last_statement()->fetch()['name']);
+    }
+
     public function testSetterForRelationship()
     {
         $car      = Model::factory('Car')->with('manufactor')->find_one(1);

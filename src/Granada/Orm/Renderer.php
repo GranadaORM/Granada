@@ -491,12 +491,27 @@ class Renderer
     }
 
     /**
+     * Parameters as the driver takes them: PDO binds false as ''.
+     * @param array<int|string, mixed> $parameters
+     * @return array<int|string, mixed>
+     */
+    public static function cast_query_parameters(array $parameters): array
+    {
+        return array_map(
+            fn($parameter) => is_bool($parameter) ? (int) $parameter : $parameter,
+            $parameters
+        );
+    }
+
+    /**
      * Inline bound values into the query, outside quoted strings.
      * The result is an inlined query, ready to run as-is.
      * @param array<int|string, mixed> $parameters
      */
     public static function inline_query(string $query, array $parameters, callable $quote): string
     {
+        $parameters = self::cast_query_parameters($parameters);
+
         if (count($parameters) === 0) {
             return $query;
         }

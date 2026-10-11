@@ -318,12 +318,14 @@ class ConnectionManager
      * Executes a query as a wrapper for PDOStatement::execute. Logs the
      * query and stores the statement object, accessible publicly through
      * get_last_statement().
-     * @param string[] $parameters An array of parameters to be bound in to the query
+     * @param mixed[] $parameters An array of parameters to be bound in to the query
      * @param string $connection_name Which connection to use
      * @return bool Response of PDOStatement::execute()
      */
     public function execute(string $query, array $parameters = [], string $connection_name = self::DEFAULT_CONNECTION): ?bool
     {
+        $parameters = Renderer::cast_query_parameters($parameters);
+
         $this->log_query($query, $parameters, $connection_name);
         $statement = $this->get_db($connection_name)->prepare($query);
 
@@ -520,7 +522,7 @@ class ConnectionManager
      * query isn't executed like this (PDO normally passes the query and
      * parameters to the database which takes care of the binding) but
      * doing it this way makes the logged queries more readable.
-     * @param string[] $parameters An array of parameters to be bound in to the query
+     * @param mixed[] $parameters An array of parameters to be bound in to the query
      * @param string $connection_name Which connection to use
      */
     private function log_query(string $query, array $parameters, string $connection_name): bool
