@@ -726,19 +726,18 @@ ORM::transaction(function () {
 
 `insert()` builds on this: the rows you pass are saved one by one inside one transaction, so a failure on any row rolls back every row instead of leaving the transaction open.
 
-## Concurrent writes
+## Increment and decrement
 
-Granada has no row locks - there is no `SELECT ... FOR UPDATE`. Transactions plus atomic writes cover the work row locks usually do.
-
-A transaction makes several writes succeed or fail together, but it does not stop two processes reading the same value and writing afterwards. This read-then-write shape races no matter what wraps it:
+`increment()` adds an amount to a column. `decrement()` subtracts one.
+They only affect that column, and let you run two increments or decrements without losing count.
 
 ```php
-// Two requests can read the same max and both save 431
-$max = Quote::where('estimator_id', $id)->max('quote_number');
-$quote->quote_number = $max + 1;
-$quote->save();
+$widget->increment('views');               // UPDATE widget SET views = views + 1
+$widget->decrement('stock', 2);            // UPDATE widget SET stock = stock - 2
+
+$new_total = $widget->increment('views');  // reads the value back from the row
 ```
 
-Give each series its own counter row and bump it with one atomic write - a single UPDATE that adds to the stored value - instead of computing a number from the rows themselves. Two processes then never compute from the same starting number. Put a unique index on the number column as the backstop and retry the save when the index rejects a duplicate.
-
-Check-then-act limits race the same way: reading a stock level, then writing the movement after payment, lets two buyers pass the same check. Do the check inside the write - one UPDATE that subtracts the amount and matches rows only where enough is left - and treat zero matched rows as out of stock.
+`$new_total` and `$widget->views` store the new value.
+On a newly created model, the database isn't updated until you `save()`.
+If something goes wrong, they return `false`.

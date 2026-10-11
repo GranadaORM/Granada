@@ -326,3 +326,9 @@ class OrDefaultFilterGadget extends Model
         return $query->where('enabled', 1)->or_where('hidden', 1);
     }
 }
+
+/**
+ * Its views column is a nullable counter, for testing increment()
+ * and decrement().
+ */
+class Counter extends Model {}
