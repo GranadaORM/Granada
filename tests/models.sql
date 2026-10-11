@@ -77,6 +77,12 @@ CREATE TABLE keyed_row_custom (
     name TEXT
 );
 
+CREATE TABLE counter (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    views INTEGER
+);
+
 CREATE TABLE sale (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,

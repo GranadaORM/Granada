@@ -192,6 +192,52 @@ class Wrapper extends ORM
     }
 
     /**
+     * Add $amount to a column in one UPDATE.
+     * Returns the new database value, or false if it fails.
+     */
+    public function increment(string $column, float|int $amount = 1): mixed
+    {
+        return $this->_adjust_counter($column, $amount);
+    }
+
+    /**
+     * Subtract $amount from a column in one UPDATE.
+     */
+    public function decrement(string $column, float|int $amount = 1): mixed
+    {
+        return $this->_adjust_counter($column, -$amount);
+    }
+
+    private function _adjust_counter(string $column, float|int $amount): mixed
+    {
+        if ($this->is_new() || $this->id() === null) {
+            $this->$column = ($this->$column ?? 0) + $amount;
+
+            return $this->$column;
+        }
+
+        // Save a clone, so pending changes on this model stay pending
+        $counter                = clone $this;
+        $counter->_dirty_fields = [];
+        $counter->_expr_fields  = [];
+        $quoted                 = $counter->_quote_identifier($column);
+        $counter->set_expr($column, "COALESCE({$quoted}, 0) + {$amount}");
+        if (!$counter->save()) {
+            return false;
+        }
+
+        $value = static::where_id_is($this->id())->pluck($column);
+        if ($value === null) {
+            return false;
+        }
+
+        $this->_data[$column] = $value;
+        unset($this->_dirty_fields[$column], $this->_expr_fields[$column]);
+
+        return $value;
+    }
+
+    /**
      * Wrap Idiorm's find_one method to return
      * an instance of the class associated with
      * this wrapper instead of the raw ORM class.

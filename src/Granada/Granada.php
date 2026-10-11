@@ -75,7 +75,7 @@ class Granada implements ArrayAccess
     /**
      * The ORM instance used by this model
      * instance to communicate with the database.
-     * @var ORM
+     * @var Orm\Wrapper
      */
     public $orm;
 
@@ -632,6 +632,24 @@ class Granada implements ArrayAccess
         $this->orm->set_expr($property, $value);
 
         return $this;
+    }
+
+    /**
+     * Increment a counter column with one atomic write and return the
+     * value read back from the row.
+     */
+    public function increment(string $column, float|int $amount = 1): mixed
+    {
+        return $this->orm->increment($column, $amount);
+    }
+
+    /**
+     * Decrement a counter column with one atomic write and return the
+     * value read back from the row.
+     */
+    public function decrement(string $column, float|int $amount = 1): mixed
+    {
+        return $this->orm->decrement($column, $amount);
     }
 
     /**
