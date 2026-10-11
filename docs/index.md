@@ -538,6 +538,7 @@ Instead of calling `find_many()` call `get_select_query()` and it will give you 
 
 In some cases a default filter is very useful.
 For example an `is_deleted` field that flags a record as deleted in the database but the fields are never returned in queries.
+To flag records as deleted, use the soft deletes below.
 To set up default filtering, create a function in the model. For example:
 
 ```php
@@ -561,6 +562,54 @@ $count = Car::clear_where()->count();
 // Gets the number of all cars, deleted or not
 $count = Car::count();
 // Gets only the cars that are not deleted
+```
+
+## Soft deletes
+
+Setting `$_soft_delete` on a model makes `delete()` soft-delete the row instead of removing it.
+Soft-deleted rows drop out of finds, counts, and relationship queries for that model.
+
+```php
+class Car extends Model
+{
+    protected static bool $_soft_delete = true;
+}
+```
+
+The flag column defaults to `is_deleted`.
+Set `$_soft_delete_column` to use another column.
+
+```php
+class Car extends Model
+{
+    protected static bool $_soft_delete = true;
+    protected static string $_soft_delete_column = 'deleted';
+}
+```
+
+`delete()` soft-deletes the row.
+`restore()` brings it back.
+`delete_forced()` removes the row, on any model.
+
+```php
+$car = Car::find_one(1);
+$car->delete();        // soft-deleted, queries no longer return it
+$car->restore();       // queries return it again
+$car->delete_forced(); // removes the row for good
+```
+
+`delete_many()` soft-deletes every matching row on a soft-delete model, and removes rows as before on every other model.
+
+```php
+Car::where('enabled', 0)->delete_many();
+// Soft-deletes all disabled cars
+```
+
+To list the soft-deleted rows, use `clear_where()`.
+
+```php
+$count = Car::clear_where()->where('car.is_deleted', 1)->count();
+// Gets the number of soft-deleted cars
 ```
 
 ## Property Access Methods

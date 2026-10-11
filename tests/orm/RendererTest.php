@@ -4,6 +4,7 @@ use Granada\ORM;
 use Granada\Granada;
 use Granada\Orm\Aggregate;
 use Granada\Orm\BulkDeleteSpec;
+use Granada\Orm\BulkUpdateSpec;
 use Granada\Orm\Condition;
 use Granada\Orm\ConnectedBy;
 use Granada\Orm\Dialect;
@@ -57,6 +58,37 @@ class RendererTest extends \PHPUnit\Framework\TestCase
         ];
 
         return new BulkDeleteSpec(...array_merge($defaults, $overrides));
+    }
+
+    private function bulkUpdateSpec(array $overrides = []): BulkUpdateSpec
+    {
+        $defaults = [
+            'table_name' => 'person',
+            'dialect'    => Dialect::for_driver(null),
+        ];
+
+        return new BulkUpdateSpec(...array_merge($defaults, $overrides));
+    }
+
+    public function testUpdateManyWritesTheSameValuesToEveryMatchingRow()
+    {
+        $statement = Renderer::update_many($this->bulkUpdateSpec([
+            'set'              => ['is_deleted' => 1],
+            'where_conditions' => [Condition::raw('`age` > ?', [17])],
+        ]));
+
+        $this->assertSame('UPDATE `person` SET `is_deleted` = ? WHERE `age` > ?', $statement->query);
+        $this->assertSame([1, 17], $statement->values);
+    }
+
+    public function testUpdateManyWithoutConditionsUpdatesEveryRow()
+    {
+        $statement = Renderer::update_many($this->bulkUpdateSpec([
+            'set' => ['is_deleted' => 1],
+        ]));
+
+        $this->assertSame('UPDATE `person` SET `is_deleted` = ?', $statement->query);
+        $this->assertSame([1], $statement->values);
     }
 
     public function testSelectAssemblesAllClausesInOrder()

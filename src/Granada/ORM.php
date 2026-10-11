@@ -398,7 +398,7 @@ class ORM implements ArrayAccess
      * @param string $query
      * @param mixed[] $parameters
      */
-    private static function _execute_write(string $query, array $parameters, string $connection_name = self::DEFAULT_CONNECTION): ?bool
+    protected static function _execute_write(string $query, array $parameters, string $connection_name = self::DEFAULT_CONNECTION): ?bool
     {
         $result = self::_execute($query, $parameters, $connection_name);
 
