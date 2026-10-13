@@ -126,14 +126,6 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
-    public function testUpsertOnNewRecordWithNoFieldsSetThrows()
-    {
-        $car = Model::factory('Car')->create();
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Cannot save a new record with no fields set');
-        $car->save(true);
-    }
-
     public function testSaveOnNewRecordWithOnlyBlankIdThrows()
     {
         $car = Model::factory('Car')->create([

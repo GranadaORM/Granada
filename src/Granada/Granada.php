@@ -793,9 +793,9 @@ class Granada implements ArrayAccess
     /**
      * Save the data associated with this model instance to the database.
      */
-    public function save(bool $ignore = false)
+    public function save()
     {
-        return $this->orm->save($ignore);
+        return $this->orm->save();
     }
 
     /**

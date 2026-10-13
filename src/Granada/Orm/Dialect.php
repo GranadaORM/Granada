@@ -103,17 +103,6 @@ abstract class Dialect
     }
 
     /**
-     * Upsert suffix for save()->save(true), or '' when the dialect
-     * has no equivalent of ON DUPLICATE KEY UPDATE. Meant to be
-     * overridden by subclasses (Mysql returns ON DUPLICATE KEY UPDATE).
-     * @param string[] $quoted_fields
-     */
-    public function insert_update_fragment(array $quoted_fields): string
-    {
-        return '';
-    }
-
-    /**
      * Get the id of a freshly inserted row. Meant to be overridden by
      * subclasses: dialects whose INSERT reports the id (RETURNING)
      * read it from the executed statement instead of the connection.

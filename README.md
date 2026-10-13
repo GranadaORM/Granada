@@ -274,7 +274,6 @@ ModelName::aname($argument1, $argument2)->....
 - insert : To create and save multiple elements from an array
 - pluck : returns a single column from the result.
 - find_pairs : Return array of key=>value as result
-- save : accepts a boolean to use "ON DUPLICATE KEY UPDATE" (just for Mysql)
 - delete_many (accept join clauses)
 
 ### Overload SET

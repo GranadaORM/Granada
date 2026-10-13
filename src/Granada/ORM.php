@@ -1120,7 +1120,8 @@ class ORM implements ArrayAccess
      */
     private function _append_connected_by(array &$pile, Orm\Condition $condition): void
     {
-        if ($condition->connected_by !== Orm\ConnectedBy::Or
+        if (
+            $condition->connected_by !== Orm\ConnectedBy::Or
             || $condition->type === Orm\Condition::GROUP
             || $pile === []
         ) {
@@ -1131,7 +1132,8 @@ class ORM implements ArrayAccess
 
         $previous = array_pop($pile);
 
-        if ($previous->type === Orm\Condition::GROUP
+        if (
+            $previous->type === Orm\Condition::GROUP
             && $previous->connected_by === Orm\ConnectedBy::Or
             && !$previous->negate
         ) {
@@ -2274,10 +2276,8 @@ class ORM implements ArrayAccess
     /**
      * Save any fields which have been modified on this object
      * to the database.
-     * Added: on duplicate key update, only for mysql
-     * If you want to insert a record, or update it if any of the unique keys already exists on db
      */
-    public function save(bool $ignore = false)
+    public function save()
     {
         // Fix if id field is blank but not null
         if (!($this->id() && array_key_exists($this->_get_id_column_name(), $this->_dirty_fields))) {
@@ -2285,25 +2285,22 @@ class ORM implements ArrayAccess
         }
 
         // remove any expression fields as they are already baked into the query
-        $values = array_values(array_diff_key($this->_dirty_fields, $this->_expr_fields));
+        $values              = array_values(array_diff_key($this->_dirty_fields, $this->_expr_fields));
+        $has_no_dirty_fields = empty($values) && empty($this->_expr_fields);
 
         // A new record with nothing to write would emit an INSERT with no columns
-        if ($this->_is_new && empty($values) && empty($this->_expr_fields)) {
+        if ($this->_is_new && $has_no_dirty_fields) {
             throw new \InvalidArgumentException('Cannot save a new record with no fields set');
         }
 
-        if ($ignore) {
-            $statement = Orm\Renderer::insert_update($this->_write_spec());
-        } else {
-            if (!$this->_is_new) { // UPDATE
-                // If there are no dirty values, do nothing
-                if (empty($values) && empty($this->_expr_fields)) {
-                    return true;
-                }
-                $statement = Orm\Renderer::update($this->_write_spec());
-            } else { // INSERT
-                $statement = Orm\Renderer::insert($this->_write_spec());
+        if (!$this->_is_new) { // UPDATE
+            // If there are no dirty values, do nothing
+            if ($has_no_dirty_fields) {
+                return true;
             }
+            $statement = Orm\Renderer::update($this->_write_spec());
+        } else { // INSERT
+            $statement = Orm\Renderer::insert($this->_write_spec());
         }
 
         $success = self::_execute_write($statement->query, $statement->values, $this->_connection_name);
