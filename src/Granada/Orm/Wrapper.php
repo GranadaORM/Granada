@@ -186,12 +186,12 @@ class Wrapper extends ORM
      * or a array multiple
      */
     /** @param array<int, array<string, mixed>> $rows */
-    public function insert(array $rows, bool $ignore = false): false|string
+    public function insert(array $rows): false|string
     {
         $class = $this->_class_name;
-        ORM::transaction(function () use ($rows, $ignore, $class): void {
+        ORM::transaction(function () use ($rows, $class): void {
             foreach ($rows as $row) {
-                $class::create($row)->save($ignore);
+                $class::create($row)->save();
             }
         }, $this->_connection_name);
 

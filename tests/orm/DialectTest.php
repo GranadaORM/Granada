@@ -64,19 +64,6 @@ class DialectTest extends \PHPUnit\Framework\TestCase
         $this->assertSame('', Dialect::for_driver('firebird')->insert_returning_fragment('id'));
     }
 
-    public function testInsertUpdateAppliesToMysqlFamilyOnly()
-    {
-        $fields = ['`a`', '`b`'];
-
-        $this->assertSame(
-            ' ON DUPLICATE KEY UPDATE  `a` = ?, `b` = ? ',
-            Dialect::for_driver('mysql')->insert_update_fragment($fields)
-        );
-        $this->assertSame('', Dialect::for_driver('pgsql')->insert_update_fragment($fields));
-        $this->assertSame('', Dialect::for_driver('sqlsrv')->insert_update_fragment($fields));
-        $this->assertSame('', Dialect::for_driver('firebird')->insert_update_fragment($fields));
-    }
-
     public function testOrderByListUsesFieldOnMysqlFamily()
     {
         $this->assertSame(

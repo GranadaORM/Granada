@@ -284,30 +284,6 @@ class RendererTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(['fred'], $statement->values);
     }
 
-    public function testInsertUpdateDuplicatesValues()
-    {
-        $statement = Renderer::insert_update($this->writeSpec([
-            'dirty_fields' => ['name' => 'fred'],
-        ]));
-
-        $this->assertSame(
-            'INSERT INTO `person` (`name`) VALUES (?)  ON DUPLICATE KEY UPDATE  `name` = ? ',
-            $statement->query
-        );
-        $this->assertSame(['fred', 'fred'], $statement->values);
-    }
-
-    public function testInsertUpdateRendersPlainInsertWithoutUpsertSupport()
-    {
-        $statement = Renderer::insert_update($this->writeSpec([
-            'dialect'      => Dialect::for_driver('pgsql'),
-            'dirty_fields' => ['name' => 'fred'],
-        ]));
-
-        $this->assertSame('INSERT INTO "person" ("name") VALUES (?)', $statement->query);
-        $this->assertSame(['fred'], $statement->values);
-    }
-
     public function testUpdateAppendsIdValueLast()
     {
         $statement = Renderer::update($this->writeSpec([

@@ -349,31 +349,6 @@ class Renderer
     }
 
     /**
-     * Dialects without an upsert equivalent render a plain INSERT.
-     */
-    public static function insert_update(WriteSpec $spec): Statement
-    {
-        $dialect = $spec->dialect;
-        $fields  = $dialect->quote_fields(array_keys($spec->dirty_fields));
-        $values  = self::bound_values($spec);
-        $query   = [
-            'INSERT INTO',
-            $dialect->quote_identifier($spec->table_name),
-            '(' . implode(', ', $fields) . ')',
-            'VALUES',
-            '(' . self::placeholders($spec->dirty_fields, $spec->expr_fields) . ')',
-        ];
-
-        $upsert = $dialect->insert_update_fragment($fields);
-        if ($upsert !== '') {
-            $query[] = $upsert;
-            $values  = array_merge($values, $values);
-        }
-
-        return new Statement(implode(' ', $query), $values);
-    }
-
-    /**
      * Single-record DELETE by primary key.
      */
     public static function delete(WriteSpec $spec): Statement
