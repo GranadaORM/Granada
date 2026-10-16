@@ -301,15 +301,15 @@ class Granada implements ArrayAccess
         switch ($relationship->kind) {
             case 'has_one':
             case 'has_many':
-                $query->where($relationship->keys[0], $where_value);
+                $query->where($relationship->key, $where_value);
                 break;
 
             case 'belongs_to':
-                $query->where($relationship->related_key, $this->{$relationship->keys[0]});
+                $query->where($relationship->related_key, $this->{$relationship->key});
                 break;
 
             case 'has_many_through':
-                $query->where("{$relationship->table}.{$relationship->keys[0]}", $where_value);
+                $query->where("{$relationship->table}.{$relationship->key}", $where_value);
                 break;
         }
 
@@ -345,10 +345,13 @@ class Granada implements ArrayAccess
         $query = self::_apply_default_filter($relationship->class, $query);
 
         if ($relationship->table) {
-            $associated_table_name       = self::_get_table_name($relationship->class);
-            [, $key_to_associated_table] = $relationship->keys;
+            $associated_table_name = self::_get_table_name($relationship->class);
             $query->select("{$associated_table_name}.*")
-                ->join($relationship->table, ["{$associated_table_name}.{$relationship->related_key}", '=', "{$relationship->table}.{$key_to_associated_table}"]);
+                ->join($relationship->table, ["{$associated_table_name}.{$relationship->related_key}", '=', "{$relationship->table}.{$relationship->other_key}"]);
+
+            if ($relationship->order_column() !== null) {
+                $query->order_by_asc($relationship->table . '.' . $relationship->order_column());
+            }
         }
 
         foreach ($relationship->filters() as [$method, $args]) {
@@ -368,7 +371,7 @@ class Granada implements ArrayAccess
 
         if (in_array($relationship->kind, ['has_one', 'belongs_to'])) {
             $related_id = $relationship->kind === 'belongs_to'
-                ? $this->orm->get($relationship->keys[0])
+                ? $this->orm->get($relationship->key)
                 : $this->id();
 
             if ($related_id === null) {
@@ -404,7 +407,7 @@ class Granada implements ArrayAccess
             $this,
             'has_one',
             self::$auto_prefix_models . $associated_class_name,
-            [$foreign_key_name],
+            key: $foreign_key_name,
             local_key: $foreign_key_name_in_current_models_table,
             connection: $connection_name,
         );
@@ -425,7 +428,7 @@ class Granada implements ArrayAccess
             $this,
             'has_many',
             self::$auto_prefix_models . $associated_class_name,
-            [$foreign_key_name],
+            key: $foreign_key_name,
             local_key: $foreign_key_name_in_current_models_table,
             connection: $connection_name,
         );
@@ -448,28 +451,31 @@ class Granada implements ArrayAccess
             $this,
             'belongs_to',
             $associated_class_name,
-            [$foreign_key_name],
+            key: $foreign_key_name,
             related_key: $related_key,
             connection: $connection_name,
         );
     }
 
     /**
-     * Helper method to manage many-to-many relationships via an intermediate model. See
-     * README for a full explanation of the parameters.
-     * @param string $associated_class_name
-     * @param string $join_class_name
-     * @param string $key_to_base_table
-     * @param string $key_to_associated_table
+     * Read and write a many-to-many relationship through a link table.
+     * @param string      $associated_class_name The far model.
+     * @param string|null $link_model            The link model; its table is the link table.
+     * @param string|null $this_key              The link column pointing at this model.
+     * @param string|null $other_key             The link column pointing at the far model.
+     * @param string|null $this_table_key        The column on this model the link matches;
+     *                                           empty means its id column.
+     * @param string|null $other_table_key       The column on the far model the link matches;
+     *                                           empty means its id column.
      */
-    protected function has_many_through(string $associated_class_name, ?string $join_class_name = null, ?string $key_to_base_table = null, ?string $key_to_associated_table = null, ?string $key_in_base_table = null, ?string $key_in_associated_table = null, ?string $connection_name = null): Relationship
+    protected function has_many_through(string $associated_class_name, ?string $link_model = null, ?string $this_key = null, ?string $other_key = null, ?string $this_table_key = null, ?string $other_table_key = null, ?string $connection_name = null): Relationship
     {
         $base_class_name = get_class($this);
 
-        // The class name of the join model, if not supplied, is
+        // The class name of the link model, if not supplied, is
         // formed by concatenating the names of the base class
         // and the associated class, in alphabetical order.
-        if (is_null($join_class_name)) {
+        if (is_null($link_model)) {
             $model      = explode('\\', $base_class_name);
             $model_name = end($model);
             if (self::$auto_prefix_models && str_starts_with($model_name, self::$auto_prefix_models)) {
@@ -477,27 +483,28 @@ class Granada implements ArrayAccess
             }
             $class_names = [$model_name, $associated_class_name];
             sort($class_names, SORT_STRING);
-            $join_class_name = implode('', $class_names);
+            $link_model = implode('', $class_names);
         }
 
         // Get table names for each class
         $base_table_name       = self::_get_table_name($base_class_name);
         $associated_class_name = self::$auto_prefix_models . $associated_class_name;
         $associated_table_name = self::_get_table_name($associated_class_name);
-        $join_table_name       = self::_get_table_name(self::$auto_prefix_models . $join_class_name);
+        $link_table_name       = self::_get_table_name(self::$auto_prefix_models . $link_model);
 
-        // Get the column names for each side of the join table
-        $key_to_base_table       = self::_build_foreign_key_name($key_to_base_table, $base_table_name);
-        $key_to_associated_table = self::_build_foreign_key_name($key_to_associated_table, $associated_table_name);
+        // Get the column names for each side of the link table
+        $this_key  = self::_build_foreign_key_name($this_key, $base_table_name);
+        $other_key = self::_build_foreign_key_name($other_key, $associated_table_name);
 
         return new Relationship(
             $this,
             'has_many_through',
             $associated_class_name,
-            [$key_to_base_table, $key_to_associated_table],
-            table: $join_table_name,
-            local_key: $key_in_base_table,
-            related_key: $key_in_associated_table ?? self::_get_id_column_name($associated_class_name),
+            key: $this_key,
+            other_key: $other_key,
+            table: $link_table_name,
+            local_key: $this_table_key,
+            related_key: $other_table_key ?? self::_get_id_column_name($associated_class_name),
             connection: $connection_name,
         );
     }
@@ -930,7 +937,8 @@ class Granada implements ArrayAccess
      * A closure stand-in builds onto the query it stands in for. An
      * ordinary model runs the call as a query for its own table, so
      * instance calls like max('sort_order') aggregate over that
-     * table.
+     * table. A call such as attach_roles names a relationship instead,
+     * and runs that relationship's write.
      */
     public function __call(string $method, array $parameters): mixed
     {
@@ -938,7 +946,44 @@ class Granada implements ArrayAccess
             return $this->_query_standin->$method(...$parameters);
         }
 
+        [$relationship, $write] = $this->resolve_junction_write($method);
+        if ($relationship !== null) {
+            return $relationship->$write(...$parameters);
+        }
+
         return self::factory(static::class)->$method(...$parameters);
+    }
+
+    /**
+     * The relationship and write a method such as attach_roles names.
+     * Any other name gives [null, null].
+     *
+     * @return array{Relationship|null, string|null}
+     */
+    private function resolve_junction_write(string $method): array
+    {
+        foreach (['attach_' => 'attach', 'detach_' => 'detach', 'sync_' => 'sync'] as $prefix => $write) {
+            if (!str_starts_with($method, $prefix)) {
+                continue;
+            }
+
+            $relation = substr($method, strlen($prefix));
+            if (!method_exists($this, $relation)) {
+                return [null, null];
+            }
+
+            $relationship = $this->$relation();
+            if ($relationship instanceof Orm\Wrapper) {
+                $relationship = $relationship->_relationship;
+            }
+            if (!$relationship instanceof Relationship) {
+                return [null, null];
+            }
+
+            return [$relationship, $write];
+        }
+
+        return [null, null];
     }
 
     /**

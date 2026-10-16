@@ -612,6 +612,81 @@ $count = Car::clear_where()->where('car.is_deleted', 1)->count();
 // Gets the number of soft-deleted cars
 ```
 
+## Junction writes
+
+A `has_many_through` relationship loads its models through a link table. The same declaration gives you `attach()`, `detach()`, and `sync()` to write that table.
+
+Name the link model and the two link columns when you declare the relationship:
+
+```php
+class User extends Model
+{
+    public function roles()
+    {
+        return $this->has_many_through(
+            associated_class_name: 'Role',
+            link_model: 'UserRole',
+            this_key: 'user_id',
+            other_key: 'role_id',
+        );
+    }
+}
+```
+
+`attach()` links one model to another. It creates the link row if it is not there yet, and the data you pass is written onto the row, whether the link is new or already there.
+
+```php
+$user->attach_roles(2);                   // creates the user-role link
+$user->attach_roles(2, ['enabled' => 1]); // adds data to the link
+```
+
+`detach()` removes the link to one model. Called with no argument, it removes every link this model has.
+
+```php
+$user->detach_roles(2); // removes that link
+$user->detach_roles();  // removes every role link for this user
+```
+
+`sync()` sets the list to match what you send. Either send a list of ids, or a list of id => data to also set attributes on the link table.
+
+```php
+$user->sync_roles([1, 2, 3]);                        // links become exactly 1, 2, 3
+$user->sync_roles([1 => ['enabled' => 1], 3 => []]); // 1 and 3, with data on 1
+```
+
+All three work on the relation itself, for a call that reads better chained:
+
+```php
+$user->roles()->attach(2, ['enabled' => 1]);
+```
+
+### Ordering the links
+
+`ordered_by()` names a column on the link table that holds each link's position. Reads come back in that order, and the writes keep it up to date.
+
+```php
+public function steps()
+{
+    return $this->has_many_through(
+        associated_class_name: 'Step',
+        link_model: 'RecipeStep',
+        this_key: 'recipe_id',
+        other_key: 'step_id',
+    )->ordered_by('position');
+}
+```
+
+`attach()` adds a new link at the end, and `sync()` numbers the links in the order you list them.
+
+```php
+$recipe->attach_steps(3);      // placed last
+$recipe->sync_steps([9, 4, 7]); // numbered 1, 2, 3 in the order given
+```
+
+`detach()` removes a link and leaves the other positions as they are, so the column can have gaps.
+
+Writing the same parent's links from two processes at once can give two links the same position. Wrap the write in a mutex of your own if your application can do that. A model's `save()` never writes links.
+
 ## Property Access Methods
 
 When accessing a property on a model (e.g. `$model->property`), Granada checks several method prefixes in order to resolve the value.

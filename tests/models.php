@@ -336,3 +336,43 @@ class OrDefaultFilterGadget extends Model
  * and decrement().
  */
 class Counter extends Model {}
+
+class Machine extends Model
+{
+    public function bolts()
+    {
+        return $this->has_many_through('Bolt', 'MachineBolt', 'machine_id', 'bolt_id');
+    }
+
+    public function direct_parts()
+    {
+        return $this->has_many('Part', 'machine_id');
+    }
+
+    public function ordered_bolts()
+    {
+        return $this->has_many_through('Bolt', 'MachineBolt', 'machine_id', 'bolt_id')
+            ->ordered_by('sort_order');
+    }
+
+    /**
+     * A link column carrying a string key, joined through another
+     * table's column rather than its id.
+     */
+    public function bolt_codes()
+    {
+        return $this->has_many_through('Bolt', 'MachineBoltCode', 'machine_id', 'bolt_code', other_table_key: 'code');
+    }
+}
+
+class Bolt extends Model
+{
+    public function machines()
+    {
+        return $this->has_many_through('Machine', 'MachineBolt', 'bolt_id', 'machine_id');
+    }
+}
+
+class MachineBolt extends Model {}
+
+class MachineBoltCode extends Model {}
