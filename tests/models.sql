@@ -67,6 +67,34 @@ CREATE TABLE kit_widget (
     FOREIGN KEY (kit_id) REFERENCES kit (id)
 );
 
+CREATE TABLE machine (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT
+);
+
+CREATE TABLE bolt (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    code TEXT
+);
+
+CREATE TABLE machine_bolt (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    machine_id INTEGER,
+    bolt_id INTEGER,
+    qty INTEGER CHECK (qty >= 0),
+    sort_order INTEGER,
+    FOREIGN KEY (machine_id) REFERENCES machine (id),
+    FOREIGN KEY (bolt_id) REFERENCES bolt (id)
+);
+
+CREATE TABLE machine_bolt_code (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    machine_id INTEGER,
+    bolt_code TEXT,
+    FOREIGN KEY (machine_id) REFERENCES machine (id)
+);
+
 CREATE TABLE keyed_row (
     id INTEGER,
     name TEXT
@@ -140,6 +168,12 @@ INSERT INTO widget(id,name,gadget_id,enabled,hidden) VALUES (5, 'Widget5', 4, 1,
 INSERT INTO kit(id,name,enabled,hidden) VALUES (1, 'Kit1', 1, 0);
 INSERT INTO kit(id,name,enabled,hidden) VALUES (2, 'Kit2', 1, 0);
 
+INSERT INTO machine(id,name) VALUES (1, 'Machine1');
+INSERT INTO machine(id,name) VALUES (2, 'Machine2');
+
+INSERT INTO bolt(id,name,code) VALUES (1, 'Bolt1', 'AAA');
+INSERT INTO bolt(id,name,code) VALUES (2, 'Bolt2', 'BBB');
+INSERT INTO bolt(id,name,code) VALUES (3, 'Bolt3', 'CCC');
 INSERT INTO kit_widget(id,widget_id,kit_id) VALUES (1, 1, 1);
 INSERT INTO kit_widget(id,widget_id,kit_id) VALUES (2, 3, 2);
 

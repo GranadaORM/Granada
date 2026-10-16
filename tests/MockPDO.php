@@ -87,3 +87,35 @@ class MockMsSqlPDO extends MockPDO
         return parent::getAttribute($attribute);
     }
 }
+
+/**
+ * A real SQLite handle that counts begin/commit/rollback calls, so a
+ * test can see how many of them reached the database.
+ */
+class CountingPDO extends PDO
+{
+    public int $begins    = 0;
+    public int $commits   = 0;
+    public int $rollbacks = 0;
+
+    public function beginTransaction(): bool
+    {
+        $this->begins++;
+
+        return parent::beginTransaction();
+    }
+
+    public function commit(): bool
+    {
+        $this->commits++;
+
+        return parent::commit();
+    }
+
+    public function rollBack(): bool
+    {
+        $this->rollbacks++;
+
+        return parent::rollBack();
+    }
+}

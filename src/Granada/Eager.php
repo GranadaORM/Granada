@@ -165,19 +165,19 @@ class Eager
 
         switch ($relationship->kind) {
             case 'has_one':
-                self::has_one($query, $parents, $relationship->keys[0], $include['name']);
+                self::has_one($query, $parents, $relationship->key, $include['name']);
                 break;
 
             case 'has_many':
-                self::has_many($query, $parents, $relationship->keys[0], $include['name']);
+                self::has_many($query, $parents, $relationship->key, $include['name']);
                 break;
 
             case 'belongs_to':
-                self::belongs_to($query, $parents, $relationship->keys[0], $include['name']);
+                self::belongs_to($query, $parents, $relationship->key, $include['name']);
                 break;
 
             default:
-                self::has_many_through($query, $parents, $relationship->keys, $relationship->table, $include['name']);
+                self::has_many_through($query, $parents, $relationship->key, $relationship->table, $include['name']);
         }
     }
 
@@ -281,22 +281,21 @@ class Eager
     /**
      * Eagerly load a many-to-many relationship.
      *
-     *
      * @param  Orm\Wrapper  $relationship
      * @param  array|ResultSet  $parents
-     * @param  array  $relating_key
+     * @param  string  $relating_key
      * @param  string  $relating_table
      * @param  string  $include
      *
      * @return void
      */
-    private static function has_many_through(Orm\Wrapper $relationship, array|ResultSet &$parents, array $relating_key, string $relating_table, string $include): void
+    private static function has_many_through(Orm\Wrapper $relationship, array|ResultSet &$parents, string $relating_key, string $relating_table, string $include): void
     {
         $keys = static::getKeys($parents);
 
         // The foreign key is added to the select to allow us to easily match the models back to their parents.
         // Otherwise, there would be no apparent connection between the models to allow us to match them.
-        $children = $relationship->select($relating_table . '.' . $relating_key[0])->where_in($relating_table . '.' . $relating_key[0], $keys)
+        $children = $relationship->select($relating_table . '.' . $relating_key)->where_in($relating_table . '.' . $relating_key, $keys)
             ->non_associative()
             ->find_many();
 
@@ -306,8 +305,8 @@ class Eager
         $parents_by_id = self::parents_by_id($parents);
 
         foreach ($children as $child) {
-            $parent_id = $child[$relating_key[0]];
-            unset($child[$relating_key[0]]);  // foreign key does not belongs to the related model
+            $parent_id = $child[$relating_key];
+            unset($child[$relating_key]);  // foreign key does not belongs to the related model
 
             foreach ($parents_by_id[$parent_id] ?? [] as $parent) {
                 // no associative result sets for has_many_through, so we can have multiple rows with the same primary_key
@@ -325,7 +324,7 @@ class Eager
 
             case 'has_one':
             case 'has_many':
-                $query->select($relationship->keys[0]);
+                $query->select($relationship->key);
                 break;
         }
     }
