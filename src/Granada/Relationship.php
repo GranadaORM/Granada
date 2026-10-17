@@ -122,10 +122,20 @@ class Relationship
      * ones are removed, and the rest stay. $members holds ids, or ids mapped
      * to data for each link.
      *
+     * Through a has_many, $members syncs the children to the rows
+     * given, adding, updating, and deleting as needed. Each row is a
+     * set of columns, with an optional id.
+     *
      * @param mixed[] $members
      */
     public function sync(array $members): void
     {
+        if ($this->kind === 'has_many') {
+            $this->sync_children($members);
+
+            return;
+        }
+
         $link_table = $this->require_link_table('sync');
 
         $this->in_transaction(function () use ($link_table, $members): void {
@@ -163,6 +173,59 @@ class Relationship
                     ->where($this->key, $this->parent_key())
                     ->where($this->other_key, $id)
                     ->delete_many();
+            }
+        });
+    }
+
+    /**
+     * Syncs the list of children to the rows given, adding, updating,
+     * and deleting as needed, and sets each child's data from its row.
+     *
+     * @param mixed[] $rows
+     */
+    private function sync_children(array $rows): void
+    {
+        $id_column = Granada::_get_id_column_name($this->class);
+
+        $this->in_transaction(function () use ($rows, $id_column): void {
+            // Soft-delete hiding is off so a flagged child listed again
+            // is matched rather than duplicated.
+            $children         = $this->model->_relationship_query($this, hide_soft_deleted: false);
+            $soft_delete_flag = $children->_soft_delete ? $children->_soft_delete_column : null;
+
+            $existing = [];
+            foreach ($children->find_many() as $child) {
+                $existing[$child->{$id_column}] = $child;
+            }
+
+            $order = 0;
+            foreach ($rows as $row) {
+                $id = $row[$id_column] ?? null;
+                unset($row[$id_column]);
+
+                if ($id === null) {
+                    $child = $this->model->_relationship_query($this)->create();
+                } elseif (array_key_exists($id, $existing)) {
+                    $child = $existing[$id];
+                    unset($existing[$id]);
+                } else {
+                    continue;
+                }
+
+                $order++;
+                if ($this->order_column !== null) {
+                    $row[$this->order_column] = $order;
+                }
+                if ($soft_delete_flag !== null) {
+                    $row[$soft_delete_flag] = 0;
+                }
+                $child->set($row);
+                $child->set($this->key, $this->parent_key());
+                $child->save();
+            }
+
+            foreach ($existing as $child) {
+                $child->delete();
             }
         });
     }

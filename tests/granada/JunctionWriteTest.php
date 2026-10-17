@@ -256,16 +256,6 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
         $machine->attach_direct_parts(1);
     }
 
-    public function testTheChainFormOnAPlainHasManyThrows()
-    {
-        $machine = Machine::find_one(1);
-
-        $this->expectException(LogicException::class);
-        $this->expectExceptionMessage('Cannot sync: the has_many relationship has no link table');
-
-        $machine->direct_parts()->sync([1]);
-    }
-
     public function testSyncMatchesStringKeysThroughANonIdTableKey()
     {
         $machine = Machine::find_one(1);

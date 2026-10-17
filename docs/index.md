@@ -687,6 +687,37 @@ $recipe->sync_steps([9, 4, 7]); // numbered 1, 2, 3 in the order given
 
 Writing the same parent's links from two processes at once can give two links the same position. Wrap the write in a mutex of your own if your application can do that. A model's `save()` never writes links.
 
+## Syncing children
+
+A `has_many` relationship loads a parent's child rows. `sync()` sets the children to the rows you send in one call, adding, updating, and deleting as needed. Send the child's id on a row to update it, or leave it off to create a new child.
+
+```php
+class EventEntry extends Model
+{
+    public function extras()
+    {
+        return $this->has_many('EntryExtra', 'entry_id');
+    }
+}
+
+$entry->sync_extras([
+    ['id' => 41, 'qty' => 3, 'options' => '{"tyres":4}'], // updates child 41
+    ['qty' => 1, 'options' => '...'],                    // creates a child
+]);
+```
+
+An id that doesn't match any of the parent's children is simply ignored. If the child model uses soft deletes, children you leave out aren't really gone - they're just hidden, and they come back the moment you list them again.
+
+The foreign key is set from the parent, so you never set it yourself. Every write runs inside one transaction, and the call does nothing until the parent has been saved.
+
+`ordered_by()` names a column on the child table that holds each row's position, the same way it does on a link table. `sync()` numbers the rows in the order you list them, and reads come back in that order.
+
+```php
+$entry->ordered_extras()->sync([['name' => 'A'], ['name' => 'B']]); // positions 1, 2
+```
+
+A model's `save()` never writes children; the call is always explicit.
+
 ## Property Access Methods
 
 When accessing a property on a model (e.g. `$model->property`), Granada checks several method prefixes in order to resolve the value.
