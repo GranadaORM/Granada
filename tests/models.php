@@ -376,3 +376,41 @@ class Bolt extends Model
 class MachineBolt extends Model {}
 
 class MachineBoltCode extends Model {}
+
+/**
+ * A parent with a plain has_many of items, an ordered has_many, and a
+ * has_many of soft-delete extras.
+ */
+class Crate extends Model
+{
+    public function items()
+    {
+        return $this->has_many('CrateItem', 'crate_id');
+    }
+
+    public function ordered_items()
+    {
+        return $this->has_many('CrateItem', 'crate_id')->ordered_by('sort_order');
+    }
+
+    public function extras()
+    {
+        return $this->has_many('CrateExtra', 'crate_id');
+    }
+
+    /**
+     * A relation with its own filter, so sync operates on the
+     * filtered subset the read sees.
+     */
+    public function named_items()
+    {
+        return $this->has_many('CrateItem', 'crate_id')->where('name', 'Item1');
+    }
+}
+
+class CrateItem extends Model {}
+
+class CrateExtra extends Model
+{
+    protected static bool $_soft_delete = true;
+}

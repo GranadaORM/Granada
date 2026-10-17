@@ -280,9 +280,9 @@ class Granada implements ArrayAccess
      * The soft-delete hiding goes on before the model's own default
      * filter, so a filter only carries conditions of its own.
      */
-    private static function _apply_default_filter(string $class_name, Orm\Wrapper $query): Orm\Wrapper
+    private static function _apply_default_filter(string $class_name, Orm\Wrapper $query, bool $hide_soft_deleted = true): Orm\Wrapper
     {
-        if ($query->_soft_delete) {
+        if ($hide_soft_deleted && $query->_soft_delete) {
             $query->where(self::_get_table_name($class_name) . '.' . $query->_soft_delete_column, 0);
         }
 
@@ -290,9 +290,11 @@ class Granada implements ArrayAccess
     }
 
     /**
-     * Build the query that loads a relationship for this model.
+     * Build the query that loads a relationship for this model. Set
+     * $hide_soft_deleted false to keep rows the soft-delete flag would
+     * hide, as sync does so it can match a flagged child.
      */
-    public function _relationship_query(Relationship $relationship): Orm\Wrapper
+    public function _relationship_query(Relationship $relationship, bool $hide_soft_deleted = true): Orm\Wrapper
     {
         $query = self::_wrapper_for_class($relationship->class, $relationship->connection);
 
@@ -313,7 +315,7 @@ class Granada implements ArrayAccess
                 break;
         }
 
-        $query = self::_finish_relationship_query($query, $relationship);
+        $query = self::_finish_relationship_query($query, $relationship, $hide_soft_deleted);
 
         if ($relationship->table) {
             $query->non_associative();
@@ -340,18 +342,21 @@ class Granada implements ArrayAccess
      * The model's default filter goes on before the join: with a join
      * present, where() prefixes bare column names with the table.
      */
-    private static function _finish_relationship_query(Orm\Wrapper $query, Relationship $relationship): Orm\Wrapper
+    private static function _finish_relationship_query(Orm\Wrapper $query, Relationship $relationship, bool $hide_soft_deleted = true): Orm\Wrapper
     {
-        $query = self::_apply_default_filter($relationship->class, $query);
+        $query = self::_apply_default_filter($relationship->class, $query, $hide_soft_deleted);
 
         if ($relationship->table) {
             $associated_table_name = self::_get_table_name($relationship->class);
             $query->select("{$associated_table_name}.*")
                 ->join($relationship->table, ["{$associated_table_name}.{$relationship->related_key}", '=', "{$relationship->table}.{$relationship->other_key}"]);
+        }
 
-            if ($relationship->order_column() !== null) {
-                $query->order_by_asc($relationship->table . '.' . $relationship->order_column());
-            }
+        // The order column lives on the link table for a has_many_through,
+        // and on the associated table for a has_many.
+        if ($relationship->order_column() !== null) {
+            $order_table = $relationship->table ?? self::_get_table_name($relationship->class);
+            $query->order_by_asc($order_table . '.' . $relationship->order_column());
         }
 
         foreach ($relationship->filters() as [$method, $args]) {

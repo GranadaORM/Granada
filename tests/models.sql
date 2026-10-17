@@ -95,6 +95,28 @@ CREATE TABLE machine_bolt_code (
     FOREIGN KEY (machine_id) REFERENCES machine (id)
 );
 
+CREATE TABLE crate (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT
+);
+
+CREATE TABLE crate_item (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    crate_id INTEGER,
+    name TEXT,
+    qty INTEGER CHECK (qty >= 0),
+    sort_order INTEGER,
+    FOREIGN KEY (crate_id) REFERENCES crate (id)
+);
+
+CREATE TABLE crate_extra (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    crate_id INTEGER,
+    name TEXT,
+    is_deleted INTEGER DEFAULT 0,
+    FOREIGN KEY (crate_id) REFERENCES crate (id)
+);
+
 CREATE TABLE keyed_row (
     id INTEGER,
     name TEXT
@@ -184,3 +206,6 @@ INSERT INTO keyed_row(id,name) VALUES (3, 'c');
 INSERT INTO keyed_row(id,name) VALUES (0, 'zero');
 
 INSERT INTO keyed_row_custom(custom_id,name) VALUES (7, 'seven');
+
+INSERT INTO crate(id,name) VALUES (1, 'Crate1');
+INSERT INTO crate(id,name) VALUES (2, 'Crate2');
