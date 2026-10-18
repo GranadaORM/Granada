@@ -149,7 +149,7 @@ class ConnectionManager
     {
         $this->config($connection_name);
         $this->db[$connection_name] = $db;
-        // A new handle never carries an open transaction
+        // A new handle never has an open transaction
         $this->transaction_depth[$connection_name] = 0;
 
         if ($db === null) {

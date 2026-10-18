@@ -133,6 +133,47 @@ CREATE TABLE counter (
     views INTEGER
 );
 
+CREATE TABLE stamped (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    views INTEGER,
+    created_at TEXT,
+    updated_at TEXT
+);
+
+CREATE TABLE stamped_child (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    made_on TEXT,
+    changed_on TEXT,
+    sort_order INTEGER,
+    last_login TEXT
+);
+
+CREATE TABLE stamped_override (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    made_on TEXT,
+    changed_on TEXT,
+    sort_order INTEGER,
+    last_login TEXT
+);
+
+CREATE TABLE stamped_soft (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    is_deleted INTEGER DEFAULT 0,
+    created_at TEXT,
+    updated_at TEXT
+);
+
+CREATE TABLE unstamped (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    created_at TEXT,
+    updated_at TEXT
+);
+
 CREATE TABLE sale (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,

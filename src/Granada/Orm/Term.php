@@ -4,9 +4,9 @@ namespace Granada\Orm;
 
 /**
  * One GROUP BY or ORDER BY entry as plain data: a column reference
- * (quoted by the Renderer) or a plain SQL expression. Column terms
- * can carry an ORDER BY direction, a natural-sort LENGTH() prefix, or
- * a field list to order by (CASE expression).
+ * (quoted by the Renderer) or a plain SQL expression. A column term
+ * may include an ORDER BY direction, a natural-sort LENGTH() prefix,
+ * or a field list to order by (CASE expression).
  */
 final class Term
 {

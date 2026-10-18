@@ -117,7 +117,7 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testEveryYieldedModelCarriesItsEagerLoads()
+    public function testEveryYieldedModelHasItsEagerLoads()
     {
         $walked = Car::with('manufactor')->find_many_lazy(2);
 

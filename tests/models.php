@@ -356,7 +356,7 @@ class Machine extends Model
     }
 
     /**
-     * A link column carrying a string key, joined through another
+     * A link column that holds a string key, joined through another
      * table's column rather than its id.
      */
     public function bolt_codes()
@@ -413,4 +413,63 @@ class CrateItem extends Model {}
 class CrateExtra extends Model
 {
     protected static bool $_soft_delete = true;
+}
+
+/**
+ * Turns automatic timestamps on, with the default columns.
+ */
+class Stamped extends Model
+{
+    protected static bool $_auto_timestamps = true;
+}
+
+/**
+ * A model that does not turn timestamps on.
+ */
+class Unstamped extends Model {}
+
+/**
+ * A base that turns timestamps on with custom column names and one
+ * ignored field.
+ */
+abstract class StampedChildBase extends Model
+{
+    protected static bool $_auto_timestamps = true;
+
+    protected static array $_auto_timestamp_columns = [
+        'created' => 'made_on',
+        'updated' => 'changed_on',
+    ];
+
+    protected static array $_auto_timestamps_ignore = ['sort_order'];
+}
+
+/**
+ * Inherits the switch, the custom columns, and the ignore list.
+ */
+class StampedChild extends StampedChildBase
+{
+    public static $_table = 'stamped_child';
+}
+
+/**
+ * A subclass that replaces the ignore list the base declared.
+ */
+class StampedChildOverride extends StampedChildBase
+{
+    public static $_table = 'stamped_override';
+
+    protected static array $_auto_timestamps_ignore = ['last_login'];
+}
+
+/**
+ * A soft-delete model that turns timestamps on.
+ */
+class StampedSoft extends Model
+{
+    public static $_table = 'stamped_soft';
+
+    protected static bool $_soft_delete = true;
+
+    protected static bool $_auto_timestamps = true;
 }

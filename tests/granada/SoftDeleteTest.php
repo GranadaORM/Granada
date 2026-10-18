@@ -34,7 +34,7 @@ class SoftDeleteTest extends \PHPUnit\Framework\TestCase
             $names[] = $gadget->name;
         }
 
-        // Gadget3 carries hidden = 1; Gadget2 is dropped by the model's
+        // Gadget3 has hidden = 1; Gadget2 is dropped by the model's
         // own filter (enabled = 1) on top of the hiding.
         $this->assertSame(['Gadget1', 'Gadget4'], $names);
         $this->assertSame(2, Gadget::count());

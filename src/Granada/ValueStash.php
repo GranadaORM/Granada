@@ -35,7 +35,7 @@ final class ValueStash
 
     /**
      * Everything in the stash, merged into one array.
-     * Direct writes to $relationships land here, and are moved into the
+     * Direct writes to $relationships are stored here, and are moved into the
      * two arrays by apply_direct_writes().
      *
      * @var array<string, mixed>|null

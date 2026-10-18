@@ -73,6 +73,27 @@ class Granada implements ArrayAccess
      */
     protected static string $_soft_delete_column = 'is_deleted';
 
+    /**
+     * Set on a model to write created_at and updated_at in UTC on every
+     * write. Off by default.
+     */
+    protected static bool $_auto_timestamps = false;
+
+    /**
+     * The columns the automatic timestamps are written to.
+     * @var array{created: string, updated: string}
+     */
+    protected static array $_auto_timestamp_columns = [
+        'created' => 'created_at',
+        'updated' => 'updated_at',
+    ];
+
+    /**
+     * Fields whose change does not write updated_at.
+     * @var string[]
+     */
+    protected static array $_auto_timestamps_ignore = [];
+
     public static string $resultSetClass = 'Granada\ResultSet';
 
     /**
@@ -273,12 +294,16 @@ class Granada implements ArrayAccess
         }
         $wrapper->_soft_delete_column = $class_name::$_soft_delete_column;
 
+        $wrapper->_auto_timestamps        = $class_name::$_auto_timestamps;
+        $wrapper->_auto_timestamp_columns = $class_name::$_auto_timestamp_columns;
+        $wrapper->_auto_timestamps_ignore = $class_name::$_auto_timestamps_ignore;
+
         return $wrapper;
     }
 
     /**
      * The soft-delete hiding goes on before the model's own default
-     * filter, so a filter only carries conditions of its own.
+     * filter, so the model's filter adds only its own conditions.
      */
     private static function _apply_default_filter(string $class_name, Orm\Wrapper $query, bool $hide_soft_deleted = true): Orm\Wrapper
     {
@@ -327,7 +352,7 @@ class Granada implements ArrayAccess
     }
 
     /**
-     * Build the query that eager-loads a relationship. It carries no
+     * Build the query that eager-loads a relationship. It has no
      * per-parent condition; the eager loader adds those.
      */
     public static function _eager_relationship_query(Relationship $relationship): Orm\Wrapper
@@ -376,7 +401,8 @@ class Granada implements ArrayAccess
 
         if (in_array($relationship->kind, ['has_one', 'belongs_to'])) {
             $related_id = $relationship->kind === 'belongs_to'
-                ? $this->orm->get($relationship->key)
+                ? $this->orm
+                    ->get($relationship->key)
                 : $this->id();
 
             if ($related_id === null) {
@@ -520,7 +546,10 @@ class Granada implements ArrayAccess
      */
     public function set_orm(Orm\Wrapper $orm): void
     {
-        $this->orm = $orm;
+        $orm->_auto_timestamps        = static::$_auto_timestamps;
+        $orm->_auto_timestamp_columns = static::$_auto_timestamp_columns;
+        $orm->_auto_timestamps_ignore = static::$_auto_timestamps_ignore;
+        $this->orm                    = $orm;
     }
 
     /**
@@ -568,7 +597,9 @@ class Granada implements ArrayAccess
 
         $method = 'missingonce_' . $property;
         if ($_has_method[$class][$method] ??= method_exists($this, $method)) {
-            return $this->value_stash()->set_computed_value($property, $this->$method());
+            return $this
+                ->value_stash()
+                ->set_computed_value($property, $this->$method());
         }
 
         $method = $property;
@@ -577,15 +608,21 @@ class Granada implements ArrayAccess
                 $relationship = $this->$property();
 
                 if ($relationship instanceof Relationship) {
-                    return $this->value_stash()->set_computed_value($property, $this->_load_relationship($relationship));
+                    return $this
+                        ->value_stash()
+                        ->set_computed_value($property, $this->_load_relationship($relationship));
                 }
 
                 if ($relationship instanceof Orm\Wrapper && $relationship->_relationship) {
-                    return $this->value_stash()->set_computed_value($property, $this->_load_relationship($relationship->_relationship, $relationship));
+                    return $this
+                        ->value_stash()
+                        ->set_computed_value($property, $this->_load_relationship($relationship->_relationship, $relationship));
                 }
 
                 // A method returning a plain query is loaded as a many relation
-                return $this->value_stash()->set_computed_value($property, $relationship->find_many());
+                return $this
+                    ->value_stash()
+                    ->set_computed_value($property, $relationship->find_many());
             }
         }
 
@@ -896,7 +933,9 @@ class Granada implements ArrayAccess
      */
     public function hydrate(array $data): static
     {
-        $this->orm->hydrate($data)->force_all_dirty();
+        $this->orm
+            ->hydrate($data)
+            ->force_all_dirty();
 
         return $this;
     }
@@ -967,7 +1006,11 @@ class Granada implements ArrayAccess
      */
     private function resolve_junction_write(string $method): array
     {
-        foreach (['attach_' => 'attach', 'detach_' => 'detach', 'sync_' => 'sync'] as $prefix => $write) {
+        foreach ([
+            'attach_' => 'attach',
+            'detach_' => 'detach',
+            'sync_'   => 'sync',
+        ] as $prefix => $write) {
             if (!str_starts_with($method, $prefix)) {
                 continue;
             }

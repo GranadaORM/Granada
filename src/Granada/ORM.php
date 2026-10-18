@@ -161,6 +161,20 @@ class ORM implements ArrayAccess
     // Is this a new object (has create() been called)?
     protected bool $_is_new = false;
 
+    /**
+     * Whether this query's model writes automatic timestamps.
+     */
+    public bool $_auto_timestamps = false;
+
+    /** @var array{created: string, updated: string} */
+    public array $_auto_timestamp_columns = [
+        'created' => 'created_at',
+        'updated' => 'updated_at',
+    ];
+
+    /** @var string[] */
+    public array $_auto_timestamps_ignore = [];
+
     // Name of the column to use as the primary key for
     // this instance only. Overrides the config settings.
     protected ?string $_instance_id_column = null;
@@ -1343,7 +1357,7 @@ class ORM implements ArrayAccess
 
     /**
      * A fresh query for the same table, to collect the conditions of
-     * one group closure. Alias and joins carry over, so column
+     * one group closure. The alias and joins are kept, so column
      * qualification matches the outer query.
      */
     protected function _group_query(): static
@@ -2284,6 +2298,8 @@ class ORM implements ArrayAccess
             unset($this->_dirty_fields[$this->_get_id_column_name()]);
         }
 
+        $this->_apply_auto_timestamps();
+
         // remove any expression fields as they are already baked into the query
         $values              = array_values(array_diff_key($this->_dirty_fields, $this->_expr_fields));
         $has_no_dirty_fields = empty($values) && empty($this->_expr_fields);
@@ -2327,6 +2343,47 @@ class ORM implements ArrayAccess
         $this->_clean_data   = [];
 
         return true;
+    }
+
+    /**
+     * Write the automatic timestamps for this write, when the model sets
+     * $_auto_timestamps.
+     */
+    protected function _apply_auto_timestamps(): void
+    {
+        if (!$this->_auto_timestamps) {
+            return;
+        }
+
+        $now     = gmdate('Y-m-d H:i:s');
+        $created = $this->_auto_timestamp_columns['created'];
+        $updated = $this->_auto_timestamp_columns['updated'];
+
+        if ($this->_is_new) {
+            if (!isset($this->_data[$created])) {
+                $this->_dirty_fields[$created] = $now;
+                $this->_data[$created]         = $now;
+            }
+            if (!isset($this->_data[$updated])) {
+                $this->_dirty_fields[$updated] = $now;
+                $this->_data[$updated]         = $now;
+            }
+
+            return;
+        }
+
+        foreach (array_keys($this->_dirty_fields + $this->_expr_fields) as $field) {
+            if (in_array($field, $this->_auto_timestamps_ignore, true)) {
+                continue;
+            }
+
+            if (!isset($this->_dirty_fields[$updated])) {
+                $this->_dirty_fields[$updated] = $now;
+                $this->_data[$updated]         = $now;
+            }
+
+            return;
+        }
     }
 
     /**
