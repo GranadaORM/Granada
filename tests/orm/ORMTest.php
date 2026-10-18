@@ -249,7 +249,9 @@ class ORMTest extends \PHPUnit\Framework\TestCase
 
     public function testGetLastPdoStatement()
     {
-        Granada::for_table('widget')->where('name', 'Fred')->find_one();
+        Granada::for_table('widget')
+            ->where('name', 'Fred')
+            ->find_one();
         $statement = ORM::get_last_statement();
         $this->assertTrue(is_a($statement, 'MockPDOStatement'));
     }

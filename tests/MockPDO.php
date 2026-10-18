@@ -23,7 +23,11 @@ class MockPDOStatement extends PDOStatement
             return false;
         }
 
-            return ['name' => 'Fred', 'age' => 10, 'id' => ++$this->current_row];
+            return [
+                'name' => 'Fred',
+                'age'  => 10,
+                'id'   => ++$this->current_row,
+            ];
     }
 }
 

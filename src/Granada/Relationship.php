@@ -204,7 +204,9 @@ class Relationship
                 unset($row[$id_column]);
 
                 if ($id === null) {
-                    $child = $this->model->_relationship_query($this)->create();
+                    $child = $this->model
+                        ->_relationship_query($this)
+                        ->create();
                 } elseif (array_key_exists($id, $existing)) {
                     $child = $existing[$id];
                     unset($existing[$id]);

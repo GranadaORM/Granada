@@ -44,14 +44,18 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
 
     public function testWhereIdIs()
     {
-        Granada::for_table('widget')->where_id_is(5)->find_one();
+        Granada::for_table('widget')
+            ->where_id_is(5)
+            ->find_one();
         $expected = "SELECT * FROM `widget` WHERE `id` = '5' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testSingleWhereClause()
     {
-        Granada::for_table('widget')->where('name', 'Fred')->find_one();
+        Granada::for_table('widget')
+            ->where('name', 'Fred')
+            ->find_one();
         $expected = "SELECT * FROM `widget` WHERE `name` = 'Fred' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
@@ -80,56 +84,77 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
 
     public function testSingleWhereClauseEqEmpty()
     {
-        Granada::for_table('widget')->where('name', '')->find_one();
+        Granada::for_table('widget')
+            ->where('name', '')
+            ->find_one();
         $expected = "SELECT * FROM `widget` WHERE `name` = '' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testSingleWhereClauseEqNULL()
     {
-        Granada::for_table('widget')->where('name', null)->find_one();
+        Granada::for_table('widget')
+            ->where('name', null)
+            ->find_one();
         $expected = 'SELECT * FROM `widget` WHERE `name` IS NULL LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testSingleWhereEqualsClauseEqNULL()
     {
-        Granada::for_table('widget')->where_equal('name', null)->find_one();
+        Granada::for_table('widget')
+            ->where_equal('name', null)
+            ->find_one();
         $expected = 'SELECT * FROM `widget` WHERE `name` IS NULL LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testSingleWhereNotEqNULL()
     {
-        Granada::for_table('widget')->where_not_equal('name', null)->find_one();
+        Granada::for_table('widget')
+            ->where_not_equal('name', null)
+            ->find_one();
         $expected = 'SELECT * FROM `widget` WHERE `name` IS NOT NULL LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testMultipleWhereNULLClauses()
     {
-        Granada::for_table('widget')->where('name', null)->where('age', null)->find_one();
+        Granada::for_table('widget')
+            ->where('name', null)
+            ->where('age', null)
+            ->find_one();
         $expected = 'SELECT * FROM `widget` WHERE `name` IS NULL AND `age` IS NULL LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testMultipleWhereClausesOneNULL()
     {
-        Granada::for_table('widget')->where('name', 'Fred')->where('age', null)->find_one();
+        Granada::for_table('widget')
+            ->where('name', 'Fred')
+            ->where('age', null)
+            ->find_one();
         $expected = "SELECT * FROM `widget` WHERE `name` = 'Fred' AND `age` IS NULL LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testMultipleWhereClauses()
     {
-        Granada::for_table('widget')->where('name', 'Fred')->where('age', 10)->find_one();
+        Granada::for_table('widget')
+            ->where('name', 'Fred')
+            ->where('age', 10)
+            ->find_one();
         $expected = "SELECT * FROM `widget` WHERE `name` = 'Fred' AND `age` = '10' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testRemoveWhereClause()
     {
-        Granada::for_table('widget')->where('name', 'Fred')->where('age', 10)->remove_where('name')->find_one();
+        Granada::for_table('widget')
+            ->where('name', 'Fred')
+            ->where('age', 10)
+            ->remove_where('name')
+            ->find_one();
         $expected = "SELECT * FROM `widget` WHERE `age` = '10' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
@@ -245,60 +270,78 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
 
     public function testWhereNotEqual()
     {
-        Granada::for_table('widget')->where_not_equal('name', 'Fred')->find_many();
+        Granada::for_table('widget')
+            ->where_not_equal('name', 'Fred')
+            ->find_many();
         $expected = "SELECT * FROM `widget` WHERE `name` != 'Fred'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereLike()
     {
-        Granada::for_table('widget')->where_like('name', '%Fred%')->find_one();
+        Granada::for_table('widget')
+            ->where_like('name', '%Fred%')
+            ->find_one();
         $expected = "SELECT * FROM `widget` WHERE `name` LIKE '%Fred%' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereNotLike()
     {
-        Granada::for_table('widget')->where_not_like('name', '%Fred%')->find_one();
+        Granada::for_table('widget')
+            ->where_not_like('name', '%Fred%')
+            ->find_one();
         $expected = "SELECT * FROM `widget` WHERE `name` NOT LIKE '%Fred%' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereIn()
     {
-        Granada::for_table('widget')->where_in('name', ['Fred', 'Joe'])->find_many();
+        Granada::for_table('widget')
+            ->where_in('name', ['Fred', 'Joe'])
+            ->find_many();
         $expected = "SELECT * FROM `widget` WHERE `name` IN ('Fred', 'Joe')";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereInNoItems()
     {
-        Granada::for_table('widget')->where_in('name', [])->find_many();
+        Granada::for_table('widget')
+            ->where_in('name', [])
+            ->find_many();
         $expected = 'SELECT * FROM `widget` WHERE 0';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereInNULL()
     {
-        Granada::for_table('widget')->where_in('custid', null)->find_many();
+        Granada::for_table('widget')
+            ->where_in('custid', null)
+            ->find_many();
         $expected = 'SELECT * FROM `widget` WHERE 0';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereNotIn()
     {
-        Granada::for_table('widget')->where_not_in('name', ['Fred', 'Joe'])->find_many();
+        Granada::for_table('widget')
+            ->where_not_in('name', ['Fred', 'Joe'])
+            ->find_many();
         $expected = "SELECT * FROM `widget` WHERE `name` NOT IN ('Fred', 'Joe')";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereNotInOrNull()
     {
-        Granada::for_table('widget')->where_not_in_or_null('name', ['Fred', 'Joe'])->find_many();
+        Granada::for_table('widget')
+            ->where_not_in_or_null('name', ['Fred', 'Joe'])
+            ->find_many();
         $expected = "SELECT * FROM `widget` WHERE ( `name` NOT IN ('Fred', 'Joe') OR `name` IS NULL )";
         $this->assertEquals($expected, ORM::get_last_query());
 
-        Granada::for_table('widget')->where_not_in_or_null('name', [])->find_many();
+        Granada::for_table('widget')
+            ->where_not_in_or_null('name', [])
+            ->find_many();
         // If empty, no where
         $expected = 'SELECT * FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
@@ -306,149 +349,225 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
 
     public function testWhereNotInNoItems()
     {
-        Granada::for_table('widget')->where_not_in('name', [])->find_many();
+        Granada::for_table('widget')
+            ->where_not_in('name', [])
+            ->find_many();
         $expected = 'SELECT * FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereLtOrNull()
     {
-        Granada::for_table('widget')->where_lt_or_null('age', '20')->find_many();
+        Granada::for_table('widget')
+            ->where_lt_or_null('age', '20')
+            ->find_many();
         $expected = "SELECT * FROM `widget` WHERE ( `age` < '20' OR `age` IS NULL )";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereLteOrNull()
     {
-        Granada::for_table('widget')->where_lte_or_null('age', '20')->find_many();
+        Granada::for_table('widget')
+            ->where_lte_or_null('age', '20')
+            ->find_many();
         $expected = "SELECT * FROM `widget` WHERE ( `age` <= '20' OR `age` IS NULL )";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereGtOrNull()
     {
-        Granada::for_table('widget')->where_gt_or_null('age', '20')->find_many();
+        Granada::for_table('widget')
+            ->where_gt_or_null('age', '20')
+            ->find_many();
         $expected = "SELECT * FROM `widget` WHERE ( `age` > '20' OR `age` IS NULL )";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereGteOrNull()
     {
-        Granada::for_table('widget')->where_gte_or_null('age', '20')->find_many();
+        Granada::for_table('widget')
+            ->where_gte_or_null('age', '20')
+            ->find_many();
         $expected = "SELECT * FROM `widget` WHERE ( `age` >= '20' OR `age` IS NULL )";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereAnyIsSingleCol()
     {
-        Granada::for_table('widget')->where_any_is([
-            ['name' => 'Joe'],
-            ['name' => 'Fred'],
-        ])->find_many();
+        Granada::for_table('widget')
+            ->where_any_is([
+                ['name' => 'Joe'],
+                ['name' => 'Fred'],
+            ])->find_many();
         $expected = "SELECT * FROM `widget` WHERE (( `name` = 'Joe' ) OR ( `name` = 'Fred' ))";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereAnyIs()
     {
-        Granada::for_table('widget')->where_any_is([
-            ['name' => 'Joe', 'age' => 10],
-            ['name' => 'Fred', 'age' => 20],
-        ])->find_many();
+        Granada::for_table('widget')
+            ->where_any_is([
+                [
+                    'name' => 'Joe',
+                    'age'  => 10,
+                ],
+                [
+                    'name' => 'Fred',
+                    'age'  => 20,
+                ],
+            ])->find_many();
         $expected = "SELECT * FROM `widget` WHERE (( `name` = 'Joe' AND `age` = '10' ) OR ( `name` = 'Fred' AND `age` = '20' ))";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereAnyIsAssymetricComparisons()
     {
-        Granada::for_table('widget')->where_any_is([
-            ['name' => 'Joe'],
-            ['name' => 'Fred', 'age' => 20],
-        ])->find_many();
+        Granada::for_table('widget')
+            ->where_any_is([
+                ['name' => 'Joe'],
+                [
+                    'name' => 'Fred',
+                    'age'  => 20,
+                ],
+            ])->find_many();
         $expected = "SELECT * FROM `widget` WHERE (( `name` = 'Joe' ) OR ( `name` = 'Fred' AND `age` = '20' ))";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereAnyIsOverrideOneColumn()
     {
-        Granada::for_table('widget')->where_any_is([
-            ['name' => 'Joe', 'age' => 10],
-            ['name' => 'Fred', 'age' => 20],
-        ], ['age' => '>'])->find_many();
+        Granada::for_table('widget')
+            ->where_any_is([
+                [
+                    'name' => 'Joe',
+                    'age'  => 10,
+                ],
+                [
+                    'name' => 'Fred',
+                    'age'  => 20,
+                ],
+            ], ['age' => '>'])->find_many();
         $expected = "SELECT * FROM `widget` WHERE (( `name` = 'Joe' AND `age` > '10' ) OR ( `name` = 'Fred' AND `age` > '20' ))";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereAnyIsOverrideAllOperators()
     {
-        Granada::for_table('widget')->where_any_is([
-            ['score' => '5', 'age' => 10],
-            ['score' => '15', 'age' => 20],
-        ], '>')->find_many();
+        Granada::for_table('widget')
+            ->where_any_is([
+                [
+                    'score' => '5',
+                    'age'   => 10,
+                ],
+                [
+                    'score' => '15',
+                    'age'   => 20,
+                ],
+            ], '>')->find_many();
         $expected = "SELECT * FROM `widget` WHERE (( `score` > '5' AND `age` > '10' ) OR ( `score` > '15' AND `age` > '20' ))";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereAnyIsNULLs()
     {
-        Granada::for_table('widget')->where_any_is([
-            ['name' => 'Joe', 'age' => null],
-            ['name' => null, 'age' => 20],
-        ])->find_many();
+        Granada::for_table('widget')
+            ->where_any_is([
+                [
+                    'name' => 'Joe',
+                    'age'  => null,
+                ],
+                [
+                    'name' => null,
+                    'age'  => 20,
+                ],
+            ])->find_many();
         $expected = "SELECT * FROM `widget` WHERE (( `name` = 'Joe' AND `age` IS NULL ) OR ( `name` IS NULL AND `age` = '20' ))";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereAnyIsNOTNULLs()
     {
-        Granada::for_table('widget')->where_any_is([
-            ['name' => 'Joe', 'age' => null],
-            ['name' => null, 'age' => 20],
-        ], '!=')->find_many();
+        Granada::for_table('widget')
+            ->where_any_is([
+                [
+                    'name' => 'Joe',
+                    'age'  => null,
+                ],
+                [
+                    'name' => null,
+                    'age'  => 20,
+                ],
+            ], '!=')->find_many();
         $expected = "SELECT * FROM `widget` WHERE (( `name` != 'Joe' AND `age` IS NOT NULL ) OR ( `name` IS NOT NULL AND `age` != '20' ))";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereAnyIsIns()
     {
-        Granada::for_table('widget')->where_any_is([
-            ['name' => 'Joe', 'age' => [18, 19]],
-            ['name' => ['Bob', 'Jack'], 'age' => 20],
-        ])->find_many();
+        Granada::for_table('widget')
+            ->where_any_is([
+                [
+                    'name' => 'Joe',
+                    'age'  => [18, 19],
+                ],
+                [
+                    'name' => ['Bob', 'Jack'],
+                    'age'  => 20,
+                ],
+            ])->find_many();
         $expected = "SELECT * FROM `widget` WHERE (( `name` = 'Joe' AND `age` IN ('18', '19') ) OR ( `name` IN ('Bob', 'Jack') AND `age` = '20' ))";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereAnyIsNOTIns()
     {
-        Granada::for_table('widget')->where_any_is([
-            ['name' => 'Joe', 'age' => [18, 19]],
-            ['name' => ['Bob', 'Jack'], 'age' => 20],
-        ], '!=')->find_many();
+        Granada::for_table('widget')
+            ->where_any_is([
+                [
+                    'name' => 'Joe',
+                    'age'  => [18, 19],
+                ],
+                [
+                    'name' => ['Bob', 'Jack'],
+                    'age'  => 20,
+                ],
+            ], '!=')->find_many();
         $expected = "SELECT * FROM `widget` WHERE (( `name` != 'Joe' AND `age` NOT IN ('18', '19') ) OR ( `name` NOT IN ('Bob', 'Jack') AND `age` != '20' ))";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereAnyIsInsMixedComparator()
     {
-        Granada::for_table('widget')->where_any_is([
-            ['name' => 'Joe', 'age' => [18, 19]],
-            ['name' => ['Bob', 'Jack'], 'age' => 20],
-        ], ['age' => '!='])->find_many();
+        Granada::for_table('widget')
+            ->where_any_is([
+                [
+                    'name' => 'Joe',
+                    'age'  => [18, 19],
+                ],
+                [
+                    'name' => ['Bob', 'Jack'],
+                    'age'  => 20,
+                ],
+            ], ['age' => '!='])->find_many();
         $expected = "SELECT * FROM `widget` WHERE (( `name` = 'Joe' AND `age` NOT IN ('18', '19') ) OR ( `name` IN ('Bob', 'Jack') AND `age` != '20' ))";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testLimit()
     {
-        Granada::for_table('widget')->limit(5)->find_many();
+        Granada::for_table('widget')
+            ->limit(5)
+            ->find_many();
         $expected = 'SELECT * FROM `widget` LIMIT 5';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testLimitAndOffset()
     {
-        Granada::for_table('widget')->limit(5)->offset(5)->find_many();
+        Granada::for_table('widget')
+            ->limit(5)
+            ->offset(5)
+            ->find_many();
         $expected = 'SELECT * FROM `widget` LIMIT 5 OFFSET 5';
         $this->assertEquals($expected, ORM::get_last_query());
     }
@@ -456,8 +575,10 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
     public function testClearLimitAndOffset()
     {
         Granada::for_table('widget')
-            ->limit(5)->offset(5)
-            ->limit(null)->offset(null)
+            ->limit(5)
+            ->offset(5)
+            ->limit(null)
+            ->offset(null)
             ->find_many();
         $expected = 'SELECT * FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
@@ -465,77 +586,106 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
 
     public function testOrderByDesc()
     {
-        Granada::for_table('widget')->order_by_desc('name')->find_one();
+        Granada::for_table('widget')
+            ->order_by_desc('name')
+            ->find_one();
         $expected = 'SELECT * FROM `widget` ORDER BY `name` DESC LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testOrderByAsc()
     {
-        Granada::for_table('widget')->order_by_asc('name')->find_one();
+        Granada::for_table('widget')
+            ->order_by_asc('name')
+            ->find_one();
         $expected = 'SELECT * FROM `widget` ORDER BY `name` ASC LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testOrderByExpression()
     {
-        Granada::for_table('widget')->order_by_expr('SOUNDEX(`name`)')->find_one();
+        Granada::for_table('widget')
+            ->order_by_expr('SOUNDEX(`name`)')
+            ->find_one();
         $expected = 'SELECT * FROM `widget` ORDER BY SOUNDEX(`name`) LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testMultipleOrderBy()
     {
-        Granada::for_table('widget')->order_by_asc('name')->order_by_desc('age')->find_one();
+        Granada::for_table('widget')
+            ->order_by_asc('name')
+            ->order_by_desc('age')
+            ->find_one();
         $expected = 'SELECT * FROM `widget` ORDER BY `name` ASC, `age` DESC LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testOrderByClear()
     {
-        Granada::for_table('widget')->order_by_asc('name')->order_by_desc('age')->order_by_clear()->find_one();
+        Granada::for_table('widget')
+            ->order_by_asc('name')
+            ->order_by_desc('age')
+            ->order_by_clear()
+            ->find_one();
         $expected = 'SELECT * FROM `widget` LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testOrderByClearAddMore()
     {
-        Granada::for_table('widget')->order_by_asc('name')->order_by_desc('age')->order_by_clear()->order_by_asc('id')->find_one();
+        Granada::for_table('widget')
+            ->order_by_asc('name')
+            ->order_by_desc('age')
+            ->order_by_clear()
+            ->order_by_asc('id')
+            ->find_one();
         $expected = 'SELECT * FROM `widget` ORDER BY `id` ASC LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testGroupBy()
     {
-        Granada::for_table('widget')->group_by('name')->find_many();
+        Granada::for_table('widget')
+            ->group_by('name')
+            ->find_many();
         $expected = 'SELECT * FROM `widget` GROUP BY `name`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testMultipleGroupBy()
     {
-        Granada::for_table('widget')->group_by('name')->group_by('age')->find_many();
+        Granada::for_table('widget')
+            ->group_by('name')
+            ->group_by('age')
+            ->find_many();
         $expected = 'SELECT * FROM `widget` GROUP BY `name`, `age`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testGroupByExpression()
     {
-        Granada::for_table('widget')->group_by_expr("FROM_UNIXTIME(`time`, '%Y-%m')")->find_many();
+        Granada::for_table('widget')
+            ->group_by_expr("FROM_UNIXTIME(`time`, '%Y-%m')")
+            ->find_many();
         $expected = "SELECT * FROM `widget` GROUP BY FROM_UNIXTIME(`time`, '%Y-%m')";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testHaving()
     {
-        Granada::for_table('widget')->group_by('name')->having('name', 'Fred')->find_one();
+        Granada::for_table('widget')
+            ->group_by('name')
+            ->having('name', 'Fred')
+            ->find_one();
         $expected = "SELECT * FROM `widget` GROUP BY `name` HAVING `name` = 'Fred' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testClearHaving()
     {
-        Granada::for_table('widget')->group_by('name')
+        Granada::for_table('widget')
+            ->group_by('name')
             ->having('name', 'Fred')
             ->clear_having()
             ->having('name', 'Joe')
@@ -546,296 +696,411 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
 
     public function testMultipleHaving()
     {
-        Granada::for_table('widget')->group_by('name')->having('name', 'Fred')->having('age', 10)->find_one();
+        Granada::for_table('widget')
+            ->group_by('name')
+            ->having('name', 'Fred')
+            ->having('age', 10)
+            ->find_one();
         $expected = "SELECT * FROM `widget` GROUP BY `name` HAVING `name` = 'Fred' AND `age` = '10' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testHavingNotEqual()
     {
-        Granada::for_table('widget')->group_by('name')->having_not_equal('name', 'Fred')->find_many();
+        Granada::for_table('widget')
+            ->group_by('name')
+            ->having_not_equal('name', 'Fred')
+            ->find_many();
         $expected = "SELECT * FROM `widget` GROUP BY `name` HAVING `name` != 'Fred'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testHavingIdIs()
     {
-        Granada::for_table('widget')->group_by('name')->having_id_is(5)->find_one();
+        Granada::for_table('widget')
+            ->group_by('name')
+            ->having_id_is(5)
+            ->find_one();
         $expected = "SELECT * FROM `widget` GROUP BY `name` HAVING `id` = '5' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testHavingLike()
     {
-        Granada::for_table('widget')->group_by('name')->having_like('name', '%Fred%')->find_one();
+        Granada::for_table('widget')
+            ->group_by('name')
+            ->having_like('name', '%Fred%')
+            ->find_one();
         $expected = "SELECT * FROM `widget` GROUP BY `name` HAVING `name` LIKE '%Fred%' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testHavingNotLike()
     {
-        Granada::for_table('widget')->group_by('name')->having_not_like('name', '%Fred%')->find_one();
+        Granada::for_table('widget')
+            ->group_by('name')
+            ->having_not_like('name', '%Fred%')
+            ->find_one();
         $expected = "SELECT * FROM `widget` GROUP BY `name` HAVING `name` NOT LIKE '%Fred%' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testHavingIn()
     {
-        Granada::for_table('widget')->group_by('name')->having_in('name', ['Fred', 'Joe'])->find_many();
+        Granada::for_table('widget')
+            ->group_by('name')
+            ->having_in('name', ['Fred', 'Joe'])
+            ->find_many();
         $expected = "SELECT * FROM `widget` GROUP BY `name` HAVING `name` IN ('Fred', 'Joe')";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testHavingNotIn()
     {
-        Granada::for_table('widget')->group_by('name')->having_not_in('name', ['Fred', 'Joe'])->find_many();
+        Granada::for_table('widget')
+            ->group_by('name')
+            ->having_not_in('name', ['Fred', 'Joe'])
+            ->find_many();
         $expected = "SELECT * FROM `widget` GROUP BY `name` HAVING `name` NOT IN ('Fred', 'Joe')";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testHavingLessThan()
     {
-        Granada::for_table('widget')->group_by('name')->having_lt('age', 10)->having_gt('age', 5)->find_many();
+        Granada::for_table('widget')
+            ->group_by('name')
+            ->having_lt('age', 10)
+            ->having_gt('age', 5)
+            ->find_many();
         $expected = "SELECT * FROM `widget` GROUP BY `name` HAVING `age` < '10' AND `age` > '5'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testHavingLessThanOrEqualAndGreaterThanOrEqual()
     {
-        Granada::for_table('widget')->group_by('name')->having_lte('age', 10)->having_gte('age', 5)->find_many();
+        Granada::for_table('widget')
+            ->group_by('name')
+            ->having_lte('age', 10)
+            ->having_gte('age', 5)
+            ->find_many();
         $expected = "SELECT * FROM `widget` GROUP BY `name` HAVING `age` <= '10' AND `age` >= '5'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testHavingNull()
     {
-        Granada::for_table('widget')->group_by('name')->having_null('name')->find_many();
+        Granada::for_table('widget')
+            ->group_by('name')
+            ->having_null('name')
+            ->find_many();
         $expected = 'SELECT * FROM `widget` GROUP BY `name` HAVING `name` IS NULL';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testHavingNotNull()
     {
-        Granada::for_table('widget')->group_by('name')->having_not_null('name')->find_many();
+        Granada::for_table('widget')
+            ->group_by('name')
+            ->having_not_null('name')
+            ->find_many();
         $expected = 'SELECT * FROM `widget` GROUP BY `name` HAVING `name` IS NOT NULL';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testRawHaving()
     {
-        Granada::for_table('widget')->group_by('name')->having_raw('`name` = ? AND (`age` = ? OR `age` = ?)', ['Fred', 5, 10])->find_many();
+        Granada::for_table('widget')
+            ->group_by('name')
+            ->having_raw('`name` = ? AND (`age` = ? OR `age` = ?)', ['Fred', 5, 10])
+            ->find_many();
         $expected = "SELECT * FROM `widget` GROUP BY `name` HAVING `name` = 'Fred' AND (`age` = '5' OR `age` = '10')";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testComplexQuery()
     {
-        Granada::for_table('widget')->where('name', 'Fred')->limit(5)->offset(5)->order_by_asc('name')->find_many();
+        Granada::for_table('widget')
+            ->where('name', 'Fred')
+            ->limit(5)
+            ->offset(5)
+            ->order_by_asc('name')
+            ->find_many();
         $expected = "SELECT * FROM `widget` WHERE `name` = 'Fred' ORDER BY `name` ASC LIMIT 5 OFFSET 5";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereLessThanAndGreaterThan()
     {
-        Granada::for_table('widget')->where_lt('age', 10)->where_gt('age', 5)->find_many();
+        Granada::for_table('widget')
+            ->where_lt('age', 10)
+            ->where_gt('age', 5)
+            ->find_many();
         $expected = "SELECT * FROM `widget` WHERE `age` < '10' AND `age` > '5'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereLessThanAndEqualAndGreaterThanAndEqual()
     {
-        Granada::for_table('widget')->where_lte('age', 10)->where_gte('age', 5)->find_many();
+        Granada::for_table('widget')
+            ->where_lte('age', 10)
+            ->where_gte('age', 5)
+            ->find_many();
         $expected = "SELECT * FROM `widget` WHERE `age` <= '10' AND `age` >= '5'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereNull()
     {
-        Granada::for_table('widget')->where_null('name')->find_many();
+        Granada::for_table('widget')
+            ->where_null('name')
+            ->find_many();
         $expected = 'SELECT * FROM `widget` WHERE `name` IS NULL';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testWhereNotNull()
     {
-        Granada::for_table('widget')->where_not_null('name')->find_many();
+        Granada::for_table('widget')
+            ->where_not_null('name')
+            ->find_many();
         $expected = 'SELECT * FROM `widget` WHERE `name` IS NOT NULL';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testRawWhereClause()
     {
-        Granada::for_table('widget')->where_raw('`name` = ? AND (`age` = ? OR `age` = ?)', ['Fred', 5, 10])->find_many();
+        Granada::for_table('widget')
+            ->where_raw('`name` = ? AND (`age` = ? OR `age` = ?)', ['Fred', 5, 10])
+            ->find_many();
         $expected = "SELECT * FROM `widget` WHERE `name` = 'Fred' AND (`age` = '5' OR `age` = '10')";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testRawWhereClauseWithPercentSign()
     {
-        Granada::for_table('widget')->where_raw('STRFTIME("%Y", "now") = ?', [2012])->find_many();
+        Granada::for_table('widget')
+            ->where_raw('STRFTIME("%Y", "now") = ?', [2012])
+            ->find_many();
         $expected = "SELECT * FROM `widget` WHERE STRFTIME(\"%Y\", \"now\") = '2012'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testRawWhereClauseWithNoParameters()
     {
-        Granada::for_table('widget')->where_raw('`name` = "Fred"')->find_many();
+        Granada::for_table('widget')
+            ->where_raw('`name` = "Fred"')
+            ->find_many();
         $expected = 'SELECT * FROM `widget` WHERE `name` = "Fred"';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testRawWhereClauseInMethodChain()
     {
-        Granada::for_table('widget')->where('age', 18)->where_raw('(`name` = ? OR `name` = ?)', ['Fred', 'Bob'])->where('size', 'large')->find_many();
+        Granada::for_table('widget')
+            ->where('age', 18)
+            ->where_raw('(`name` = ? OR `name` = ?)', ['Fred', 'Bob'])
+            ->where('size', 'large')
+            ->find_many();
         $expected = "SELECT * FROM `widget` WHERE `age` = '18' AND (`name` = 'Fred' OR `name` = 'Bob') AND `size` = 'large'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testRawQuery()
     {
-        Granada::for_table('widget')->raw_query('SELECT `w`.* FROM `widget` w')->find_many();
+        Granada::for_table('widget')
+            ->raw_query('SELECT `w`.* FROM `widget` w')
+            ->find_many();
         $expected = 'SELECT `w`.* FROM `widget` w';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testRawQueryWithParameters()
     {
-        Granada::for_table('widget')->raw_query('SELECT `w`.* FROM `widget` w WHERE `name` = ? AND `age` = ?', ['Fred', 5])->find_many();
+        Granada::for_table('widget')
+            ->raw_query('SELECT `w`.* FROM `widget` w WHERE `name` = ? AND `age` = ?', ['Fred', 5])
+            ->find_many();
         $expected = "SELECT `w`.* FROM `widget` w WHERE `name` = 'Fred' AND `age` = '5'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testSelectAsteriskColumn()
     {
-        Granada::for_table('widget')->select('name')->find_many();
+        Granada::for_table('widget')
+            ->select('name')
+            ->find_many();
         $expected = 'SELECT `name` FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
 
-        Granada::for_table('widget')->select('name')->select('*')->find_many();
+        Granada::for_table('widget')
+            ->select('name')
+            ->select('*')
+            ->find_many();
         $expected = 'SELECT *, `name` FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
 
-        Granada::for_table('widget')->select('*')->find_many();
+        Granada::for_table('widget')
+            ->select('*')
+            ->find_many();
         $expected = 'SELECT * FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testSelectAsteriskColumnTwice()
     {
-        Granada::for_table('widget')->select('name')->find_many();
+        Granada::for_table('widget')
+            ->select('name')
+            ->find_many();
         $expected = 'SELECT `name` FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
 
-        Granada::for_table('widget')->select('name')->select('*')->select('*')->find_many();
+        Granada::for_table('widget')
+            ->select('name')
+            ->select('*')
+            ->select('*')
+            ->find_many();
         $expected = 'SELECT *, `name` FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
 
-        Granada::for_table('widget')->select('*')->select('*')->find_many();
+        Granada::for_table('widget')
+            ->select('*')
+            ->select('*')
+            ->find_many();
         $expected = 'SELECT * FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testSimpleResultColumn()
     {
-        Granada::for_table('widget')->select('name')->find_many();
+        Granada::for_table('widget')
+            ->select('name')
+            ->find_many();
         $expected = 'SELECT `name` FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testMultipleSimpleResultColumns()
     {
-        Granada::for_table('widget')->select('name')->select('age')->find_many();
+        Granada::for_table('widget')
+            ->select('name')
+            ->select('age')
+            ->find_many();
         $expected = 'SELECT `name`, `age` FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testSpecifyTableNameAndColumnInResultColumns()
     {
-        Granada::for_table('widget')->select('widget.name')->find_many();
+        Granada::for_table('widget')
+            ->select('widget.name')
+            ->find_many();
         $expected = 'SELECT `widget`.`name` FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testMainTableAlias()
     {
-        Granada::for_table('widget')->table_alias('w')->find_many();
+        Granada::for_table('widget')
+            ->table_alias('w')
+            ->find_many();
         $expected = 'SELECT * FROM `widget` `w`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testAliasesInResultColumns()
     {
-        Granada::for_table('widget')->select('widget.name', 'widget_name')->find_many();
+        Granada::for_table('widget')
+            ->select('widget.name', 'widget_name')
+            ->find_many();
         $expected = 'SELECT `widget`.`name` AS `widget_name` FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testAliasesInSelectManyResults()
     {
-        Granada::for_table('widget')->select_many(['widget_name' => 'widget.name'], 'widget_handle')->find_many();
+        Granada::for_table('widget')
+            ->select_many(['widget_name' => 'widget.name'], 'widget_handle')
+            ->find_many();
         $expected = 'SELECT `widget`.`name` AS `widget_name`, `widget_handle` FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testSelectManyAsList()
     {
-        Granada::for_table('widget')->select_many(['name', 'price'])->find_many();
+        Granada::for_table('widget')
+            ->select_many(['name', 'price'])
+            ->find_many();
         $expected = 'SELECT `name`, `price` FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testLiteralExpressionInResultColumn()
     {
-        Granada::for_table('widget')->select_expr('COUNT(*)', 'count')->find_many();
+        Granada::for_table('widget')
+            ->select_expr('COUNT(*)', 'count')
+            ->find_many();
         $expected = 'SELECT COUNT(*) AS `count` FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testLiteralExpressionInSelectManyResultColumns()
     {
-        Granada::for_table('widget')->select_many_expr(['count' => 'COUNT(*)'], 'SUM(widget_order)')->find_many();
+        Granada::for_table('widget')
+            ->select_many_expr(['count' => 'COUNT(*)'], 'SUM(widget_order)')
+            ->find_many();
         $expected = 'SELECT COUNT(*) AS `count`, SUM(widget_order) FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testSimpleJoin()
     {
-        Granada::for_table('widget')->join('widget_handle', ['widget_handle.widget_id', '=', 'widget.id'])->find_many();
+        Granada::for_table('widget')
+            ->join('widget_handle', ['widget_handle.widget_id', '=', 'widget.id'])
+            ->find_many();
         $expected = 'SELECT * FROM `widget` JOIN `widget_handle` ON `widget_handle`.`widget_id` = `widget`.`id`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testSimpleJoinWithWhereIdIsMethod()
     {
-        Granada::for_table('widget')->join('widget_handle', ['widget_handle.widget_id', '=', 'widget.id'])->find_one(5);
+        Granada::for_table('widget')
+            ->join('widget_handle', ['widget_handle.widget_id', '=', 'widget.id'])
+            ->find_one(5);
         $expected = "SELECT * FROM `widget` JOIN `widget_handle` ON `widget_handle`.`widget_id` = `widget`.`id` WHERE `widget`.`id` = '5' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testInnerJoin()
     {
-        Granada::for_table('widget')->inner_join('widget_handle', ['widget_handle.widget_id', '=', 'widget.id'])->find_many();
+        Granada::for_table('widget')
+            ->inner_join('widget_handle', ['widget_handle.widget_id', '=', 'widget.id'])
+            ->find_many();
         $expected = 'SELECT * FROM `widget` INNER JOIN `widget_handle` ON `widget_handle`.`widget_id` = `widget`.`id`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testLeftOuterJoin()
     {
-        Granada::for_table('widget')->left_outer_join('widget_handle', ['widget_handle.widget_id', '=', 'widget.id'])->find_many();
+        Granada::for_table('widget')
+            ->left_outer_join('widget_handle', ['widget_handle.widget_id', '=', 'widget.id'])
+            ->find_many();
         $expected = 'SELECT * FROM `widget` LEFT OUTER JOIN `widget_handle` ON `widget_handle`.`widget_id` = `widget`.`id`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testRightOuterJoin()
     {
-        Granada::for_table('widget')->right_outer_join('widget_handle', ['widget_handle.widget_id', '=', 'widget.id'])->find_many();
+        Granada::for_table('widget')
+            ->right_outer_join('widget_handle', ['widget_handle.widget_id', '=', 'widget.id'])
+            ->find_many();
         $expected = 'SELECT * FROM `widget` RIGHT OUTER JOIN `widget_handle` ON `widget_handle`.`widget_id` = `widget`.`id`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testFullOuterJoin()
     {
-        Granada::for_table('widget')->full_outer_join('widget_handle', ['widget_handle.widget_id', '=', 'widget.id'])->find_many();
+        Granada::for_table('widget')
+            ->full_outer_join('widget_handle', ['widget_handle.widget_id', '=', 'widget.id'])
+            ->find_many();
         $expected = 'SELECT * FROM `widget` FULL OUTER JOIN `widget_handle` ON `widget_handle`.`widget_id` = `widget`.`id`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
@@ -852,28 +1117,39 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
 
     public function testJoinWithAliases()
     {
-        Granada::for_table('widget')->join('widget_handle', ['wh.widget_id', '=', 'widget.id'], 'wh')->find_many();
+        Granada::for_table('widget')
+            ->join('widget_handle', ['wh.widget_id', '=', 'widget.id'], 'wh')
+            ->find_many();
         $expected = 'SELECT * FROM `widget` JOIN `widget_handle` `wh` ON `wh`.`widget_id` = `widget`.`id`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testJoinWithAliasesAndWhere()
     {
-        Granada::for_table('widget')->table_alias('w')->join('widget_handle', ['wh.widget_id', '=', 'w.id'], 'wh')->where_equal('id', 1)->find_many();
+        Granada::for_table('widget')
+            ->table_alias('w')
+            ->join('widget_handle', ['wh.widget_id', '=', 'w.id'], 'wh')
+            ->where_equal('id', 1)
+            ->find_many();
         $expected = "SELECT * FROM `widget` `w` JOIN `widget_handle` `wh` ON `wh`.`widget_id` = `w`.`id` WHERE `w`.`id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testJoinWithStringConstraint()
     {
-        Granada::for_table('widget')->join('widget_handle', 'widget_handle.widget_id = widget.id')->find_many();
+        Granada::for_table('widget')
+            ->join('widget_handle', 'widget_handle.widget_id = widget.id')
+            ->find_many();
         $expected = 'SELECT * FROM `widget` JOIN `widget_handle` ON widget_handle.widget_id = widget.id';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testSelectWithDistinct()
     {
-        Granada::for_table('widget')->distinct()->select('name')->find_many();
+        Granada::for_table('widget')
+            ->distinct()
+            ->select('name')
+            ->find_many();
         $expected = 'SELECT DISTINCT `name` FROM `widget`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
@@ -963,7 +1239,10 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
     public function testUpdateMultipleFields()
     {
         $widget = Granada::for_table('widget')->find_one(1);
-        $widget->set(['name' => 'Bob', 'age' => 12]);
+        $widget->set([
+            'name' => 'Bob',
+            'age'  => 12,
+        ]);
         $widget->save();
         $expected = "UPDATE `widget` SET `name` = 'Bob', `age` = '12' WHERE `id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
@@ -972,8 +1251,14 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
     public function testUpdateMultipleFieldsContainingAnExpression()
     {
         $widget = Granada::for_table('widget')->find_one(1);
-        $widget->set(['name' => 'Bob', 'age' => 12]);
-        $widget->set_expr(['added' => 'NOW()', 'lat_long' => "GeomFromText('POINT(1.2347 2.3436)')"]);
+        $widget->set([
+            'name' => 'Bob',
+            'age'  => 12,
+        ]);
+        $widget->set_expr([
+            'added'    => 'NOW()',
+            'lat_long' => "GeomFromText('POINT(1.2347 2.3436)')",
+        ]);
         $widget->save();
         $expected = "UPDATE `widget` SET `name` = 'Bob', `age` = '12', `added` = NOW(), `lat_long` = GeomFromText('POINT(1.2347 2.3436)') WHERE `id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
@@ -982,8 +1267,14 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
     public function testUpdateMultipleFieldsContainingAnExpressionAndOverridePreviouslySetExpression()
     {
         $widget = Granada::for_table('widget')->find_one(1);
-        $widget->set(['name' => 'Bob', 'age' => 12]);
-        $widget->set_expr(['added' => 'NOW()', 'lat_long' => "GeomFromText('POINT(1.2347 2.3436)')"]);
+        $widget->set([
+            'name' => 'Bob',
+            'age'  => 12,
+        ]);
+        $widget->set_expr([
+            'added'    => 'NOW()',
+            'lat_long' => "GeomFromText('POINT(1.2347 2.3436)')",
+        ]);
         $widget->lat_long = 'unknown';
         $widget->save();
         $expected = "UPDATE `widget` SET `name` = 'Bob', `age` = '12', `added` = NOW(), `lat_long` = 'unknown' WHERE `id` = '1'";
@@ -993,7 +1284,10 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
     public function testUpdateFieldThereAndBack()
     {
         $widget = Granada::for_table('widget')->find_one(1);
-        $widget->set(['name' => 'Bob', 'age' => 12]);
+        $widget->set([
+            'name' => 'Bob',
+            'age'  => 12,
+        ]);
         $widget->name = 'Fred';
         $widget->save();
         $expected = "UPDATE `widget` SET `name` = 'Fred', `age` = '12' WHERE `id` = '1'";
@@ -1010,14 +1304,17 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
 
     public function testDeleteMany()
     {
-        Granada::for_table('widget')->where_equal('age', 10)->delete_many();
+        Granada::for_table('widget')
+            ->where_equal('age', 10)
+            ->delete_many();
         $expected = "DELETE FROM `widget` WHERE `age` = '10'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testDeleteManyJoin()
     {
-        Granada::for_table('widget')->join('widget_handle', ['widget_handle.widget_id', '=', 'widget.id'])
+        Granada::for_table('widget')
+            ->join('widget_handle', ['widget_handle.widget_id', '=', 'widget.id'])
             ->where_equal('widget_handle.name', 'test')
             ->delete_many();
         $expected = "DELETE  FROM `widget` JOIN `widget_handle` ON `widget_handle`.`widget_id` = `widget`.`id` WHERE `widget_handle`.`name` = 'test'";
@@ -1033,7 +1330,9 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
 
     public function testIgnoreSelectAndCount()
     {
-        Granada::for_table('widget')->select('test')->count();
+        Granada::for_table('widget')
+            ->select('test')
+            ->count();
         $expected = 'SELECT COUNT(*) AS `count` FROM `widget` LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
@@ -1071,21 +1370,27 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
      */
     public function testIssue12IncorrectQuotingOfColumnWildcard()
     {
-        Granada::for_table('widget')->select('widget.*')->find_one();
+        Granada::for_table('widget')
+            ->select('widget.*')
+            ->find_one();
         $expected = 'SELECT `widget`.* FROM `widget` LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testIssue57LogQueryRaisesWarningWhenPercentSymbolSupplied()
     {
-        Granada::for_table('widget')->where_raw('username LIKE "ben%"')->find_many();
+        Granada::for_table('widget')
+            ->where_raw('username LIKE "ben%"')
+            ->find_many();
         $expected = 'SELECT * FROM `widget` WHERE username LIKE "ben%"';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testIssue57LogQueryRaisesWarningWhenQuestionMarkSupplied()
     {
-        Granada::for_table('widget')->where_raw('comments LIKE "has been released?%"')->find_many();
+        Granada::for_table('widget')
+            ->where_raw('comments LIKE "has been released?%"')
+            ->find_many();
         $expected = 'SELECT * FROM `widget` WHERE comments LIKE "has been released?%"';
         $this->assertEquals($expected, ORM::get_last_query());
     }
@@ -1102,32 +1407,71 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
     public function testGetSelectQuery()
     {
         $this->assertSame('SELECT * FROM `widget`', Granada::for_table('widget')->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE `name` != 'Fred'", Granada::for_table('widget')->where_not_equal('name', 'Fred')->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE `name` IN ('Fred', 'Joe')", Granada::for_table('widget')->where_in('name', ['Fred', 'Joe'])->get_select_query());
-        $this->assertSame('SELECT * FROM `widget` WHERE 0', Granada::for_table('widget')->where_in('name', [])->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE `name` NOT IN ('Fred', 'Joe')", Granada::for_table('widget')->where_not_in('name', ['Fred', 'Joe'])->get_select_query());
-        $this->assertSame('SELECT * FROM `widget`', Granada::for_table('widget')->where_not_in('name', [])->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE ( `age` < '20' OR `age` IS NULL )", Granada::for_table('widget')->where_lt_or_null('age', '20')->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE ( `age` <= '20' OR `age` IS NULL )", Granada::for_table('widget')->where_lte_or_null('age', '20')->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE ( `age` > '20' OR `age` IS NULL )", Granada::for_table('widget')->where_gt_or_null('age', '20')->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE ( `age` >= '20' OR `age` IS NULL )", Granada::for_table('widget')->where_gte_or_null('age', '20')->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE (( `name` = 'Joe' ) OR ( `name` = 'Fred' ))", Granada::for_table('widget')->where_any_is([
-            ['name' => 'Joe'],
-            ['name' => 'Fred'],
-        ])->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE (( `name` = 'Joe' AND `age` = '10' ) OR ( `name` = 'Fred' AND `age` = '20' ))", Granada::for_table('widget')->where_any_is([
-            ['name' => 'Joe', 'age' => 10],
-            ['name' => 'Fred', 'age' => 20],
-        ])->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE (( `name` = 'Joe' ) OR ( `name` = 'Fred' AND `age` = '20' ))", Granada::for_table('widget')->where_any_is([
-            ['name' => 'Joe'],
-            ['name' => 'Fred', 'age' => 20],
-        ])->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE (( `name` = 'Joe' AND `age` > '10' ) OR ( `name` = 'Fred' AND `age` > '20' ))", Granada::for_table('widget')->where_any_is([
-            ['name' => 'Joe', 'age' => 10],
-            ['name' => 'Fred', 'age' => 20],
-        ], ['age' => '>'])->get_select_query());
-        $this->assertSame('SELECT * FROM `widget` WHERE username LIKE "ben%"', Granada::for_table('widget')->where_raw('username LIKE "ben%"')->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE `name` != 'Fred'", Granada::for_table('widget')
+            ->where_not_equal('name', 'Fred')
+            ->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE `name` IN ('Fred', 'Joe')", Granada::for_table('widget')
+            ->where_in('name', ['Fred', 'Joe'])
+            ->get_select_query());
+        $this->assertSame('SELECT * FROM `widget` WHERE 0', Granada::for_table('widget')
+            ->where_in('name', [])
+            ->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE `name` NOT IN ('Fred', 'Joe')", Granada::for_table('widget')
+            ->where_not_in('name', ['Fred', 'Joe'])
+            ->get_select_query());
+        $this->assertSame('SELECT * FROM `widget`', Granada::for_table('widget')
+            ->where_not_in('name', [])
+            ->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE ( `age` < '20' OR `age` IS NULL )", Granada::for_table('widget')
+            ->where_lt_or_null('age', '20')
+            ->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE ( `age` <= '20' OR `age` IS NULL )", Granada::for_table('widget')
+            ->where_lte_or_null('age', '20')
+            ->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE ( `age` > '20' OR `age` IS NULL )", Granada::for_table('widget')
+            ->where_gt_or_null('age', '20')
+            ->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE ( `age` >= '20' OR `age` IS NULL )", Granada::for_table('widget')
+            ->where_gte_or_null('age', '20')
+            ->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE (( `name` = 'Joe' ) OR ( `name` = 'Fred' ))", Granada::for_table('widget')
+            ->where_any_is([
+                ['name' => 'Joe'],
+                ['name' => 'Fred'],
+            ])->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE (( `name` = 'Joe' AND `age` = '10' ) OR ( `name` = 'Fred' AND `age` = '20' ))", Granada::for_table('widget')
+            ->where_any_is([
+                [
+                    'name' => 'Joe',
+                    'age'  => 10,
+                ],
+                [
+                    'name' => 'Fred',
+                    'age'  => 20,
+                ],
+            ])->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE (( `name` = 'Joe' ) OR ( `name` = 'Fred' AND `age` = '20' ))", Granada::for_table('widget')
+            ->where_any_is([
+                ['name' => 'Joe'],
+                [
+                    'name' => 'Fred',
+                    'age'  => 20,
+                ],
+            ])->get_select_query());
+        $this->assertSame("SELECT * FROM `widget` WHERE (( `name` = 'Joe' AND `age` > '10' ) OR ( `name` = 'Fred' AND `age` > '20' ))", Granada::for_table('widget')
+            ->where_any_is([
+                [
+                    'name' => 'Joe',
+                    'age'  => 10,
+                ],
+                [
+                    'name' => 'Fred',
+                    'age'  => 20,
+                ],
+            ], ['age' => '>'])->get_select_query());
+        $this->assertSame('SELECT * FROM `widget` WHERE username LIKE "ben%"', Granada::for_table('widget')
+            ->where_raw('username LIKE "ben%"')
+            ->get_select_query());
     }
 
     public function testWhereClosureBuildsGroup()
@@ -1378,9 +1722,13 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
     public function testWhereInSubqueryLogsOnlyTheOuterQuery()
     {
         $logged   = count(ORM::get_query_log());
-        $subquery = Granada::for_table('other')->select('widget_id')->where('tag', 'x');
+        $subquery = Granada::for_table('other')
+            ->select('widget_id')
+            ->where('tag', 'x');
 
-        Granada::for_table('widget')->where_in('id', $subquery)->find_many();
+        Granada::for_table('widget')
+            ->where_in('id', $subquery)
+            ->find_many();
 
         $this->assertSame(
             "SELECT * FROM `widget` WHERE `id` IN (SELECT `widget_id` FROM `other` WHERE `tag` = 'x')",

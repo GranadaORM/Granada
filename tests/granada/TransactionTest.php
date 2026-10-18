@@ -182,7 +182,9 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
         );
 
         ORM::transaction(function () {
-            Model::factory('Tag', 'alternate')->create(['name' => 'red'])->save();
+            Model::factory('Tag', 'alternate')
+                ->create(['name' => 'red'])
+                ->save();
         }, 'alternate');
 
         $this->assertSame(1, Model::factory('Tag', 'alternate')->count());
@@ -197,7 +199,9 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
         );
 
         ORM::beginTransaction('alternate');
-        Model::factory('Tag', 'alternate')->create(['name' => 'red'])->save();
+        Model::factory('Tag', 'alternate')
+            ->create(['name' => 'red'])
+            ->save();
         ORM::commit('alternate');
 
         $this->assertSame(1, Model::factory('Tag', 'alternate')->count());
@@ -213,7 +217,9 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
         );
 
         ORM::beginTransaction('alternate');
-        Model::factory('Tag', 'alternate')->create(['name' => 'red'])->save();
+        Model::factory('Tag', 'alternate')
+            ->create(['name' => 'red'])
+            ->save();
         ORM::rollBack('alternate');
 
         $this->assertSame(0, Model::factory('Tag', 'alternate')->count());

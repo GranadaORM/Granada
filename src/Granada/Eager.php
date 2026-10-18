@@ -295,7 +295,9 @@ class Eager
 
         // The foreign key is added to the select to allow us to easily match the models back to their parents.
         // Otherwise, there would be no apparent connection between the models to allow us to match them.
-        $children = $relationship->select($relating_table . '.' . $relating_key)->where_in($relating_table . '.' . $relating_key, $keys)
+        $children = $relationship
+            ->select($relating_table . '.' . $relating_key)
+            ->where_in($relating_table . '.' . $relating_key, $keys)
             ->non_associative()
             ->find_many();
 

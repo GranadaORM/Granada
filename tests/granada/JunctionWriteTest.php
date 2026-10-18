@@ -31,7 +31,9 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
     private function linkedBoltIds(int $machine_id): array
     {
         $ids = [];
-        foreach (Machine::find_one($machine_id)->bolts()->find_many() as $bolt) {
+        foreach (Machine::find_one($machine_id)
+            ->bolts()
+            ->find_many() as $bolt) {
             $ids[] = (int) $bolt->id;
         }
 
@@ -143,8 +145,12 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
         $machine->ordered_bolts()->attach(1);
         $machine->ordered_bolts()->attach(2);
 
-        $this->assertSame(1, (int) MachineBolt::where_bolt_id(1)->find_one()->sort_order);
-        $this->assertSame(2, (int) MachineBolt::where_bolt_id(2)->find_one()->sort_order);
+        $this->assertSame(1, (int) MachineBolt::where_bolt_id(1)
+            ->find_one()
+            ->sort_order);
+        $this->assertSame(2, (int) MachineBolt::where_bolt_id(2)
+            ->find_one()
+            ->sort_order);
     }
 
     public function testSyncOnAnOrderedRelationNumbersCreatedAndKeptRowsInListOrder()
@@ -154,9 +160,15 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 
         $machine->ordered_bolts()->sync([3, 1, 2]);
 
-        $this->assertSame(1, (int) MachineBolt::where_bolt_id(3)->find_one()->sort_order);
-        $this->assertSame(2, (int) MachineBolt::where_bolt_id(1)->find_one()->sort_order);
-        $this->assertSame(3, (int) MachineBolt::where_bolt_id(2)->find_one()->sort_order);
+        $this->assertSame(1, (int) MachineBolt::where_bolt_id(3)
+            ->find_one()
+            ->sort_order);
+        $this->assertSame(2, (int) MachineBolt::where_bolt_id(1)
+            ->find_one()
+            ->sort_order);
+        $this->assertSame(3, (int) MachineBolt::where_bolt_id(2)
+            ->find_one()
+            ->sort_order);
     }
 
     public function testReadsThroughAnOrderedRelationOrderByTheOrderColumn()
@@ -165,7 +177,9 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
         $machine->ordered_bolts()->sync([3, 1, 2]);
 
         $names = [];
-        foreach (Machine::find_one(1)->ordered_bolts()->find_many() as $bolt) {
+        foreach (Machine::find_one(1)
+            ->ordered_bolts()
+            ->find_many() as $bolt) {
             $names[] = $bolt->name;
         }
 
@@ -191,7 +205,10 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
         $machine = Machine::find_one(1);
 
         try {
-            $machine->sync_bolts([1 => ['qty' => 1], 2 => ['qty' => -1]]);
+            $machine->sync_bolts([
+                1 => ['qty' => 1],
+                2 => ['qty' => -1],
+            ]);
             $this->fail('The negative qty was expected to fail the check constraint');
         } catch (PDOException $e) {
             // the CHECK (qty >= 0) rejected the second row
@@ -222,7 +239,9 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
         Bolt::find_one(1)->attach_machines(2);
 
         $ids = [];
-        foreach (Machine::find_one(2)->bolts()->find_many() as $bolt) {
+        foreach (Machine::find_one(2)
+            ->bolts()
+            ->find_many() as $bolt) {
             $ids[] = (int) $bolt->id;
         }
 

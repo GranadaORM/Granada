@@ -90,8 +90,10 @@ class RelationshipValuesTest extends \PHPUnit\Framework\TestCase
 
     public function testClearComputedValuesKeepsEagerResults()
     {
-        $gadget = Model::factory('Gadget')->with('widgets')->find_one(1);
-        $eager  = $gadget->relationships['widgets'];
+        $gadget = Model::factory('Gadget')
+            ->with('widgets')
+            ->find_one(1);
+        $eager = $gadget->relationships['widgets'];
         $this->assertSame($eager, $gadget->widgets);
 
         $gadget->clear_computed_values();

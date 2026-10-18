@@ -28,7 +28,9 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
 
     private function raw(string $table, int $id): array
     {
-        return \Granada\Granada::for_table($table)->where('id', $id)->find_array()[0];
+        return \Granada\Granada::for_table($table)
+            ->where('id', $id)
+            ->find_array()[0];
     }
 
     private function isUtcNow(string $value): bool
@@ -297,7 +299,9 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
             ['name' => 'y'],
         ]);
 
-        $rows = \Granada\Granada::for_table('stamped')->order_by_asc('id')->find_array();
+        $rows = \Granada\Granada::for_table('stamped')
+            ->order_by_asc('id')
+            ->find_array();
         $this->assertCount(2, $rows);
         foreach ($rows as $raw) {
             $this->assertTrue($this->isUtcNow($raw['created_at']));
@@ -307,7 +311,9 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
 
     public function testModelLessQueryWritesNoTimestamps()
     {
-        \Granada\Granada::for_table('stamped')->create(['name' => 'a'])->save();
+        \Granada\Granada::for_table('stamped')
+            ->create(['name' => 'a'])
+            ->save();
 
         $raw = \Granada\Granada::for_table('stamped')->find_array()[0];
         $this->assertNull($raw['created_at']);

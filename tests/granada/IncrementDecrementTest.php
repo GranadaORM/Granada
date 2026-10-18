@@ -29,7 +29,10 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
 
     public function testTwoModelsIncrementingTheSameRowReadBackEightThenNine()
     {
-        $counter = Counter::create(['name' => 'a', 'views' => 7]);
+        $counter = Counter::create([
+            'name'  => 'a',
+            'views' => 7,
+        ]);
         $counter->save();
 
         $first  = Counter::find_one($counter->id);
@@ -63,7 +66,10 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
 
     public function testDecrementSubtractsTheAmount()
     {
-        $counter = Counter::create(['name' => 'a', 'views' => 9]);
+        $counter = Counter::create([
+            'name'  => 'a',
+            'views' => 9,
+        ]);
         $counter->save();
 
         $counter = Counter::find_one($counter->id);
@@ -76,7 +82,10 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
 
     public function testFloatAmount()
     {
-        $counter = Counter::create(['name' => 'a', 'views' => 6]);
+        $counter = Counter::create([
+            'name'  => 'a',
+            'views' => 6,
+        ]);
         $counter->save();
 
         $counter = Counter::find_one($counter->id);
@@ -88,7 +97,10 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
 
     public function testOtherDirtyFieldsStayPending()
     {
-        $counter = Counter::create(['name' => 'a', 'views' => 7]);
+        $counter = Counter::create([
+            'name'  => 'a',
+            'views' => 7,
+        ]);
         $counter->save();
 
         $counter       = Counter::find_one($counter->id);
@@ -109,7 +121,10 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
 
     public function testPendingChangeToTheCounterColumnIsSuperseded()
     {
-        $counter = Counter::create(['name' => 'a', 'views' => 7]);
+        $counter = Counter::create([
+            'name'  => 'a',
+            'views' => 7,
+        ]);
         $counter->save();
 
         $counter        = Counter::find_one($counter->id);
@@ -138,7 +153,10 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
 
     public function testVanishedRowReturnsFalse()
     {
-        $counter = Counter::create(['name' => 'a', 'views' => 7]);
+        $counter = Counter::create([
+            'name'  => 'a',
+            'views' => 7,
+        ]);
         $counter->save();
 
         $counter = Counter::find_one($counter->id);

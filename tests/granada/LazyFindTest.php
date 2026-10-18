@@ -73,7 +73,9 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
 
     public function testAWrapperQueryWithAnIdColumnKeysRowsById()
     {
-        $walked = Granada::for_table('car')->use_id_column('id')->find_many_lazy();
+        $walked = Granada::for_table('car')
+            ->use_id_column('id')
+            ->find_many_lazy();
 
         $this->assertSame([1, 2, 3, 4, 5, 6], array_keys(iterator_to_array($walked)));
     }
@@ -144,16 +146,26 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
 
     public function testLimitAndOffsetMatchFindMany()
     {
-        $expected = Car::order_by_asc('id')->limit(3)->offset(1)->find_many();
-        $walked   = Car::order_by_asc('id')->limit(3)->offset(1)->find_many_lazy();
+        $expected = Car::order_by_asc('id')
+            ->limit(3)
+            ->offset(1)
+            ->find_many();
+        $walked = Car::order_by_asc('id')
+            ->limit(3)
+            ->offset(1)
+            ->find_many_lazy();
 
         $this->assertSame($this->pairs($expected), $this->pairs($walked));
     }
 
     public function testSelectMatchesFindMany()
     {
-        $expected = Car::select('name')->order_by_asc('id')->find_many();
-        $walked   = Car::select('name')->order_by_asc('id')->find_many_lazy();
+        $expected = Car::select('name')
+            ->order_by_asc('id')
+            ->find_many();
+        $walked = Car::select('name')
+            ->order_by_asc('id')
+            ->find_many_lazy();
 
         $this->assertSame(
             array_map(fn($car) => $car->as_array(), $expected),

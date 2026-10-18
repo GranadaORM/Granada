@@ -272,9 +272,12 @@ class RendererTest extends \PHPUnit\Framework\TestCase
     {
         $statement = Renderer::insert($this->writeSpec([
             'dialect'      => Dialect::for_driver('pgsql'),
-            'dirty_fields' => ['name' => 'fred', 'age' => 17],
-            'expr_fields'  => ['age' => true],
-            'id_column'    => 'person_id',
+            'dirty_fields' => [
+                'name' => 'fred',
+                'age'  => 17,
+            ],
+            'expr_fields' => ['age' => true],
+            'id_column'   => 'person_id',
         ]));
 
         $this->assertSame(
@@ -287,10 +290,13 @@ class RendererTest extends \PHPUnit\Framework\TestCase
     public function testUpdateAppendsIdValueLast()
     {
         $statement = Renderer::update($this->writeSpec([
-            'dirty_fields' => ['name' => 'fred', 'age' => 17],
-            'expr_fields'  => ['age' => true],
-            'id_column'    => 'person_id',
-            'id_value'     => 3,
+            'dirty_fields' => [
+                'name' => 'fred',
+                'age'  => 17,
+            ],
+            'expr_fields' => ['age' => true],
+            'id_column'   => 'person_id',
+            'id_value'    => 3,
         ]));
 
         $this->assertSame(
