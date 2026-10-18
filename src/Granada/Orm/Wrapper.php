@@ -48,30 +48,108 @@ class Wrapper extends ORM
      */
     /** @var array<string, array{length: int, method: string, timezone: bool}> */
     private static array $_where_suffixes = [
-        '_not_in_or_null' => ['length' => 15, 'method' => 'where_not_in_or_null', 'timezone' => false],
-        '_lte_or_null'    => ['length' => 12, 'method' => 'where_lte_or_null', 'timezone' => true],
-        '_gte_or_null'    => ['length' => 12, 'method' => 'where_gte_or_null', 'timezone' => true],
-        '_lt_or_null'     => ['length' => 11, 'method' => 'where_lt_or_null', 'timezone' => true],
-        '_gt_or_null'     => ['length' => 11, 'method' => 'where_gt_or_null', 'timezone' => true],
-        '_not_equal'      => ['length' => 10, 'method' => 'where_not_equal', 'timezone' => true],
-        '_not_like'       => ['length' => 9, 'method' => 'where_not_like', 'timezone' => true],
-        '_not_null'       => ['length' => 9, 'method' => 'where_not_null', 'timezone' => false],
-        '_not_in'         => ['length' => 7, 'method' => 'where_not_in', 'timezone' => false],
-        '_like'           => ['length' => 5, 'method' => 'where_like', 'timezone' => true],
-        '_null'           => ['length' => 5, 'method' => 'where_null', 'timezone' => false],
-        '_gte'            => ['length' => 4, 'method' => 'where_gte', 'timezone' => true],
-        '_lte'            => ['length' => 4, 'method' => 'where_lte', 'timezone' => true],
-        '_gt'             => ['length' => 3, 'method' => 'where_gt', 'timezone' => true],
-        '_lt'             => ['length' => 3, 'method' => 'where_lt', 'timezone' => true],
-        '_in'             => ['length' => 3, 'method' => 'where_in', 'timezone' => false],
+        '_not_in_or_null' => [
+            'length'   => 15,
+            'method'   => 'where_not_in_or_null',
+            'timezone' => false,
+        ],
+        '_lte_or_null' => [
+            'length'   => 12,
+            'method'   => 'where_lte_or_null',
+            'timezone' => true,
+        ],
+        '_gte_or_null' => [
+            'length'   => 12,
+            'method'   => 'where_gte_or_null',
+            'timezone' => true,
+        ],
+        '_lt_or_null' => [
+            'length'   => 11,
+            'method'   => 'where_lt_or_null',
+            'timezone' => true,
+        ],
+        '_gt_or_null' => [
+            'length'   => 11,
+            'method'   => 'where_gt_or_null',
+            'timezone' => true,
+        ],
+        '_not_equal' => [
+            'length'   => 10,
+            'method'   => 'where_not_equal',
+            'timezone' => true,
+        ],
+        '_not_like' => [
+            'length'   => 9,
+            'method'   => 'where_not_like',
+            'timezone' => true,
+        ],
+        '_not_null' => [
+            'length'   => 9,
+            'method'   => 'where_not_null',
+            'timezone' => false,
+        ],
+        '_not_in' => [
+            'length'   => 7,
+            'method'   => 'where_not_in',
+            'timezone' => false,
+        ],
+        '_like' => [
+            'length'   => 5,
+            'method'   => 'where_like',
+            'timezone' => true,
+        ],
+        '_null' => [
+            'length'   => 5,
+            'method'   => 'where_null',
+            'timezone' => false,
+        ],
+        '_gte' => [
+            'length'   => 4,
+            'method'   => 'where_gte',
+            'timezone' => true,
+        ],
+        '_lte' => [
+            'length'   => 4,
+            'method'   => 'where_lte',
+            'timezone' => true,
+        ],
+        '_gt' => [
+            'length'   => 3,
+            'method'   => 'where_gt',
+            'timezone' => true,
+        ],
+        '_lt' => [
+            'length'   => 3,
+            'method'   => 'where_lt',
+            'timezone' => true,
+        ],
+        '_in' => [
+            'length'   => 3,
+            'method'   => 'where_in',
+            'timezone' => false,
+        ],
     ];
 
     /** @var array<string, array{length: int, method: string, direction?: string}> */
     private static array $_order_by_suffixes = [
-        '_natural_desc' => ['length' => 13, 'method' => '_order_by_natural_desc', 'direction' => 'desc'],
-        '_natural_asc'  => ['length' => 12, 'method' => '_order_by_natural_asc', 'direction' => 'asc'],
-        '_desc'         => ['length' => 5, 'method' => 'order_by_desc'],
-        '_asc'          => ['length' => 4, 'method' => 'order_by_asc'],
+        '_natural_desc' => [
+            'length'    => 13,
+            'method'    => '_order_by_natural_desc',
+            'direction' => 'desc',
+        ],
+        '_natural_asc' => [
+            'length'    => 12,
+            'method'    => '_order_by_natural_asc',
+            'direction' => 'asc',
+        ],
+        '_desc' => [
+            'length' => 5,
+            'method' => 'order_by_desc',
+        ],
+        '_asc' => [
+            'length' => 4,
+            'method' => 'order_by_asc',
+        ],
     ];
 
     /**
@@ -259,10 +337,15 @@ class Wrapper extends ORM
             throw new \InvalidArgumentException('delete_many() on a soft-delete model does not support joined queries');
         }
 
+        $set = [$this->_soft_delete_column => 1];
+        if ($this->_auto_timestamps) {
+            $set[$this->_auto_timestamp_columns['updated']] = gmdate('Y-m-d H:i:s');
+        }
+
         $statement = Renderer::update_many(new BulkUpdateSpec(
             table_name: $this->_table_name,
             dialect: self::_dialect($this->_connection_name),
-            set: [$this->_soft_delete_column => 1],
+            set: $set,
             where_conditions: $this->_where_conditions,
         ));
 
@@ -497,7 +580,13 @@ class Wrapper extends ORM
             return self::assoc_to_keyval($this->find_array(), $key, $value);
         }
 
-        return self::assoc_to_keyval($this->select_raw($key . ',' . $value)->order_by_asc($value)->find_array(), $key, $value);
+        return self::assoc_to_keyval(
+            $this->select_raw($key . ',' . $value)
+                ->order_by_asc($value)
+                ->find_array(),
+            $key,
+            $value
+        );
     }
 
     /**
@@ -671,7 +760,7 @@ class Wrapper extends ORM
     }
 
     /**
-     * The group closure's query carries the model class name, so the
+     * The group closure's query has the model class name, so the
      * where_* suffix magic and filter_* methods work inside.
      */
     protected function _group_query(): static

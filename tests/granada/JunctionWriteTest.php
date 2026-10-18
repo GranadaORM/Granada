@@ -4,7 +4,7 @@ use Granada\ORM;
 
 /**
  * Junction writes on a link table: the machine_bolt table joins one
- * machine to one bolt and carries a qty and a sort_order of its own.
+ * machine to one bolt and has a qty and a sort_order of its own.
  */
 class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 {

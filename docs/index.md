@@ -612,6 +612,72 @@ $count = Car::clear_where()->where('car.is_deleted', 1)->count();
 // Gets the number of soft-deleted cars
 ```
 
+## Timestamps
+
+Setting `$_auto_timestamps` on a model makes Granada write its `created_at` and `updated_at` columns, in UTC, on every write.
+
+```php
+class Car extends Model
+{
+    protected static bool $_auto_timestamps = true;
+}
+```
+
+An insert writes both columns.
+An update writes `updated_at`.
+A save with no other change writes neither.
+
+```php
+$car = Car::create(['name' => 'Car1']);
+$car->save();          // created_at and updated_at are written
+
+$car->name = 'Car2';
+$car->save();          // updated_at is written, created_at is not
+
+$car->save();          // no change, so updated_at is not written
+```
+
+Other writes to the table update `updated_at` as well, including increment(), update_many() and soft-deletes.
+
+```php
+$car->increment('views');   // updated_at is written with the count
+```
+
+The columns default to `created_at` and `updated_at`.
+Set `$_auto_timestamp_columns` to name different columns.
+
+```php
+class Car extends Model
+{
+    protected static bool $_auto_timestamps = true;
+    protected static array $_auto_timestamp_columns = [
+        'created' => 'made_on',
+        'updated' => 'changed_on',
+    ];
+}
+```
+
+If you set the `created_at` or `updated_at` field, then it saves your data rather than the current time.
+
+```php
+$car = Car::create([
+    'name'       => 'Car1',
+    'created_at' => '2020-01-01 00:00:00',
+]);
+$car->save();   // created_at is written as given, updated_at is written
+```
+
+`$_auto_timestamps_ignore` lists fields that won't update `updated_at` when changed.
+Examples include `sort_order`.
+
+```php
+class Car extends Model
+{
+    protected static bool $_auto_timestamps = true;
+    protected static array $_auto_timestamps_ignore = ['sort_order'];
+}
+```
+
 ## Junction writes
 
 A `has_many_through` relationship loads its models through a link table. The same declaration gives you `attach()`, `detach()`, and `sync()` to write that table.

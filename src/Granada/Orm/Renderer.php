@@ -197,8 +197,8 @@ class Renderer
 
     /**
      * One condition to its SQL fragment plus bound values. Group and
-     * EXISTS conditions wrap themselves in parens and carry their own
-     * NOT; every other negated condition renders as NOT ( condition ).
+     * EXISTS conditions wrap themselves in parens with the NOT inside;
+     * every other negated condition renders as NOT ( condition ).
      * @return array{string, mixed[]}
      */
     private static function render_condition(Condition $condition, Dialect $dialect): array
