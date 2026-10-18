@@ -124,8 +124,11 @@ class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
 
     public function testCallingMethods()
     {
-        $result_set = ['item' => Granada::for_table('test'), 'item2' => Granada::for_table('test')];
-        $ResultSet  = new ResultSet($result_set);
+        $result_set = [
+            'item'  => Granada::for_table('test'),
+            'item2' => Granada::for_table('test'),
+        ];
+        $ResultSet = new ResultSet($result_set);
         $ResultSet->set('field', 'value')->set('field2', 'value');
 
         foreach ($ResultSet as $record) {
@@ -156,7 +159,10 @@ class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
 
     public function testKeys()
     {
-        $ResultSet = new ResultSet(['a' => Granada::for_table('test'), 'b' => Granada::for_table('test')]);
+        $ResultSet = new ResultSet([
+            'a' => Granada::for_table('test'),
+            'b' => Granada::for_table('test'),
+        ]);
         $this->assertSame(['a', 'b'], $ResultSet->keys());
     }
 
@@ -229,7 +235,11 @@ class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
         $c       = Granada::for_table('test');
         $c->name = 'Last';
 
-        $ResultSet = new ResultSet(['alpha' => $a, 'beta' => $b, 'gamma' => $c]);
+        $ResultSet = new ResultSet([
+            'alpha' => $a,
+            'beta'  => $b,
+            'gamma' => $c,
+        ]);
 
         $this->assertSame('First', $ResultSet->first()->name);
         $this->assertSame('Last', $ResultSet->last()->name);

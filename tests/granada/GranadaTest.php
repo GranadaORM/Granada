@@ -52,14 +52,18 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testFilterWithNoArguments()
     {
-        Model::factory('ModelWithFilters')->filter('name_is_fred')->find_many();
+        Model::factory('ModelWithFilters')
+            ->filter('name_is_fred')
+            ->find_many();
         $expected = "SELECT * FROM `model_with_filters` WHERE `name` = 'Fred'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testFilterWithArguments()
     {
-        Model::factory('ModelWithFilters')->filter('name_is', 'Bob')->find_many();
+        Model::factory('ModelWithFilters')
+            ->filter('name_is', 'Bob')
+            ->find_many();
         $expected = "SELECT * FROM `model_with_filters` WHERE `name` = 'Bob'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
@@ -140,7 +144,10 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
     public function testHydrateChainsIntoSave()
     {
         $widget = Model::factory('Simple')->create();
-        $widget->hydrate(['name' => 'Fred', 'age' => 10])->save();
+        $widget->hydrate([
+            'name' => 'Fred',
+            'age'  => 10,
+        ])->save();
         $expected = "INSERT INTO `simple` (`name`, `age`) VALUES ('Fred', '10')";
         $this->assertEquals($expected, ORM::get_last_query());
     }
@@ -157,7 +164,9 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testSetClassNameChainsIntoFind()
     {
-        $widget = Model::factory('Simple')->set_class_name('Simple')->find_one(1);
+        $widget = Model::factory('Simple')
+            ->set_class_name('Simple')
+            ->find_one(1);
         $this->assertInstanceOf('Simple', $widget);
     }
 

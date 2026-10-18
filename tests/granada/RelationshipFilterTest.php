@@ -90,8 +90,12 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
 
         $this->assertEquals($expectedSql, $actualSql);
-        $this->assertSame('Widget1', $gadgets->first()->relationships['featured']->name);
-        $this->assertSame('Widget5', $gadgets->last()->relationships['featured']->name);
+        $this->assertSame('Widget1', $gadgets->first()
+            ->relationships['featured']
+            ->name);
+        $this->assertSame('Widget5', $gadgets->last()
+            ->relationships['featured']
+            ->name);
     }
 
     public function testEagerHasManyThrough()
@@ -108,9 +112,13 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 
         $this->assertEquals($expectedSql, $actualSql);
         $this->assertCount(1, $widgets->first()->relationships['kits']);
-        $this->assertSame('Kit1', $widgets->first()->relationships['kits'][0]->name);
+        $this->assertSame('Kit1', $widgets->first()
+            ->relationships['kits'][0]
+            ->name);
         $this->assertCount(1, $widgets->as_array()[3]->relationships['kits']);
-        $this->assertSame('Kit2', $widgets->as_array()[3]->relationships['kits'][0]->name);
+        $this->assertSame('Kit2', $widgets->as_array()[3]
+            ->relationships['kits'][0]
+            ->name);
     }
 
     public function testLazyBelongsTo()
@@ -231,7 +239,9 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
     public function testDirectBuildingCallThenFindMany()
     {
         $gadget  = Gadget::find_one(1);
-        $widgets = $gadget->widgets()->where('name', 'Widget1')->find_many();
+        $widgets = $gadget->widgets()
+            ->where('name', 'Widget1')
+            ->find_many();
 
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `widget` WHERE `gadget_id` = '1' AND `enabled` = '1' AND `hidden` = '0' AND `name` = 'Widget1'";

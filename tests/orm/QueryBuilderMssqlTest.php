@@ -30,9 +30,13 @@ class QueryBuilderMssqlTest extends \PHPUnit\Framework\TestCase
 
     public function testLimit()
     {
-        Granada::for_table('widget')->limit(5)->find_many();
+        Granada::for_table('widget')
+            ->limit(5)
+            ->find_many();
         $expected = 'SELECT TOP 5 * FROM "widget"';
-        $this->assertSame($expected, Granada::for_table('widget')->limit(5)->get_select_query());
+        $this->assertSame($expected, Granada::for_table('widget')
+            ->limit(5)
+            ->get_select_query());
         $this->assertEquals($expected, ORM::get_last_query());
     }
 }

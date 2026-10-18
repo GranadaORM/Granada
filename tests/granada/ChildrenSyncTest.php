@@ -32,7 +32,9 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
     private function itemNames(int $crate_id): array
     {
         $names = [];
-        foreach (Crate::find_one($crate_id)->items()->find_many() as $item) {
+        foreach (Crate::find_one($crate_id)
+            ->items()
+            ->find_many() as $item) {
             $names[] = $item->name;
         }
 
@@ -43,7 +45,9 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
     private function itemIds(int $crate_id): array
     {
         $ids = [];
-        foreach (Crate::find_one($crate_id)->items()->find_many() as $item) {
+        foreach (Crate::find_one($crate_id)
+            ->items()
+            ->find_many() as $item) {
             $ids[] = (int) $item->id;
         }
 
@@ -54,7 +58,9 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
     private function extraNames(int $crate_id): array
     {
         $names = [];
-        foreach (Crate::find_one($crate_id)->extras()->find_many() as $extra) {
+        foreach (Crate::find_one($crate_id)
+            ->extras()
+            ->find_many() as $extra) {
             $names[] = $extra->name;
         }
 
@@ -65,7 +71,10 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
     private function extraIds(int $crate_id): array
     {
         $ids = [];
-        foreach (CrateExtra::clear_where()->where('crate_id', $crate_id)->order_by_id()->find_many() as $extra) {
+        foreach (CrateExtra::clear_where()
+            ->where('crate_id', $crate_id)
+            ->order_by_id()
+            ->find_many() as $extra) {
             $ids[] = (int) $extra->id;
         }
 
@@ -88,7 +97,12 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
         Crate::find_one(1)->sync_items([['name' => 'Item1']]);
         $id = $this->itemIds(1)[0];
 
-        Crate::find_one(1)->sync_items([['id' => $id, 'name' => 'Renamed']]);
+        Crate::find_one(1)->sync_items([
+            [
+                'id'   => $id,
+                'name' => 'Renamed',
+            ],
+        ]);
 
         $this->assertSame(['Renamed'], $this->itemNames(1));
         $this->assertSame([$id], $this->itemIds(1));
@@ -105,8 +119,14 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
         [$keep1, $keep2] = $this->itemIds(1);
 
         $crate->sync_items([
-            ['id' => $keep1, 'name' => 'Item1'],
-            ['id' => $keep2, 'name' => 'Item2'],
+            [
+                'id'   => $keep1,
+                'name' => 'Item1',
+            ],
+            [
+                'id'   => $keep2,
+                'name' => 'Item2',
+            ],
         ]);
 
         $this->assertSame(['Item1', 'Item2'], $this->itemNames(1));
@@ -126,7 +146,9 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
 
     public function testSyncThroughTheChainForm()
     {
-        Crate::find_one(1)->items()->sync([['name' => 'Item1']]);
+        Crate::find_one(1)
+            ->items()
+            ->sync([['name' => 'Item1']]);
 
         $this->assertSame(['Item1'], $this->itemNames(1));
     }
@@ -139,8 +161,12 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
         ]);
 
         $this->assertSame(['Item1', 'Item2'], $this->itemNames(1));
-        $this->assertSame(1, (int) CrateItem::where('name', 'Item1')->find_one()->sort_order);
-        $this->assertSame(2, (int) CrateItem::where('name', 'Item2')->find_one()->sort_order);
+        $this->assertSame(1, (int) CrateItem::where('name', 'Item1')
+            ->find_one()
+            ->sort_order);
+        $this->assertSame(2, (int) CrateItem::where('name', 'Item2')
+            ->find_one()
+            ->sort_order);
     }
 
     public function testSyncSkipsAnIdThatIsNotAChildOfThisParent()
@@ -148,7 +174,12 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
         Crate::find_one(2)->sync_items([['name' => 'Other']]);
         $other_id = $this->itemIds(2)[0];
 
-        Crate::find_one(1)->sync_items([['id' => $other_id, 'name' => 'Hijacked']]);
+        Crate::find_one(1)->sync_items([
+            [
+                'id'   => $other_id,
+                'name' => 'Hijacked',
+            ],
+        ]);
 
         $this->assertSame([], $this->itemNames(1));
         $this->assertSame(['Other'], $this->itemNames(2));
@@ -162,7 +193,12 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
 
         // The relation reads only Item1, so sync sees that subset: Item1
         // is kept, and Item2 - outside the filter - is left untouched.
-        $crate->sync_named_items([['id' => $item1, 'name' => 'Item1']]);
+        $crate->sync_named_items([
+            [
+                'id'   => $item1,
+                'name' => 'Item1',
+            ],
+        ]);
 
         $this->assertSame([$item1, $item2], $this->itemIds(1));
     }
@@ -173,13 +209,23 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
         $crate->sync_extras([['name' => 'Extra1'], ['name' => 'Extra2']]);
         [$kept, $dropped] = $this->extraIds(1);
 
-        $crate->sync_extras([['id' => $kept, 'name' => 'Extra1']]);
+        $crate->sync_extras([
+            [
+                'id'   => $kept,
+                'name' => 'Extra1',
+            ],
+        ]);
 
         // The unlisted extra keeps its row, flagged, and drops out of reads.
         $this->assertSame(2, CrateExtra::clear_where()->count());
         $this->assertSame(['Extra1'], $this->extraNames(1));
-        $this->assertSame(1, CrateExtra::clear_where()->where('is_deleted', 1)->count());
-        $this->assertSame((int) $dropped, (int) CrateExtra::clear_where()->where('is_deleted', 1)->find_one()->id);
+        $this->assertSame(1, CrateExtra::clear_where()
+            ->where('is_deleted', 1)
+            ->count());
+        $this->assertSame((int) $dropped, (int) CrateExtra::clear_where()
+            ->where('is_deleted', 1)
+            ->find_one()
+            ->id);
     }
 
     public function testSyncRestoresARelistedSoftDeletedChild()
@@ -189,14 +235,25 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
         [$kept, $flagged] = $this->extraIds(1);
 
         // Extra2 is unlisted, so it is flagged; only Extra1 stays visible.
-        $crate->sync_extras([['id' => $kept, 'name' => 'Extra1']]);
+        $crate->sync_extras([
+            [
+                'id'   => $kept,
+                'name' => 'Extra1',
+            ],
+        ]);
         $this->assertSame(['Extra1'], $this->extraNames(1));
 
         // Listing the flagged id again matches the same row and clears
         // the flag rather than inserting a second Extra2.
         $crate->sync_extras([
-            ['id' => $kept, 'name' => 'Extra1'],
-            ['id' => $flagged, 'name' => 'Extra2'],
+            [
+                'id'   => $kept,
+                'name' => 'Extra1',
+            ],
+            [
+                'id'   => $flagged,
+                'name' => 'Extra2',
+            ],
         ]);
 
         $this->assertSame(['Extra1', 'Extra2'], $this->extraNames(1));
@@ -205,15 +262,23 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
 
     public function testSyncOnAnOrderedRelationNumbersRowsInListOrder()
     {
-        Crate::find_one(1)->ordered_items()->sync([
-            ['name' => 'Item1'],
-            ['name' => 'Item2'],
-            ['name' => 'Item3'],
-        ]);
+        Crate::find_one(1)
+            ->ordered_items()
+            ->sync([
+                ['name' => 'Item1'],
+                ['name' => 'Item2'],
+                ['name' => 'Item3'],
+            ]);
 
-        $this->assertSame(1, (int) CrateItem::where('name', 'Item1')->find_one()->sort_order);
-        $this->assertSame(2, (int) CrateItem::where('name', 'Item2')->find_one()->sort_order);
-        $this->assertSame(3, (int) CrateItem::where('name', 'Item3')->find_one()->sort_order);
+        $this->assertSame(1, (int) CrateItem::where('name', 'Item1')
+            ->find_one()
+            ->sort_order);
+        $this->assertSame(2, (int) CrateItem::where('name', 'Item2')
+            ->find_one()
+            ->sort_order);
+        $this->assertSame(3, (int) CrateItem::where('name', 'Item3')
+            ->find_one()
+            ->sort_order);
     }
 
     public function testASkippedRowDoesNotConsumeAnOrderPosition()
@@ -221,35 +286,55 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
         Crate::find_one(2)->sync_items([['name' => 'Other']]);
         $foreign = $this->itemIds(2)[0];
 
-        Crate::find_one(1)->ordered_items()->sync([
-            ['id' => $foreign, 'name' => 'Hijacked'],
-            ['name' => 'Item1'],
-        ]);
+        Crate::find_one(1)
+            ->ordered_items()
+            ->sync([
+                [
+                    'id'   => $foreign,
+                    'name' => 'Hijacked',
+                ],
+                ['name' => 'Item1'],
+            ]);
 
         // The skipped foreign row is neither created nor kept, so Item1 is
         // the first kept row and takes position 1.
-        $this->assertSame(1, (int) CrateItem::where('name', 'Item1')->find_one()->sort_order);
+        $this->assertSame(1, (int) CrateItem::where('name', 'Item1')
+            ->find_one()
+            ->sort_order);
     }
 
     public function testReadsThroughAnOrderedHasManyOrderByTheOrderColumn()
     {
-        Crate::find_one(1)->ordered_items()->sync([
-            ['name' => 'Item1'],
-            ['name' => 'Item2'],
-            ['name' => 'Item3'],
-        ]);
+        Crate::find_one(1)
+            ->ordered_items()
+            ->sync([
+                ['name' => 'Item1'],
+                ['name' => 'Item2'],
+                ['name' => 'Item3'],
+            ]);
 
         // Reverse the set; the reads come back in the new order.
         $crate = Crate::find_one(1);
         $ids   = $this->itemIds(1);
         $crate->ordered_items()->sync([
-            ['id' => $ids[2], 'name' => 'Item3'],
-            ['id' => $ids[1], 'name' => 'Item2'],
-            ['id' => $ids[0], 'name' => 'Item1'],
+            [
+                'id'   => $ids[2],
+                'name' => 'Item3',
+            ],
+            [
+                'id'   => $ids[1],
+                'name' => 'Item2',
+            ],
+            [
+                'id'   => $ids[0],
+                'name' => 'Item1',
+            ],
         ]);
 
         $names = [];
-        foreach (Crate::find_one(1)->ordered_items()->find_many() as $item) {
+        foreach (Crate::find_one(1)
+            ->ordered_items()
+            ->find_many() as $item) {
             $names[] = $item->name;
         }
 
@@ -276,8 +361,14 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
 
         try {
             $crate->sync_items([
-                ['name' => 'Item1', 'qty' => 1],
-                ['name' => 'Item2', 'qty' => -1],
+                [
+                    'name' => 'Item1',
+                    'qty'  => 1,
+                ],
+                [
+                    'name' => 'Item2',
+                    'qty'  => -1,
+                ],
             ]);
             $this->fail('The negative qty was expected to fail the check constraint');
         } catch (PDOException $e) {
