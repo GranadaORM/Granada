@@ -33,12 +33,12 @@ class QueryModeTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public function testQOnAnInstanceIsLegalAndTableWide()
+    public function testQOnAnInstanceIsTableWide()
     {
         $car = Car::q()->find_one(1);
         $this->assertInstanceOf(Query::class, $car->q());
 
-        // The row's id does not scope the query
+        // The count covers the whole table: five rows, not the found row.
         $this->assertSame(5, $car->q()->count());
     }
 

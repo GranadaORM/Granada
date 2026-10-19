@@ -896,6 +896,49 @@ class Query extends Orm\Db
     }
 
     /**
+     * Write the same values to every row the query matches, in one
+     * UPDATE. True when the statement runs, false when the write fails.
+     * An empty array is a no-op; a query with a join throws.
+     * @param array<string, mixed> $values
+     */
+    public function update_many(array $values): bool
+    {
+        if ($this->_join_sources !== []) {
+            throw new \InvalidArgumentException('update_many() does not support joined queries');
+        }
+
+        if ($values === []) {
+            return true;
+        }
+
+        if ($this->_class_name !== null) {
+            $values = (new $this->_class_name())->_convert_update_values($values);
+        }
+
+        if ($this->_auto_timestamps) {
+            $updated = $this->_auto_timestamp_columns['updated'];
+            foreach (array_keys($values) as $column) {
+                if (in_array($column, $this->_auto_timestamps_ignore, true)) {
+                    continue;
+                }
+                if (!isset($values[$updated])) {
+                    $values[$updated] = gmdate('Y-m-d H:i:s');
+                }
+                break;
+            }
+        }
+
+        $statement = Renderer::update_many(new BulkUpdateSpec(
+            table_name: $this->_table_name,
+            dialect: self::_dialect($this->_connection_name),
+            set: $values,
+            where_conditions: $this->_where_conditions,
+        ));
+
+        return (bool) self::_execute_write($statement->query, $statement->values, $this->_connection_name);
+    }
+
+    /**
      * Snapshot the state a bulk delete needs into a BulkDeleteSpec for the Renderer.
      */
     protected function _bulk_delete_spec(string $target = ''): Orm\BulkDeleteSpec

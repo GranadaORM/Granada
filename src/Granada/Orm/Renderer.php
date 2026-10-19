@@ -366,12 +366,19 @@ class Renderer
 
     /**
      * UPDATE every row matching the where conditions with the same values.
+     * An Expression value renders raw; every other value binds.
      */
     public static function update_many(BulkUpdateSpec $spec): Statement
     {
         $fields = [];
         $values = [];
         foreach ($spec->set as $column => $value) {
+            if ($value instanceof Expression) {
+                $fields[] = $spec->dialect->quote_identifier($column) . ' = ' . $value->sql;
+
+                continue;
+            }
+
             $fields[] = $spec->dialect->quote_identifier($column) . ' = ?';
             $values[] = $value;
         }

@@ -673,6 +673,27 @@ class Granada implements ArrayAccess
     }
 
     /**
+     * Run each value through its column's set_ method, so objects and
+     * dates become database values.
+     * Expression values pass through.
+     * @param array<string, mixed> $values
+     * @return array<string, mixed>
+     */
+    public function _convert_update_values(array $values): array
+    {
+        foreach ($values as $field => $value) {
+            if ($value instanceof Orm\Expression) {
+                continue;
+            }
+            if (method_exists($this, $method = 'set_' . $field)) {
+                $values[$field] = $this->$method($value);
+            }
+        }
+
+        return $values;
+    }
+
+    /**
      * Setter method, allows $model->set_expr('property', 'value') access to data.
      * @param string|null $value
      */

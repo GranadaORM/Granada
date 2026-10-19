@@ -30,10 +30,32 @@ class Part extends Model
     {
         return $this->has_many_through('Car');
     }
+
+    public function set_price($value)
+    {
+        if ($value instanceof Money) {
+            return $value->amount;
+        }
+
+        return $value;
+    }
+}
+
+/**
+ * The money object Part's set_price() turns into a database amount.
+ */
+class Money
+{
+    public function __construct(
+        public readonly float $amount,
+    ) {}
 }
 
 /**
  * @property string $someProperty
+ *
+ * Its manufacture_date column converts a DateTime through
+ * set_manufacture_date(), for testing update_many().
  */
 class Car extends Model
 {
@@ -84,6 +106,15 @@ class Car extends Model
     public function set_name($value)
     {
         return 'test';
+    }
+
+    public function set_manufacture_date($value)
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        return $value;
     }
 }
 
