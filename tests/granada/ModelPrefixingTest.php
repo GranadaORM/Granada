@@ -43,7 +43,7 @@ class ModelPrefixingTest extends \PHPUnit\Framework\TestCase
     public function testNoPrefixOnAutoTableName()
     {
         Model::$auto_prefix_models = null;
-        Model::factory('Simple')->find_many();
+        Simple::q()->find_many();
         $expected = 'SELECT * FROM `simple`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
@@ -51,7 +51,7 @@ class ModelPrefixingTest extends \PHPUnit\Framework\TestCase
     public function testPrefixOnAutoTableName()
     {
         Model::$auto_prefix_models = 'MockPrefix_';
-        Model::factory('Simple')->find_many();
+        Simple::q()->find_many();
         $expected = 'SELECT * FROM `mock_prefix_simple`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
@@ -59,7 +59,7 @@ class ModelPrefixingTest extends \PHPUnit\Framework\TestCase
     public function testPrefixOnAutoTableNameWithTableSpecified()
     {
         Model::$auto_prefix_models = 'MockPrefix_';
-        Model::factory('TableSpecified')->find_many();
+        TableSpecified::q()->find_many();
         $expected = 'SELECT * FROM `simple`';
         $this->assertEquals($expected, ORM::get_last_query());
     }

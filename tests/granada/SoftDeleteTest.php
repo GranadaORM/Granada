@@ -30,24 +30,24 @@ class SoftDeleteTest extends \PHPUnit\Framework\TestCase
     public function testSoftDeletedRowsDropOutOfFindsAndCounts()
     {
         $names = [];
-        foreach (Gadget::find_many() as $gadget) {
+        foreach (Gadget::q()->find_many() as $gadget) {
             $names[] = $gadget->name;
         }
 
         // Gadget3 has hidden = 1; Gadget2 is dropped by the model's
         // own filter (enabled = 1) on top of the hiding.
         $this->assertSame(['Gadget1', 'Gadget4'], $names);
-        $this->assertSame(2, Gadget::count());
-        $this->assertNull(Gadget::find_one(3));
+        $this->assertSame(2, Gadget::q()->count());
+        $this->assertNull(Gadget::q()->find_one(3));
     }
 
     public function testDeleteKeepsTheRowButHidesIt()
     {
-        $gadget = Gadget::find_one(1);
+        $gadget = Gadget::q()->find_one(1);
 
         $this->assertTrue($gadget->delete());
 
-        $this->assertNull(Gadget::find_one(1));
+        $this->assertNull(Gadget::q()->find_one(1));
         $this->assertSame(1, Granada::for_table('gadget')
             ->where('id', 1)
             ->count());
@@ -55,17 +55,21 @@ class SoftDeleteTest extends \PHPUnit\Framework\TestCase
 
     public function testRestoreBringsTheRowBack()
     {
-        $this->assertNull(Gadget::find_one(3));
+        $this->assertNull(Gadget::q()->find_one(3));
 
-        $gadget = Gadget::clear_where()->find_one(3);
+        $gadget = Gadget::q()
+            ->clear_where()
+            ->find_one(3);
 
         $this->assertTrue($gadget->restore());
-        $this->assertSame('Gadget3', Gadget::find_one(3)->name);
+        $this->assertSame('Gadget3', Gadget::q()
+            ->find_one(3)
+            ->name);
     }
 
     public function testDeleteForcedRemovesTheRow()
     {
-        $gadget = Gadget::find_one(4);
+        $gadget = Gadget::q()->find_one(4);
 
         $this->assertTrue($gadget->delete_forced());
         $this->assertSame(0, Granada::for_table('gadget')
@@ -75,7 +79,7 @@ class SoftDeleteTest extends \PHPUnit\Framework\TestCase
 
     public function testPlainModelsKeepTheHardDelete()
     {
-        $car = Car::find_one(1);
+        $car = Car::q()->find_one(1);
 
         $this->assertTrue($car->delete());
         $this->assertSame(0, Granada::for_table('car')
@@ -85,7 +89,9 @@ class SoftDeleteTest extends \PHPUnit\Framework\TestCase
 
     public function testDeleteManySoftDeletesMatchingRows()
     {
-        $this->assertTrue(Gadget::where('enabled', 1)->delete_many());
+        $this->assertTrue(Gadget::q()
+            ->where('enabled', 1)
+            ->delete_many());
         $this->assertStringStartsWith('UPDATE `gadget` SET', ORM::get_last_query());
 
         // Every gadget still exists; 1 and 4 were soft-deleted by the
@@ -110,26 +116,38 @@ class SoftDeleteTest extends \PHPUnit\Framework\TestCase
 
     public function testLazyRelationshipsDropSoftDeletedRows()
     {
-        $this->assertSame('Gadget1', Widget::find_one(1)
+        $this->assertSame('Gadget1', Widget::q()
+            ->find_one(1)
             ->gadget
             ->name);
 
         // Gadget2 fails the model's own filter (enabled = 1) through the
         // relationship query as well.
-        $this->assertNull(Widget::find_one(3)->gadget);
+        $this->assertNull(Widget::q()
+            ->find_one(3)
+            ->gadget);
 
-        Gadget::find_one(4)->delete();
-        $this->assertNull(Widget::find_one(5)->gadget);
+        Gadget::q()
+            ->find_one(4)
+            ->delete();
+        $this->assertNull(Widget::q()
+            ->find_one(5)
+            ->gadget);
     }
 
     public function testEagerLoadingDropsSoftDeletedRows()
     {
-        Gadget::find_one(4)->delete();
+        Gadget::q()
+            ->find_one(4)
+            ->delete();
 
-        $widget = Widget::with('gadget')->find_one(5);
+        $widget = Widget::q()
+            ->with('gadget')
+            ->find_one(5);
 
         $this->assertNull($widget->relationships['gadget']);
-        $this->assertSame('Gadget1', Widget::with('gadget')
+        $this->assertSame('Gadget1', Widget::q()
+            ->with('gadget')
             ->find_one(1)
             ->relationships['gadget']
             ->name);
@@ -137,12 +155,14 @@ class SoftDeleteTest extends \PHPUnit\Framework\TestCase
 
     public function testClearWhereListsTheSoftDeletedRows()
     {
-        Gadget::clear_where()
+        Gadget::q()
+            ->clear_where()
             ->find_one(2)
             ->delete();
 
         $names = [];
-        foreach (Gadget::clear_where()
+        foreach (Gadget::q()
+            ->clear_where()
             ->where('gadget.hidden', 1)
             ->find_many() as $gadget) {
             $names[] = $gadget->name;
@@ -153,14 +173,14 @@ class SoftDeleteTest extends \PHPUnit\Framework\TestCase
 
     public function testRestoreWithoutSoftDeletesReturnsFalse()
     {
-        $car = Car::find_one(1);
+        $car = Car::q()->find_one(1);
 
         $this->assertFalse($car->restore());
     }
 
     public function testDeleteManyOnJoinedSoftDeleteQueryThrows()
     {
-        $query = Gadget::join('widget', ['gadget.id', '=', 'widget.gadget_id']);
+        $query = Gadget::q()->join('widget', ['gadget.id', '=', 'widget.gadget_id']);
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('does not support joined queries');

@@ -298,7 +298,7 @@ class ConnectionManager
 
     /**
      * The Dialect for a connection: every driver-specific fact the
-     * renderer, save() and Wrapper need. Falls back to the mysql/sqlite
+     * renderer, save() and Query need. Falls back to the mysql/sqlite
      * dialect when the driver name is unknown or not yet detected.
      * @param string $connection_name Which connection to use
      */

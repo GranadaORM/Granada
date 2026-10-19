@@ -35,8 +35,8 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
         ]);
         $counter->save();
 
-        $first  = Counter::find_one($counter->id);
-        $second = Counter::find_one($counter->id);
+        $first  = Counter::q()->find_one($counter->id);
+        $second = Counter::q()->find_one($counter->id);
 
         $this->assertSame(8, $first->increment('views'));
         $this->assertSame(9, $second->increment('views'));
@@ -49,7 +49,9 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
         $this->assertFalse($first->is_dirty('views'));
         $this->assertFalse($second->is_dirty('views'));
 
-        $this->assertSame(9, Counter::find_one($counter->id)->views);
+        $this->assertSame(9, Counter::q()
+            ->find_one($counter->id)
+            ->views);
     }
 
     public function testNullColumnStartsAtZero()
@@ -57,11 +59,13 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
         $counter = Counter::create(['name' => 'a']);
         $counter->save();
 
-        $counter = Counter::find_one($counter->id);
+        $counter = Counter::q()->find_one($counter->id);
 
         $this->assertSame(1, $counter->increment('views'));
 
-        $this->assertSame(1, Counter::find_one($counter->id)->views);
+        $this->assertSame(1, Counter::q()
+            ->find_one($counter->id)
+            ->views);
     }
 
     public function testDecrementSubtractsTheAmount()
@@ -72,12 +76,14 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
         ]);
         $counter->save();
 
-        $counter = Counter::find_one($counter->id);
+        $counter = Counter::q()->find_one($counter->id);
 
         $this->assertSame(7, $counter->decrement('views', 2));
         $this->assertSame(6, $counter->decrement('views'));
 
-        $this->assertSame(6, Counter::find_one($counter->id)->views);
+        $this->assertSame(6, Counter::q()
+            ->find_one($counter->id)
+            ->views);
     }
 
     public function testFloatAmount()
@@ -88,11 +94,13 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
         ]);
         $counter->save();
 
-        $counter = Counter::find_one($counter->id);
+        $counter = Counter::q()->find_one($counter->id);
 
         $this->assertSame(6.5, $counter->increment('views', 0.5));
 
-        $this->assertSame(6.5, Counter::find_one($counter->id)->views);
+        $this->assertSame(6.5, Counter::q()
+            ->find_one($counter->id)
+            ->views);
     }
 
     public function testOtherDirtyFieldsStayPending()
@@ -103,7 +111,7 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
         ]);
         $counter->save();
 
-        $counter       = Counter::find_one($counter->id);
+        $counter       = Counter::q()->find_one($counter->id);
         $counter->name = 'b';
 
         $counter->increment('views');
@@ -114,7 +122,7 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
 
         $counter->save();
 
-        $row = Counter::find_one($counter->id);
+        $row = Counter::q()->find_one($counter->id);
         $this->assertSame(8, $row->views);
         $this->assertSame('b', $row->name);
     }
@@ -127,7 +135,7 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
         ]);
         $counter->save();
 
-        $counter        = Counter::find_one($counter->id);
+        $counter        = Counter::q()->find_one($counter->id);
         $counter->views = 101;
 
         $this->assertSame(8, $counter->increment('views'));
@@ -135,7 +143,9 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
         // The database adds to the value it holds, not the pending 101
         $this->assertSame(8, $counter->views);
         $this->assertFalse($counter->is_dirty('views'));
-        $this->assertSame(8, Counter::find_one($counter->id)->views);
+        $this->assertSame(8, Counter::q()
+            ->find_one($counter->id)
+            ->views);
     }
 
     public function testUnsavedModelCountsInMemoryForTheNextSave()
@@ -148,7 +158,9 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
 
         $counter->save();
 
-        $this->assertSame(1, Counter::find_one($counter->id)->views);
+        $this->assertSame(1, Counter::q()
+            ->find_one($counter->id)
+            ->views);
     }
 
     public function testVanishedRowReturnsFalse()
@@ -159,8 +171,10 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
         ]);
         $counter->save();
 
-        $counter = Counter::find_one($counter->id);
-        Counter::find_one($counter->id)->delete();
+        $counter = Counter::q()->find_one($counter->id);
+        Counter::q()
+            ->find_one($counter->id)
+            ->delete();
 
         $this->assertFalse($counter->increment('views'));
     }

@@ -85,15 +85,18 @@ class Car extends Model
     {
         return 'test';
     }
+}
 
-    public static function filter_byName($query, $name)
+class QueryCar extends \Granada\Query
+{
+    public function defaultFilter(): static
     {
-        return $query->where('name', $name);
+        return $this->where('car.is_deleted', 0);
     }
 
-    protected static function _defaultFilter($query): \Granada\Orm\Wrapper
+    public function byName(string $name): static
     {
-        return $query->where('car.is_deleted', 0);
+        return $this->where('name', $name);
     }
 }
 
@@ -138,18 +141,6 @@ class ModelWithCustomTableAndCustomIdColumn extends Model
 {
     public static $_table     = 'custom_table';
     public static $_id_column = 'custom_id_column';
-}
-class ModelWithFilters extends Model
-{
-    public static function name_is_fred($orm)
-    {
-        return $orm->where('name', 'Fred');
-    }
-
-    public static function name_is($orm, $name)
-    {
-        return $orm->where('name', $name);
-    }
 }
 class ModelWithCustomConnection extends Model
 {
@@ -235,11 +226,6 @@ class Gadget extends Model
 
     protected static string $_soft_delete_column = 'hidden';
 
-    protected static function _defaultFilter($query): \Granada\Orm\Wrapper
-    {
-        return $query->where('enabled', 1)->where('hidden', 0);
-    }
-
     public function widgets()
     {
         return $this->has_many('Widget');
@@ -256,13 +242,16 @@ class Gadget extends Model
     }
 }
 
+class QueryGadget extends \Granada\Query
+{
+    public function defaultFilter(): static
+    {
+        return $this->where('enabled', 1);
+    }
+}
+
 class Widget extends Model
 {
-    protected static function _defaultFilter($query): \Granada\Orm\Wrapper
-    {
-        return $query->where('enabled', 1)->where('hidden', 0);
-    }
-
     public function gadget()
     {
         return $this->belongs_to('Gadget');
@@ -271,6 +260,14 @@ class Widget extends Model
     public function kits()
     {
         return $this->has_many_through('Kit');
+    }
+}
+
+class QueryWidget extends \Granada\Query
+{
+    public function defaultFilter(): static
+    {
+        return $this->where('enabled', 1)->where('hidden', 0);
     }
 }
 
@@ -295,11 +292,13 @@ class GadgetWithCustomResultSet extends Model
 /**
  * Its default filter deliberately adds two where conditions.
  */
-class Kit extends Model
+class Kit extends Model {}
+
+class QueryKit extends \Granada\Query
 {
-    protected static function _defaultFilter($query): \Granada\Orm\Wrapper
+    public function defaultFilter(): static
     {
-        return $query->where('enabled', 1)->where('hidden', 0);
+        return $this->where('enabled', 1)->where('hidden', 0);
     }
 }
 
@@ -311,23 +310,25 @@ class MockPrefix_TableSpecified extends Model
     public static $_table = 'simple';
 }
 
-class QueryHintModel extends Model
+/**
+ * The short name q() resolves through the prefix, with a table of
+ * its own.
+ */
+class TableSpecified extends Model
 {
-    public static function _query_standin_class(): string
-    {
-        return QueryHintQuery::class;
-    }
+    public static $_table = 'simple';
 }
-
-class QueryHintQuery extends Model {}
 
 class OrDefaultFilterGadget extends Model
 {
     public static $_table = 'gadget';
+}
 
-    protected static function _defaultFilter($query)
+class QueryOrDefaultFilterGadget extends \Granada\Query
+{
+    public function defaultFilter(): static
     {
-        return $query->where('enabled', 1)->or_where('hidden', 1);
+        return $this->where('enabled', 1)->or_where('hidden', 1);
     }
 }
 
@@ -336,6 +337,19 @@ class OrDefaultFilterGadget extends Model
  * and decrement().
  */
 class Counter extends Model {}
+
+/**
+ * Resolution-order models: the per-model query class resolves as
+ * Query<Model>, then BaseQuery<Model>, then Granada\Query.
+ */
+class ResolutionBoth extends Model {}
+class QueryResolutionBoth extends \Granada\Query {}
+class BaseQueryResolutionBoth extends \Granada\Query {}
+
+class ResolutionBaseOnly extends Model {}
+class BaseQueryResolutionBaseOnly extends \Granada\Query {}
+
+class ResolutionNone extends Model {}
 
 class Machine extends Model
 {

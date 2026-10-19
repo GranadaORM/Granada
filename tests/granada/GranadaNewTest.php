@@ -2,7 +2,6 @@
 
 use Granada\ORM;
 use Granada\Granada;
-use Granada\Model;
 
 /**
  * Testing eager loading
@@ -36,28 +35,28 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testGetter()
     {
-        $car      = Model::factory('Car')->find_one(1);
+        $car      = Car::q()->find_one(1);
         $expected = 'Car1';
         $this->assertEquals($expected, $car->get('name'), 'Get method test');
         $this->assertEquals($expected, $car->name, '__get magic method test');
 
-        $car      = Model::factory('Car')->find_one(1);
+        $car      = Car::q()->find_one(1);
         $expected = null;
         $this->assertEquals($expected, $car->nonExistentProperty, 'NULL returned if no property found');
 
-        $car                   = Model::factory('Car')->find_one(1);
+        $car                   = Car::q()->find_one(1);
         $expected              = 'test test';
         $car->existingProperty = 'TEST TeSt';
         $this->assertEquals($expected, $car->existingProperty, 'get_ method overload test');
 
-        $car      = Model::factory('Car')->find_one(1);
+        $car      = Car::q()->find_one(1);
         $expected = 'This property is missing';
         $this->assertEquals($expected, $car->someProperty, 'Missing property fallback test');
     }
 
     public function testSetterForProperty()
     {
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::q()->find_one(1);
         $this->assertTrue(isset($car['name']));
         $this->assertEquals('Car1', $car['name']);
 
@@ -72,7 +71,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testNewItemNoID()
     {
-        $car = Model::factory('Car')->create([
+        $car = Car::create([
             'name' => 'New Car',
         ]);
         $car->save();
@@ -82,7 +81,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testNewItemBlankID()
     {
-        $car = Model::factory('Car')->create([
+        $car = Car::create([
             'id'   => '',
             'name' => 'New Car',
         ]);
@@ -93,7 +92,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testNewModel()
     {
-        $car = Model::factory('Car')->create([
+        $car = Car::create([
             'id'   => '',
             'name' => 'New Car',
         ]);
@@ -104,7 +103,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testSaveOnNewRecordWithNoFieldsSetThrows()
     {
-        $car = Model::factory('Car')->create();
+        $car = Car::create();
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Cannot save a new record with no fields set');
         $car->save();
@@ -112,10 +111,10 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testSaveOnNewRecordWithNoFieldsSetSendsNoQuery()
     {
-        Model::factory('Car')->find_one(1);
+        Car::q()->find_one(1);
         $expected = ORM::get_last_query();
 
-        $car = Model::factory('Car')->create();
+        $car = Car::create();
 
         try {
             $car->save();
@@ -128,7 +127,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testSaveOnNewRecordWithOnlyBlankIdThrows()
     {
-        $car = Model::factory('Car')->create([
+        $car = Car::create([
             'id' => '',
         ]);
         $this->expectException(\InvalidArgumentException::class);
@@ -138,7 +137,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testSaveOnSavedRecordWithNoChangesReturnsTrue()
     {
-        $car      = Model::factory('Car')->find_one(1);
+        $car      = Car::q()->find_one(1);
         $expected = ORM::get_last_query();
 
         $this->assertTrue($car->save());
@@ -152,11 +151,11 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         // The write must report false instead of throwing
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
 
-        Granada::for_table('tagged')
+        ORM::_new_row('tagged')
             ->create(['tag' => 'one'])
             ->save();
 
-        $row = Granada::for_table('tagged')->create(['tag' => 'one']);
+        $row = ORM::_new_row('tagged')->create(['tag' => 'one']);
         $this->assertFalse($row->save());
         $this->assertTrue($row->is_new());
         $this->assertTrue($row->is_dirty('tag'));
@@ -175,10 +174,10 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         // The write must report false instead of throwing
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
 
-        Granada::for_table('tagged')
+        ORM::_new_row('tagged')
             ->create(['tag' => 'one'])
             ->save();
-        $row = Granada::for_table('tagged')->create(['tag' => 'two']);
+        $row = ORM::_new_row('tagged')->create(['tag' => 'two']);
         $row->save();
 
         $row->set('tag', 'one');
@@ -197,7 +196,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         ORM::get_db()->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        $car = Model::factory('Car')->create([
+        $car = Car::create([
             'id'   => 1,
             'name' => 'Duplicate',
         ]);
@@ -214,7 +213,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testCreateFloatZeroWritesColumnNotDefault()
     {
-        $sale = Model::factory('Sale')->create([
+        $sale = Sale::create([
             'name'                 => 'No discount',
             'max_discount_percent' => 0.0,
         ]);
@@ -226,7 +225,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testAssignFloatZeroAfterCreateWritesColumnNotDefault()
     {
-        $sale = Model::factory('Sale')->create([
+        $sale = Sale::create([
             'name' => 'No discount',
         ]);
         $sale->max_discount_percent = 0.0;
@@ -238,7 +237,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testSetExprFloatZeroOnNewRecordWritesColumnInlined()
     {
-        $sale = Model::factory('Sale')->create();
+        $sale = Sale::create();
         $sale->set_expr('max_discount_percent', 0.0);
         $sale->save();
         $insert_query = ORM::get_last_query();
@@ -252,7 +251,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testNewRecordFloatEqualToDefaultWritten()
     {
-        $sale = Model::factory('Sale')->create([
+        $sale = Sale::create([
             'name'                 => 'Full discount',
             'max_discount_percent' => 100.0,
         ]);
@@ -266,7 +265,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testSavedRecordIntZeroToNullWritten()
     {
-        $sale = Model::factory('Sale')->create([
+        $sale = Sale::create([
             'name'                 => 'Zero discount',
             'max_discount_percent' => 0,
         ]);
@@ -280,7 +279,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testSavedRecordNullToFloatZeroWritten()
     {
-        $sale = Model::factory('Sale')->create([
+        $sale = Sale::create([
             'name'                 => 'No discount yet',
             'max_discount_percent' => null,
         ]);
@@ -294,7 +293,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testWrittenFalseStoresZero()
     {
-        $gadget = Model::factory('Gadget')->create([
+        $gadget = Gadget::create([
             'name'    => 'Gadget5',
             'enabled' => false,
         ]);
@@ -314,7 +313,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testWrittenTrueStoresOne()
     {
-        $gadget = Model::factory('Gadget')->create([
+        $gadget = Gadget::create([
             'name'    => 'Gadget6',
             'enabled' => true,
         ]);
@@ -336,7 +335,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testSetterForRelationship()
     {
-        $car = Model::factory('Car')
+        $car = Car::q()
             ->with('manufactor')
             ->find_one(1);
         $expected = 'Manufactor1';
@@ -350,28 +349,34 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testCallStaticForModel()
     {
-        $expected = Model::factory('Car')
+        $expected = Car::q()
             ->with('manufactor')
             ->find_one(1);
-        $car = Car::with('manufactor')->find_one(1);
+        $car = Car::q()
+            ->with('manufactor')
+            ->find_one(1);
         $this->assertEquals($expected, $car, 'Call from static and from factory are the same');
     }
 
     public function testPluckValid()
     {
-        $id = Car::where_id_is(1)->pluck('id');
+        $id = Car::q()
+            ->where_id_is(1)
+            ->pluck('id');
         $this->assertEquals(1, $id, 'PLuck a column');
     }
 
     public function testPluckInvalid()
     {
-        $id = Car::where_id_is(10)->pluck('id');
+        $id = Car::q()
+            ->where_id_is(10)
+            ->pluck('id');
         $this->assertNull($id);
     }
 
     public function testfindPairs()
     {
-        $pairs    = Car::find_pairs('id', 'name');
+        $pairs    = Car::q()->find_pairs('id', 'name');
         $expected = [
             '1' => 'Car1',
             '2' => 'Car2',
@@ -385,14 +390,14 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     public function testfindPairsNull()
     {
         // Add a null named car
-        $car = Model::factory('Car')->create([
+        $car = Car::create([
             'id'         => 70,
             'is_deleted' => 0,
         ]);
         $car->save();
 
         // Test id => name
-        $pairs    = Car::find_pairs('id', 'name');
+        $pairs    = Car::q()->find_pairs('id', 'name');
         $expected = [
             '1'  => 'Car1',
             '2'  => 'Car2',
@@ -403,7 +408,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         ];
 
         // test name => id
-        $pairs    = Car::find_pairs('name', 'id');
+        $pairs    = Car::q()->find_pairs('name', 'id');
         $expected = [
             'Car1' => 1,
             'Car2' => 2,
@@ -416,7 +421,9 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testfindPairsOrdered()
     {
-        $pairs    = Car::order_by_desc('id')->find_pairs();
+        $pairs = Car::q()
+            ->order_by_desc('id')
+            ->find_pairs();
         $expected = [
             '6' => 'Car6',
             '4' => 'Car4',
@@ -429,7 +436,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testfindpairsforceselect()
     {
-        $pairs = car::select('id')
+        $pairs = Car::q()
+            ->select('id')
             ->select('manufactor_id', 'name')
             ->find_pairs();
         $expected = [
@@ -444,7 +452,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testfindPairsWithJoin()
     {
-        $pairs = Car::join('manufactor', 'manufactor.id=car.manufactor_id')
+        $pairs = Car::q()
+            ->join('manufactor', 'manufactor.id=car.manufactor_id')
             ->select('car.name', 'car_name')
             ->select('manufactor.name', 'manufactor_name')
             ->find_pairs('car_name', 'manufactor_name');
@@ -460,7 +469,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testfindPairsWithJoinIDName()
     {
-        $pairs = Car::join('manufactor', 'manufactor.id=car.manufactor_id')
+        $pairs = Car::q()
+            ->join('manufactor', 'manufactor.id=car.manufactor_id')
             ->select('car.name', 'id')
             ->select('manufactor.name', 'name')
             ->find_pairs();
@@ -476,7 +486,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testfindPairsWithJoinOrdered()
     {
-        $pairs = Car::join('manufactor', 'manufactor.id=car.manufactor_id')
+        $pairs = Car::q()
+            ->join('manufactor', 'manufactor.id=car.manufactor_id')
             ->select('car.name', 'car_name')
             ->select('manufactor.name', 'manufactor_name')
             ->order_by_desc('car.name')
@@ -493,7 +504,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testfindPairsWithJoinExpr()
     {
-        $pairs = Car::join('manufactor', 'manufactor.id=car.manufactor_id')
+        $pairs = Car::q()
+            ->join('manufactor', 'manufactor.id=car.manufactor_id')
             ->join('owner', 'owner.id=car.owner_id')
             ->select('car.name', 'car_name')
             ->select_expr('manufactor.name || " " || owner.name', 'manufactor_name') // For MySQL select_expr('CONCAT(manufactor.name, " ", owner.name)', 'manufactor_name')
@@ -510,13 +522,17 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testNoResultsfindPairs()
     {
-        $pairs = Car::where('id', 10)->find_pairs('id', 'name');
+        $pairs = Car::q()
+            ->where('id', 10)
+            ->find_pairs('id', 'name');
         $this->assertEquals([], $pairs);
     }
 
     public function testfindManySelect()
     {
-        $cars = Car::select('name')->find_many();
+        $cars = Car::q()
+            ->select('name')
+            ->find_many();
         // Not an empty array
         $this->assertNotSame([], $cars);
         $this->assertEquals(true, $cars->has_results());
@@ -536,7 +552,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testfindManyFirstAndLast()
     {
-        $cars = Car::find_many();
+        $cars = Car::q()->find_many();
 
         $expected = [
             'Car1' => [
@@ -568,7 +584,9 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testfindManyFirstAndLastDiffOrder()
     {
-        $cars = Car::order_by_desc('id')->find_many();
+        $cars = Car::q()
+            ->order_by_desc('id')
+            ->find_many();
 
         $expected = [
             'Car1' => [
@@ -600,7 +618,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testRelatedModelFirstAndLast()
     {
-        $cars = Car::find_many();
+        $cars = Car::q()->find_many();
         // SELECT * FROM `car`
 
         $expected = [
@@ -661,7 +679,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testRelatedQuery()
     {
-        $car         = Car::find_one();
+        $car         = Car::q()->find_one();
         $partcounter = 0;
         foreach ($car->parts()->find_many() as $part) {
             $partcounter++;
@@ -687,7 +705,9 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testRelatedModelFirstAndLastEager()
     {
-        $cars = Car::with('parts')->find_many();
+        $cars = Car::q()
+            ->with('parts')
+            ->find_many();
         // SELECT `part`.*, `car_part`.`car_id` FROM `part` JOIN `car_part` ON `part`.`id` = `car_part`.`part_id` WHERE `car_part`.`car_id` IN ('1', '2', '3', '4')
 
         $expected = [
@@ -748,7 +768,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testfindMany()
     {
-        $cars = Car::find_many();
+        $cars = Car::q()->find_many();
         // Not an empty array
         $this->assertNotSame([], $cars);
         $this->assertEquals(true, $cars->has_results());
@@ -768,7 +788,9 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testfindManyFiltered()
     {
-        $cars = Car::where('id', 3)->find_many();
+        $cars = Car::q()
+            ->where('id', 3)
+            ->find_many();
         // Not an empty array
         $this->assertNotSame([], $cars);
 
@@ -783,7 +805,9 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testNoResultsfindMany()
     {
-        $cars = Car::where('id', 10)->find_many();
+        $cars = Car::q()
+            ->where('id', 10)
+            ->find_many();
         $this->assertSame([], $cars->as_array());
         $this->assertEquals(0, count($cars));
         $this->assertEquals(false, $cars->has_results());
@@ -791,95 +815,122 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testfilters()
     {
-        $car = Car::byName('Car1')->find_one();
+        $car = Car::q()
+            ->byName('Car1')
+            ->find_one();
         $this->assertEquals($car->name, 'Car1');
     }
 
-    public function testnonExistentFilter()
+    public function testUnknownQueryActionNamesTheQueryClass()
     {
-        try {
-            $car = Car::test('Car1')->find_one();
-            $this->assertSame('Bad', 'Should have thrown exception');
-        } catch (Exception $e) {
-            $this->assertSame(" no static test found or static method 'filter_test' not defined in Car", $e->getMessage());
-        }
+        $this->expectException(\Error::class);
+        $this->expectExceptionMessage('Call to undefined method QueryCar::test()');
+        Car::q()
+            ->test('Car1')
+            ->find_one();
     }
 
     public function testVarnameOrderBy()
     {
-        Part::order_by_name()->find_many();
+        Part::q()
+            ->order_by_name()
+            ->find_many();
         $this->assertSame('SELECT * FROM `part` ORDER BY `name` ASC', ORM::get_last_query());
     }
 
     public function testVarnameOrderByAsc()
     {
-        Part::order_by_name_asc()->find_many();
+        Part::q()
+            ->order_by_name_asc()
+            ->find_many();
         $this->assertSame('SELECT * FROM `part` ORDER BY `name` ASC', ORM::get_last_query());
     }
 
     public function testVarnameOrderByDesc()
     {
-        Part::order_by_name_desc()->find_many();
+        Part::q()
+            ->order_by_name_desc()
+            ->find_many();
         $this->assertSame('SELECT * FROM `part` ORDER BY `name` DESC', ORM::get_last_query());
     }
 
     public function testVarnameOrderByNaturalAsc()
     {
-        Part::order_by_name_natural_asc()->find_many();
+        Part::q()
+            ->order_by_name_natural_asc()
+            ->find_many();
         $this->assertSame('SELECT * FROM `part` ORDER BY LENGTH(`name`), `name` ASC', ORM::get_last_query());
     }
 
     public function testVarnameOrderByNaturalDesc()
     {
-        Part::order_by_name_natural_desc()->find_many();
+        Part::q()
+            ->order_by_name_natural_desc()
+            ->find_many();
         $this->assertSame('SELECT * FROM `part` ORDER BY LENGTH(`name`), `name` DESC', ORM::get_last_query());
     }
 
     public function testVarnameNotEqual()
     {
-        Part::where_name_not_equal(5)->find_many();
+        Part::q()
+            ->where_name_not_equal(5)
+            ->find_many();
         $this->assertSame("SELECT * FROM `part` WHERE `part`.`name` != '5'", ORM::get_last_query());
     }
 
     public function testVarnameNotNull()
     {
-        Part::where_name_not_null()->find_many();
+        Part::q()
+            ->where_name_not_null()
+            ->find_many();
         $this->assertSame('SELECT * FROM `part` WHERE `part`.`name` IS NOT NULL', ORM::get_last_query());
     }
 
     public function testVarnameNotEqualNull()
     {
-        Part::where_name_not_equal(null)->find_many();
+        Part::q()
+            ->where_name_not_equal(null)
+            ->find_many();
         $this->assertSame('SELECT * FROM `part` WHERE `part`.`name` IS NOT NULL', ORM::get_last_query());
     }
 
     public function testVarnameLtOrNULL()
     {
-        Part::where_name_lt_or_null(5)->find_many();
+        Part::q()
+            ->where_name_lt_or_null(5)
+            ->find_many();
         $this->assertSame("SELECT * FROM `part` WHERE ( `part`.`name` < '5' OR `part`.`name` IS NULL )", ORM::get_last_query());
     }
 
     public function testVarnameLteOrNULL()
     {
-        Part::where_name_lte_or_null(5)->find_many();
+        Part::q()
+            ->where_name_lte_or_null(5)
+            ->find_many();
         $this->assertSame("SELECT * FROM `part` WHERE ( `part`.`name` <= '5' OR `part`.`name` IS NULL )", ORM::get_last_query());
     }
 
     public function testVarnameGtOrNULL()
     {
-        Part::where_name_gt_or_null(5)->find_many();
+        Part::q()
+            ->where_name_gt_or_null(5)
+            ->find_many();
         $this->assertSame("SELECT * FROM `part` WHERE ( `part`.`name` > '5' OR `part`.`name` IS NULL )", ORM::get_last_query());
     }
 
     public function testVarnameGteOrNULL()
     {
-        Part::where_name_gte_or_null(5)->find_many();
+        Part::q()
+            ->where_name_gte_or_null(5)
+            ->find_many();
         $this->assertSame("SELECT * FROM `part` WHERE ( `part`.`name` >= '5' OR `part`.`name` IS NULL )", ORM::get_last_query());
     }
 
     public function testVarnameNotInOrNULL()
     {
-        Part::where_name_not_in_or_null([5, 6])->find_many();
+        Part::q()
+            ->where_name_not_in_or_null([5, 6])
+            ->find_many();
         $this->assertSame("SELECT * FROM `part` WHERE ( `part`.`name` NOT IN ('5', '6') OR `part`.`name` IS NULL )", ORM::get_last_query());
     }
 
@@ -887,7 +938,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertSame(
             "SELECT * FROM `part` WHERE ( `part`.`name` = 'Part1' OR `part`.`name` = 'Part2' )",
-            Part::where_name('Part1')
+            Part::q()
+                ->where_name('Part1')
                 ->or_where_name('Part2')
                 ->get_select_query()
         );
@@ -897,7 +949,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertSame(
             "SELECT * FROM `part` WHERE ( `part`.`name` = 'Part1' OR `part`.`name` != 'Part2' )",
-            Part::where_name('Part1')
+            Part::q()
+                ->where_name('Part1')
                 ->or_where_name_not_equal('Part2')
                 ->get_select_query()
         );
@@ -907,7 +960,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertSame(
             "SELECT * FROM `part` WHERE ( `part`.`name` = 'Part1' OR `part`.`name` IS NOT NULL )",
-            Part::where_name('Part1')
+            Part::q()
+                ->where_name('Part1')
                 ->or_where_name_not_null()
                 ->get_select_query()
         );
@@ -917,7 +971,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertSame(
             "SELECT * FROM `part` WHERE ( `part`.`name` = 'Part1' OR `part`.`price` > '10' )",
-            Part::where_name('Part1')
+            Part::q()
+                ->where_name('Part1')
                 ->or_where_price_gt(10)
                 ->get_select_query()
         );
@@ -927,7 +982,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertSame(
             "SELECT * FROM `part` WHERE ( `part`.`name` = 'Part1' OR `part`.`name` IN ('Part2', 'Part3') )",
-            Part::where_name('Part1')
+            Part::q()
+                ->where_name('Part1')
                 ->or_where_name_in(['Part2', 'Part3'])
                 ->get_select_query()
         );
@@ -937,7 +993,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertSame(
             "SELECT * FROM `part` WHERE ( `part`.`name` = 'Part1' OR `part`.`name` LIKE '%2' )",
-            Part::where_name('Part1')
+            Part::q()
+                ->where_name('Part1')
                 ->or_where_name_like('%2')
                 ->get_select_query()
         );
@@ -947,7 +1004,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertSame(
             "SELECT * FROM `part` WHERE ( `part`.`name` = 'Part1' OR ( `part`.`price` < '10' OR `part`.`price` IS NULL ) )",
-            Part::where_name('Part1')
+            Part::q()
+                ->where_name('Part1')
                 ->or_where_price_lt_or_null(10)
                 ->get_select_query()
         );
@@ -957,7 +1015,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertSame(
             "SELECT * FROM `part` WHERE ( ( `part`.`name` = 'Part1' OR `part`.`name` = 'Part2' ) )",
-            Part::where(function ($q): void {
+            Part::q()
+                ->where(function ($q): void {
                 $q->where_name('Part1')->or_where_name('Part2');
             })->get_select_query()
         );
@@ -967,7 +1026,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertSame(
             "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND ( `name` = 'Car1' )",
-            Car::where(function ($q) {
+            Car::q()
+                ->where(function ($q) {
                 return $q->byName('Car1');
             })->get_select_query()
         );
@@ -976,7 +1036,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     public function testGroupClosureFiltersRows()
     {
         $names = [];
-        foreach (Part::where_name('Part1')
+        foreach (Part::q()
+            ->where_name('Part1')
             ->or_where(function ($q): void {
                 $q->where_price_gt(14)->where_name_not_equal('Part4');
             })->find_many() as $part) {
@@ -989,7 +1050,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     public function testWhereNotFiltersRows()
     {
         $names = [];
-        foreach (Part::where_not(function ($q): void {
+        foreach (Part::q()
+            ->where_not(function ($q): void {
             $q->where_name('Part1')->or_where_name('Part2');
         })->find_many() as $part) {
             $names[] = $part->name;
@@ -1001,11 +1063,13 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     public function testWhereExistsFiltersRows()
     {
         $names = [];
-        foreach (Car::where_exists(
-            Manufactor::select('id')
-                ->where_raw('manufactor.id = car.manufactor_id')
-                ->where_name('Manufactor2')
-        )->find_many() as $car) {
+        foreach (Car::q()
+            ->where_exists(
+                Manufactor::q()
+                    ->select('id')
+                    ->where_raw('manufactor.id = car.manufactor_id')
+                    ->where_name('Manufactor2')
+            )->find_many() as $car) {
             $names[] = $car->name;
         }
 
@@ -1015,11 +1079,13 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     public function testWhereNotExistsFiltersRows()
     {
         $names = [];
-        foreach (Car::where_not_exists(
-            Manufactor::select('id')
-                ->where_raw('manufactor.id = car.manufactor_id')
-                ->where_name('Manufactor2')
-        )->find_many() as $car) {
+        foreach (Car::q()
+            ->where_not_exists(
+                Manufactor::q()
+                    ->select('id')
+                    ->where_raw('manufactor.id = car.manufactor_id')
+                    ->where_name('Manufactor2')
+            )->find_many() as $car) {
             $names[] = $car->name;
         }
 
@@ -1029,9 +1095,12 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     public function testWhereInSubqueryBindsValues()
     {
         $names = [];
-        foreach (Car::where_manufactor_id_in(
-            Manufactor::where_name('Manufactor2')->select('id')
-        )->find_many() as $car) {
+        foreach (Car::q()
+            ->where_manufactor_id_in(
+                Manufactor::q()
+                    ->where_name('Manufactor2')
+                    ->select('id')
+            )->find_many() as $car) {
             $names[] = $car->name;
         }
 
@@ -1041,9 +1110,12 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     public function testWhereNotInSubqueryBindsValues()
     {
         $names = [];
-        foreach (Car::where_manufactor_id_not_in(
-            Manufactor::where_name('Manufactor2')->select('id')
-        )->find_many() as $car) {
+        foreach (Car::q()
+            ->where_manufactor_id_not_in(
+                Manufactor::q()
+                    ->where_name('Manufactor2')
+                    ->select('id')
+            )->find_many() as $car) {
             $names[] = $car->name;
         }
 
@@ -1054,12 +1126,15 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertSame(
             'SELECT * FROM `part`',
-            Part::where_name_not_in_or_null([])->get_select_query()
+            Part::q()
+                ->where_name_not_in_or_null([])
+                ->get_select_query()
         );
 
         $this->assertSame(
             "SELECT * FROM `part` WHERE `part`.`name` = 'Part1'",
-            Part::where_name('Part1')
+            Part::q()
+                ->where_name('Part1')
                 ->or_where_name_not_in_or_null([])
                 ->get_select_query()
         );
@@ -1069,25 +1144,27 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertSame(
             "SELECT * FROM `part` WHERE ( `price` > '10' AND `part`.`name` = 'Part1' )",
-            Part::where(function ($q): void {
+            Part::q()
+                ->where(function ($q): void {
                 $q->whereGt('price', 10)->where_name('Part1');
             })->get_select_query()
         );
     }
 
-    public function testTypedClosureReceivesTheModel()
+    public function testTypedClosureReceivesTheQuery()
     {
         $this->assertSame(
             "SELECT * FROM `part` WHERE ( ( `part`.`name` = 'Part1' OR `part`.`name` = 'Part2' ) )",
-            Part::where(function (Part $q): void {
+            Part::q()
+                ->where(function (\Granada\Query $q): void {
                 $q->where_name('Part1')->or_where_name('Part2');
             })->get_select_query()
         );
     }
 
-    public function testTypedOnlyIfCallbackReceivesTheModel()
+    public function testTypedOnlyIfCallbackReceivesTheQuery()
     {
-        $query = Part::onlyif(true, function (Part $q): void {
+        $query = Part::q()->onlyif(true, function (\Granada\Query $q): void {
             $q->where_name('Part1');
         });
 
@@ -1097,23 +1174,12 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public function testQueryStandInUsesTheDeclaredQueryClass()
-    {
-        $query = QueryHintModel::where(function (QueryHintQuery $q): void {
-            $q->where('enabled', 1);
-        });
-
-        $this->assertSame(
-            "SELECT * FROM `query_hint_model` WHERE ( `enabled` = '1' )",
-            $query->get_select_query()
-        );
-    }
-
     public function testDefaultFilterStaysGroupedBeforeOrWhere()
     {
         $this->assertSame(
             "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND ( `car`.`manufacture_date` < '2019-01-01' OR `car`.`manufacture_date` > '2020-01-01' )",
-            Car::where_manufacture_date_lt('2019-01-01')
+            Car::q()
+                ->where_manufacture_date_lt('2019-01-01')
                 ->or_where_manufacture_date_gt('2020-01-01')
                 ->get_select_query()
         );
@@ -1123,41 +1189,48 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertSame(
             "SELECT * FROM `gadget` WHERE ( `enabled` = '1' OR `hidden` = '1' ) AND `gadget`.`name` = 'Gadget1'",
-            OrDefaultFilterGadget::where_name('Gadget1')->get_select_query()
+            OrDefaultFilterGadget::q()
+                ->where_name('Gadget1')
+                ->get_select_query()
         );
     }
 
-    public function testNestedModelTypedClosures()
+    public function testNestedTypedClosures()
     {
         $this->assertSame(
             "SELECT * FROM `part` WHERE ( `part`.`name` = 'Part1' AND ( `part`.`price` > '10' ) )",
-            Part::where(function (Part $q): void {
-                $q->where_name('Part1')->where(function (Part $inner): void {
+            Part::q()
+                ->where(function (\Granada\Query $q): void {
+                $q->where_name('Part1')->where(function (\Granada\Query $inner): void {
                     $inner->where_price_gt(10);
                 });
             })->get_select_query()
         );
     }
 
-    public function testUnknownModelMethodRunsAgainstItsTable()
+    public function testQueryActionOnAModelInstanceThrows()
     {
-        $part = Part::find_one(1);
+        $part = Part::q()->find_one(1);
 
-        $this->assertSame(25.99, $part->max('price'));
+        $this->expectException(\Error::class);
+        $this->expectExceptionMessage('Call to undefined method ' . Part::class . '::max()');
+        $part->max('price');
     }
 
     public function testUnknownMethodOnOrdinaryModelThrows()
     {
         $part = new Part();
 
-        $this->expectException(\Exception::class);
+        $this->expectException(\Error::class);
+        $this->expectExceptionMessage('Call to undefined method ' . Part::class . '::noSuchMethodAnywhere()');
         $part->noSuchMethodAnywhere();
     }
 
     public function testGroupConditionsWorkInLazyFind()
     {
         $names = [];
-        foreach (Part::where(function ($q): void {
+        foreach (Part::q()
+            ->where(function ($q): void {
             $q->where_price_gt(10)->where_price_lt(20);
         })->order_by_asc('id')
             ->find_many_lazy() as $part) {
@@ -1190,8 +1263,9 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     public function testNestedGroupsExecute()
     {
         $names = [];
-        foreach (Part::where(function (Part $q): void {
-            $q->where_price_gte(10)->where(function (Part $inner): void {
+        foreach (Part::q()
+            ->where(function (\Granada\Query $q): void {
+            $q->where_price_gte(10)->where(function (\Granada\Query $inner): void {
                 $inner->where_name('Part2')->or_where_name('Part3');
             });
         })->find_many() as $part) {
@@ -1203,18 +1277,24 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testSubSelectIn()
     {
-        Car::where_manufactor_id_in(
-            Manufactor::where_name('Manufactor2')->select('id')
-        )->find_many();
+        Car::q()
+            ->where_manufactor_id_in(
+                Manufactor::q()
+                    ->where_name('Manufactor2')
+                    ->select('id')
+            )->find_many();
 
         $this->assertSame("SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`manufactor_id` IN (SELECT `id` FROM `manufactor` WHERE `manufactor`.`name` = 'Manufactor2')", ORM::get_last_query());
     }
 
     public function testSubSelectNotIn()
     {
-        Car::where_manufactor_id_not_in(
-            Manufactor::where_name('Manufactor2')->select('id')
-        )->find_many();
+        Car::q()
+            ->where_manufactor_id_not_in(
+                Manufactor::q()
+                    ->where_name('Manufactor2')
+                    ->select('id')
+            )->find_many();
 
         $this->assertSame("SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`manufactor_id` NOT IN (SELECT `id` FROM `manufactor` WHERE `manufactor`.`name` = 'Manufactor2')", ORM::get_last_query());
     }
@@ -1223,7 +1303,9 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertSame(
             "SELECT * FROM `part` WHERE `part`.`name` = 'Part2'",
-            Part::where_name('Part2')->get_select_query()
+            Part::q()
+                ->where_name('Part2')
+                ->get_select_query()
         );
     }
 
@@ -1231,7 +1313,9 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertSame(
             'SELECT * FROM `part` WHERE 0',
-            Part::where_name_in([])->get_select_query()
+            Part::q()
+                ->where_name_in([])
+                ->get_select_query()
         );
     }
 
@@ -1239,7 +1323,9 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertSame(
             "SELECT * FROM `part` WHERE `part`.`name` IN ('Part1', 'Part2')",
-            Part::where_name_in(['Part1', 'Part2'])->get_select_query()
+            Part::q()
+                ->where_name_in(['Part1', 'Part2'])
+                ->get_select_query()
         );
     }
 
@@ -1247,13 +1333,15 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertSame(
             "SELECT * FROM `part` WHERE `part`.`name` NOT IN ('Part1', 'Part2')",
-            Part::where_name_not_in(['Part1', 'Part2'])->get_select_query()
+            Part::q()
+                ->where_name_not_in(['Part1', 'Part2'])
+                ->get_select_query()
         );
     }
 
     public function testInsert()
     {
-        Car::insert([
+        Car::q()->insert([
             [
                 'id'            => '20',
                 'name'          => 'Car20',
@@ -1262,7 +1350,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
                 'is_deleted'    => 0,
             ],
         ]);
-        $count         = Car::count();
+        $count         = Car::q()->count();
         $expectedSql   = [];
         $expectedSql[] = "INSERT INTO `car` (`id`, `name`, `manufactor_id`, `owner_id`, `is_deleted`) VALUES ('20', 'test', '1', '1', '0')";
         $expectedSql[] = "SELECT COUNT(*) AS `count` FROM `car` WHERE `car`.`is_deleted` = '0' LIMIT 1";
@@ -1278,7 +1366,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testInsertDeleted()
     {
-        Car::insert([
+        Car::q()->insert([
             [
                 'id'            => '20',
                 'name'          => 'Car20',
@@ -1287,7 +1375,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
                 'is_deleted'    => 1,
             ],
         ]);
-        $count         = Car::count();
+        $count         = Car::q()->count();
         $expectedSql   = [];
         $expectedSql[] = "INSERT INTO `car` (`id`, `name`, `manufactor_id`, `owner_id`, `is_deleted`) VALUES ('20', 'test', '1', '1', '1')";
         $expectedSql[] = "SELECT COUNT(*) AS `count` FROM `car` WHERE `car`.`is_deleted` = '0' LIMIT 1";
@@ -1303,7 +1391,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testCountAll()
     {
-        $count         = Car::count();
+        $count         = Car::q()->count();
         $expectedSql   = [];
         $expectedSql[] = "SELECT COUNT(*) AS `count` FROM `car` WHERE `car`.`is_deleted` = '0' LIMIT 1";
 
@@ -1318,7 +1406,9 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testCountAllCleared()
     {
-        $count         = Car::clear_where()->count();
+        $count = Car::q()
+            ->clear_where()
+            ->count();
         $expectedSql   = [];
         $expectedSql[] = 'SELECT COUNT(*) AS `count` FROM `car` LIMIT 1';
 
@@ -1333,7 +1423,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testDirty()
     {
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::q()->find_one(1);
 
         $this->assertSame(false, $car->is_dirty('name'));
         $this->assertSame(true, $car->is_clean('name'));
@@ -1356,7 +1446,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testDirtyNumericString()
     {
-        $manufactor = Model::factory('Manufactor')->find_one(1);
+        $manufactor = Manufactor::q()->find_one(1);
 
         $this->assertSame('Manufactor1', $manufactor->name);
         $this->assertSame(false, $manufactor->is_dirty('name'));
@@ -1371,7 +1461,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(false, $manufactor->is_any_dirty());
         $this->assertSame('1', $manufactor->name);
 
-        $manufactor = Model::factory('Manufactor')->find_one(1);
+        $manufactor = Manufactor::q()->find_one(1);
         $this->assertSame('1', $manufactor->name);
 
         $manufactor->name = '01';
@@ -1379,7 +1469,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(true, $manufactor->is_any_dirty());
         $manufactor->save();
 
-        $manufactor = Model::factory('Manufactor')->find_one(1);
+        $manufactor = Manufactor::q()->find_one(1);
         $this->assertSame(false, $manufactor->is_dirty('name'));
         $this->assertSame(false, $manufactor->is_any_dirty());
         $this->assertSame('01', $manufactor->name);
@@ -1387,7 +1477,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testDirtyNumericInteger()
     {
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::q()->find_one(1);
 
         $this->assertSame(1, $car->manufactor_id);
         $this->assertSame(false, $car->is_dirty('manufactor_id'));
@@ -1398,20 +1488,20 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(false, $car->is_any_dirty());
 
         $car->save();
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::q()->find_one(1);
 
         $car->manufactor_id = '001';
         $this->assertSame(false, $car->is_dirty('manufactor_id'));
         $this->assertSame(false, $car->is_any_dirty());
 
         $car->save();
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::q()->find_one(1);
 
         $this->assertSame(false, $car->is_dirty('manufactor_id'));
         $this->assertSame(false, $car->is_any_dirty());
         $this->assertSame(1, $car->manufactor_id);
 
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::q()->find_one(1);
         $this->assertSame(1, $car->manufactor_id);
 
         $car->manufactor_id = '01';
@@ -1419,7 +1509,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(false, $car->is_any_dirty());
         $car->save();
 
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::q()->find_one(1);
         $this->assertSame(false, $car->is_dirty('manufactor_id'));
         $this->assertSame(false, $car->is_any_dirty());
         $this->assertSame(1, $car->manufactor_id);
@@ -1427,7 +1517,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testCleanValue()
     {
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::q()->find_one(1);
 
         $this->assertEquals(1, $car->manufactor_id);
         $this->assertEquals(1, $car->clean_value('manufactor_id'));
@@ -1454,13 +1544,13 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testNotFound()
     {
-        $car = Model::factory('Car')->find_one(20);
+        $car = Car::q()->find_one(20);
         $this->assertNull($car);
     }
 
     public function testMapped()
     {
-        $cars = Model::factory('Car')
+        $cars = Car::q()
             ->order_by_desc('id')
             ->find_map(function ($e) {
                 return [
@@ -1471,7 +1561,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
         /**
          * For PHP 7.4+ you can use shorthand functions
-         * $cars = Model::factory('Car')->find_map(fn ($e) => [
+         * $cars = Car::q()->find_map(fn ($e) => [
          *   'id' => $e->id,
          *   'name' => $e->name . ' ' . $e->manufactor_id,
          * ]);
@@ -1503,20 +1593,20 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testIsset()
     {
-        $car = Model::factory('Car')->find_one();
+        $car = Car::q()->find_one();
         $this->assertSame(true, isset($car->manufactor));
         $this->assertSame('Manufactor1', $car->manufactor->name ?? 'Blank');
     }
 
     public function testMissingOnceProperty()
     {
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::q()->find_one(1);
         $this->assertSame('expensive value', $car->expensiveProperty);
     }
 
     public function testMissingOncePropertyMemoized()
     {
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::q()->find_one(1);
         $this->assertSame(0, $car->missingonceCallCount);
         $this->assertSame('expensive value', $car->expensiveProperty);
         $this->assertSame(1, $car->missingonceCallCount);
@@ -1528,14 +1618,15 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testIssetMissingOnce()
     {
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::q()->find_one(1);
         $this->assertSame(true, isset($car->expensiveProperty));
         $this->assertSame(true, isset($car->anotherProperty));
     }
 
     public function testWhereIdInArray()
     {
-        Car::where_id_in([1, 3])
+        Car::q()
+            ->where_id_in([1, 3])
             ->find_many();
         $expected = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` IN ('1', '3')";
         $this->assertEquals($expected, ORM::get_last_query());
@@ -1543,10 +1634,12 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testWhereIdInQuery()
     {
-        Car::where_id_in(
-            CarPart::where('name', 'Door')
-                ->select('car_id')
-        )
+        Car::q()
+            ->where_id_in(
+                CarPart::q()
+                    ->where('name', 'Door')
+                    ->select('car_id')
+            )
             ->find_many();
         $expected = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` IN (SELECT `car_id` FROM `car_part` WHERE `name` = 'Door')";
         $this->assertEquals($expected, ORM::get_last_query());
@@ -1554,7 +1647,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testWhereIdInNull()
     {
-        Car::where_id_in(null)
+        Car::q()
+            ->where_id_in(null)
             ->find_many();
         $expected = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND 0";
         $this->assertEquals($expected, ORM::get_last_query());
@@ -1562,9 +1656,9 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testAggregateReturnTypeIntForWholeNumber()
     {
-        $count = Car::count();
+        $count = Car::q()->count();
         $this->assertIsInt($count);
-        $sum = Car::sum('manufactor_id');
+        $sum = Car::q()->sum('manufactor_id');
         $this->assertIsInt($sum);
     }
 
@@ -1583,8 +1677,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testMinMaxInt()
     {
-        $min = Car::min('id');
-        $max = Car::max('id');
+        $min = Car::q()->min('id');
+        $max = Car::q()->max('id');
 
         $this->assertSame(1, $min);
         $this->assertSame(6, $max);
@@ -1592,8 +1686,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testMinMaxFloat()
     {
-        $min = Part::min('price');
-        $max = Part::max('price');
+        $min = Part::q()->min('price');
+        $max = Part::q()->max('price');
 
         $this->assertSame(5.01, $min);
         $this->assertSame(25.99, $max);
@@ -1601,8 +1695,8 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
     public function testMinMaxString()
     {
-        $min = Car::min('manufacture_date');
-        $max = Car::max('manufacture_date');
+        $min = Car::q()->min('manufacture_date');
+        $max = Car::q()->max('manufacture_date');
 
         $this->assertSame('2020-01-01', $min);
         $this->assertSame('2023-10-05', $max);

@@ -372,19 +372,19 @@ class RendererTest extends \PHPUnit\Framework\TestCase
         ORM::configure('driver_name', 'pgsql');
         ORM::configure('identifier_quote_character', '"');
 
-        $orm = Granada::for_table('person');
-        $orm->use_id_column('person_id');
-        $orm->set('name', 'fred');
+        $row = ORM::_new_row('person');
+        $row->use_id_column('person_id');
+        $row->set('name', 'fred');
 
         ORM::reset_db();
 
         $this->assertSame(
             'INSERT INTO "person" ("name") VALUES (?) RETURNING "person_id"',
-            $orm->_build_insert()
+            $row->_build_insert()
         );
         $this->assertSame(
             'UPDATE "person" SET "name" = ? WHERE "person_id" = ?',
-            $orm->_build_update()
+            $row->_build_update()
         );
     }
 

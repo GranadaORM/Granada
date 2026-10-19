@@ -14,6 +14,30 @@ If you want to contribute to the documentation, please feel free to submit a pul
 Note: in the examples below, it shows the query as executed on the SQL database.
 Internally it does use placeholders so you only need to escape data if you are sending your data inline in a raw query.
 
+## Query mode
+
+`Model::q()` starts a query for a model: conditions, ordering, and the finds build on it.
+
+```php
+$cars = Car::q()->where_gt('price', 1000)->find_many();
+```
+
+To add custom filters to a model, create a `QueryCar` class that extends `\Granada\Query`:
+
+```php
+class QueryCar extends \Granada\Query
+{
+    public function is_expensive(): static
+    {
+        return $this->where_gt('price', 1000);
+    }
+}
+
+$cars = Car::q()->is_expensive()->find_many();
+```
+
+To create a row, use `Car::create($data)`. It returns a model containing `$data`, you need to `save()` to write to the database.
+
 ## Table-first queries
 
 `Granada::for_table()` starts a query on a table without a model class.
@@ -24,16 +48,14 @@ $items = Granada::for_table('legacy_user')->where_gt('age', 21)->find_many();
 // SELECT * FROM legacy_user WHERE age > '21';
 ```
 
-The query has no model class, so its finds return query objects rather than models - read fields off a row directly, or call `as_array()` on it.
-Named filters and the default filter do not apply, since both live on a model class.
-For a table that has a model, `Model::factory()` is the entry point, and its finds return models.
+This returns raw ORM object rows rather than models.
 
 ## By primary key
 
 To load a model by its primary key, use the `find_one()` function, specifying the primary key:
 
 ```php
-$item = User::find_one($id);
+$item = User::q()->find_one($id);
 // SELECT * FROM user WHERE id=$id;
 echo $item->name;
 ```
@@ -43,7 +65,7 @@ echo $item->name;
 To load a single record of a model, set the query parameters then use `find_one()` function to limit to one record:
 
 ```php
-$item = User::find_one();
+$item = User::q()->find_one();
 // SELECT * FROM user LIMIT 1;
 echo $item->name;
 ```
@@ -53,7 +75,7 @@ echo $item->name;
 Get a number of records from the database, in an iterable list, by using the `find_many()` function.
 
 ```php
-$items = User::find_many();
+$items = User::q()->find_many();
 // SELECT * FROM user;
 foreach ($items as $item) {
    echo $item->name;
@@ -65,7 +87,7 @@ foreach ($items as $item) {
 Get a number of records from the database, in a custom mapped structure, by using the `find_map()` function.
 
 ```php
-$item = User::find_map(fn ($e) => (object)[
+$item = User::q()->find_map(fn ($e) => (object)[
     'id'      => $e->id,
     'name'    => $e->first_name . ' ' . $e->last_name,
     'isChild' => $e->age < 18,
@@ -82,7 +104,7 @@ for example a report over many thousands of rows. It returns a
 generator: each step of the loop gives you one model:
 
 ```php
-foreach (User::where('active', 1)->find_many_lazy() as $id => $user) {
+foreach (User::q()->where('active', 1)->find_many_lazy() as $id => $user) {
     echo $user->name;
 }
 ```
@@ -97,7 +119,7 @@ size. The default is 1000:
 
 ```php
 // 200 rows per query
-foreach (User::find_many_lazy(200) as $user) { ... }
+foreach (User::q()->find_many_lazy(200) as $user) { ... }
 ```
 
 A smaller chunk uses less memory and runs more queries. A bigger
@@ -109,7 +131,7 @@ chunk does the opposite. The results you get are identical.
 not once per model:
 
 ```php
-foreach (Car::with('parts')->find_many_lazy() as $car) {
+foreach (Car::q()->with('parts')->find_many_lazy() as $car) {
     echo $car->parts[0]->name;
 }
 ```
@@ -139,7 +161,7 @@ method always returns a generator.
 Specify the number of results you want to load using the `limit()` and `offset()` functions:
 
 ```php
-$items = User::offset(15)
+$items = User::q()->offset(15)
     ->limit(5)
     ->find_many();
 // SELECT * FROM user LIMIT 5 OFFSET 15;
@@ -151,7 +173,7 @@ Add comparative filters to the query by using various functions.
 As you can see they are by default all reducing (uses AND).
 
 ```php
-$items = User::where('class', 'Test')
+$items = User::q()->where('class', 'Test')
     ->where_gt('age', 5)
     ->where_lt('age', 10)
     ->where_gte('friends', 2)
@@ -180,7 +202,7 @@ $items = User::where('class', 'Test')
 Also available is the option to put the variable name in the called function. For example:
 
 ```php
-$items = User::where_class('Test')
+$items = User::q()->where_class('Test')
     ->where_age_gt(5)
     ->where_age_lt(10)
     ->where_friends_gte(2)
@@ -216,15 +238,15 @@ Instead of doing multiple queries or raw queries to perform a subselect, you can
 For example, instead of:
 
 ```php
-$items = User::where_id_in(
-    Invoice::where_is_paid(false)->find_pairs('user_id', 'user_id')
+$items = User::q()->where_id_in(
+    Invoice::q()->where_is_paid(false)->find_pairs('user_id', 'user_id')
 )->find_many();
 // SELECT user_id FROM invoice WHERE is_paid = 0
 // SELECT * FROM user WHERE id IN (1,2,3,4,5,6,7,8,9,10)
 
 // Do instead
-$items = User::where_id_in(
-    Invoice::where_is_paid(false)->select('user_id')
+$items = User::q()->where_id_in(
+    Invoice::q()->where_is_paid(false)->select('user_id')
 )->find_many();
 
 // SELECT * FROM user WHERE id IN (SELECT user_id FROM invoice WHERE is_paid = 0)
@@ -239,7 +261,7 @@ To reduce complexity of the OR filtering (below) a few shortened filters are ava
 For example:
 
 ```php
-$items = User::where_lt_or_null('age', 5)
+$items = User::q()->where_lt_or_null('age', 5)
     ->where_gt_or_null('age', 10)
     ->where_gte_or_null('friends', 2)
     ->where_lte_or_null('friends', 4)
@@ -254,7 +276,7 @@ Since the default is to reduce results by using AND's, we use the `where_any_is(
 A simple OR, shown mixed with an AND filter:
 
 ```php
-$items = User::where_any_is(
+$items = User::q()->where_any_is(
     [
         ['name' => 'Joe'],
         ['name' => 'Fred'],
@@ -267,7 +289,7 @@ $items = User::where_any_is(
 An OR, with a non-default operator
 
 ```php
-$items = User::where_any_is(
+$items = User::q()->where_any_is(
     [
         ['name' => 'Joe'],
         ['name' => 'Fred'],
@@ -280,7 +302,7 @@ $items = User::where_any_is(
 Adding some AND comparisons inside the OR
 
 ```php
-$items = User::where_any_is(
+$items = User::q()->where_any_is(
     [
         ['name' => 'Joe'],
         ['name' => 'Fred', 'age' => 20],
@@ -291,7 +313,7 @@ $items = User::where_any_is(
 Overriding the comparison for one data type:
 
 ```php
-$items = User::where_any_is(
+$items = User::q()->where_any_is(
     [
         ['name' => 'Joe', 'age' => 10],
         ['name' => 'Fred', 'age' => 20],
@@ -303,7 +325,7 @@ $items = User::where_any_is(
 Overriding the comparison for all data types:
 
 ```php
-$items = User::where_any_is(
+$items = User::q()->where_any_is(
     [
         ['score' => '5', 'age' => 10],
         ['score' => '15', 'age' => 20],
@@ -314,7 +336,7 @@ $items = User::where_any_is(
 You can use NULL values in comparisons:
 
 ```php
-$items = User::where_any_is(
+$items = User::q()->where_any_is(
     [
         ['name' => 'Joe', 'age' => NULL],
         ['name' => NULL, 'age' => 20],
@@ -325,7 +347,7 @@ $items = User::where_any_is(
 They also work with the `!=` operator:
 
 ```php
-$items = User::where_any_is(
+$items = User::q()->where_any_is(
     [
         ['name' => 'Joe', 'age' => NULL],
         ['name' => NULL, 'age' => 20],
@@ -337,7 +359,7 @@ $items = User::where_any_is(
 Pass an array to convert it into an IN or NOT IN (depending on the operator):
 
 ```php
-$items = User::where_any_is(
+$items = User::q()->where_any_is(
     [
         [
             'name' => 'Joe',
@@ -357,7 +379,7 @@ Optionally apply a where, use this to avoid breaking long chains. Can also be us
 ```php
 $min_age = 5;
 $order = true;
-$items = User::where('class', 'Test')
+$items = User::q()->where('class', 'Test')
         ->onlyif(false, function(User $q) { // Will skip this filter
             $q->where_lt('age', 10);
         })
@@ -380,7 +402,7 @@ Pass a closure to group conditions together.
 For example:
 
 ```php
-$items = User::where('enabled', 1)
+$items = User::q()->where('enabled', 1)
     ->or_where(function (User $q) {
         $q->where_name('Jack')->where_verified(1);
     })
@@ -390,10 +412,10 @@ $items = User::where('enabled', 1)
 
 Inside the closure, `$q` is a clean starting point for building a sub-condition.
 
-A closure can hold another closure, which nests the groups:
+A closure inside a closure nests the groups:
 
 ```php
-$items = User::where(function (User $q) {
+$items = User::q()->where(function (User $q) {
     $q->where('enabled', 1)->where(function (User $inner) {
         $inner->where('role', 'admin')->or_where('role', 'owner');
     });
@@ -406,10 +428,10 @@ $items = User::where(function (User $q) {
 `where_not()` and `or_where_not()` prefix the sub-condition with NOT:
 
 ```php
-$items = User::where_not('role', 'banned')->find_many();
+$items = User::q()->where_not('role', 'banned')->find_many();
 // SELECT * FROM `user` WHERE NOT ( `role` = 'banned' )
 
-$items = User::where_not(function (User $q) {
+$items = User::q()->where_not(function (User $q) {
     $q->where('role', 'banned')->where('enabled', 0);
 })->find_many();
 // SELECT * FROM `user` WHERE NOT ( `role` = 'banned' AND `enabled` = 0 )
@@ -424,8 +446,8 @@ In sql, you can return just the rows that exist in a subquery.
 Use `where_exists()` to declare the query that is used in the EXISTS portion. `where_not_exists()` outputs NOT EXISTS.
 
 ```php
-$items = User::where_exists(
-    Invoice::where_raw('invoice.user_id = user.id')->where('is_paid', 0)
+$items = User::q()->where_exists(
+    Invoice::q()->where_raw('invoice.user_id = user.id')->where('is_paid', 0)
 )->find_many();
 // SELECT * FROM `user` WHERE EXISTS ( SELECT * FROM `invoice` WHERE invoice.user_id = user.id AND `is_paid` = 0 )
 ```
@@ -439,7 +461,7 @@ Ordering results are set in order of priority, and can be defined multiple times
 order_by_asc()
 
 ```php
-$items = User::order_by_asc('name')
+$items = User::q()->order_by_asc('name')
     ->find_many();
     // SELECT * FROM `user` ORDER BY `name` ASC
 ```
@@ -447,7 +469,7 @@ $items = User::order_by_asc('name')
 order_by_desc()
 
 ```php
-$items = User::order_by_desc('name')
+$items = User::q()->order_by_desc('name')
     ->find_many();
     // SELECT * FROM `user` ORDER BY `name` DESC
 ```
@@ -455,7 +477,7 @@ $items = User::order_by_desc('name')
 Combining two order types
 
 ```php
-$items = User::order_by_desc('name')
+$items = User::q()->order_by_desc('name')
     ->order_by_asc('id')
     ->find_many();
     // SELECT * FROM `user` ORDER BY `name` DESC, `id` ASC
@@ -464,7 +486,7 @@ $items = User::order_by_desc('name')
 order_by_expr()
 
 ```php
-$items = User::order_by_expr('name+0')
+$items = User::q()->order_by_expr('name+0')
     ->find_many();
     // SELECT * FROM `user` ORDER BY name+0
 ```
@@ -474,7 +496,7 @@ $items = User::order_by_expr('name+0')
 If an order declaration is already made (e.g. from a filter or previous code) that you want to over-ride, you can clear it:
 
 ```php
-$items = User::order_by_desc('name')
+$items = User::q()->order_by_desc('name')
     ->order_by_clear() // Clears out the name order from above
     ->order_by_asc('id')
     ->find_many();
@@ -488,7 +510,7 @@ If an where or having declaration is already made (e.g. from a filter or previou
 For where:
 
 ```php
-$items = User::where('name', 'Fred')
+$items = User::q()->where('name', 'Fred')
     ->clear_where() // Clears out all where declarations
     ->where('name', 'Joe')
     ->find_many();
@@ -498,7 +520,7 @@ $items = User::where('name', 'Fred')
 Similarly for having:
 
 ```php
-$items = User::group_by('name')
+$items = User::q()->group_by('name')
     ->having('name', 'Fred')
     ->clear_having() // Clears out all having declarations
     ->having('name', 'Joe')
@@ -509,7 +531,7 @@ $items = User::group_by('name')
 If you only want to remove a single where that was previously set, you can remove it:
 
 ```php
-$items = User::where('name', 'Fred')
+$items = User::q()->where('name', 'Fred')
     ->where('age', 10)
     ->remove_where('name')
     ->find_many();
@@ -536,32 +558,34 @@ Instead of calling `find_many()` call `get_select_query()` and it will give you 
 
 ## Default filtering
 
-In some cases a default filter is very useful.
-For example an `is_deleted` field that flags a record as deleted in the database but the fields are never returned in queries.
-To flag records as deleted, use the soft deletes below.
-To set up default filtering, create a function in the model. For example:
+A query class applies a default filter, so every query for the model starts from the same conditions.
+For example, hide every car that is not enabled, without adding the condition to each query.
+To flag records as deleted, use the soft deletes below - those rows are already hidden.
+Add your own conditions by overriding `defaultFilter()` on the model's query class:
 
 ```php
-class Car extends Model
+class QueryCar extends \Granada\Query
 {
-    public static function _defaultFilter($query) {
-        return $query->where('car.is_deleted', 0);
+    public function defaultFilter(): static
+    {
+        return $this->where('car.enabled', 1);
     }
 }
 ```
 
-Any queries that attempt to load results from the car table will filter based on the `is_deleted` column.
-It's recommended to include the table name in the default filter as it will be needed for any joins.
+Every query for that model starts with the conditions in the default filter.
+Soft-deleted rows are hidden before `defaultFilter()` runs, so the filter adds only its own conditions.
+It's recommended to include the table name in the conditions as it will be needed for any joins.
 
 Don't forget to create an index on columns that have a default filter!
 
 To override the default filtering, use the `clear_where()` function, for example:
 
 ```php
-$count = Car::clear_where()->count();
-// Gets the number of all cars, deleted or not
-$count = Car::count();
-// Gets only the cars that are not deleted
+$count = Car::q()->clear_where()->count();
+// Gets the number of all cars, filtered or not
+$count = Car::q()->count();
+// Gets only the cars the default filter lets through
 ```
 
 ## Soft deletes
@@ -592,7 +616,7 @@ class Car extends Model
 `delete_forced()` removes the row, on any model.
 
 ```php
-$car = Car::find_one(1);
+$car = Car::q()->find_one(1);
 $car->delete();        // soft-deleted, queries no longer return it
 $car->restore();       // queries return it again
 $car->delete_forced(); // removes the row for good
@@ -601,14 +625,14 @@ $car->delete_forced(); // removes the row for good
 `delete_many()` soft-deletes every matching row on a soft-delete model, and removes rows as before on every other model.
 
 ```php
-Car::where('enabled', 0)->delete_many();
+Car::q()->where('enabled', 0)->delete_many();
 // Soft-deletes all disabled cars
 ```
 
 To list the soft-deleted rows, use `clear_where()`.
 
 ```php
-$count = Car::clear_where()->where('car.is_deleted', 1)->count();
+$count = Car::q()->clear_where()->where('car.is_deleted', 1)->count();
 // Gets the number of soft-deleted cars
 ```
 
@@ -799,7 +823,7 @@ class Car extends Model {
     }
 }
 
-$car = Model::factory('Car')->find_one(1);
+$car = Car::q()->find_one(1);
 echo $car->brand; // e.g. Toyota
 ```
 
@@ -814,7 +838,7 @@ class Car extends Model {
     }
 }
 
-$car = Model::factory('Car')->find_one(1);
+$car = Car::q()->find_one(1);
 echo $car->nameNow; // includes current time
 sleep(1);
 echo $car->nameNow; // will be different
@@ -831,11 +855,11 @@ This is ideal for expensive operations such as database queries that you do not 
 ```php
 class User extends Model {
     public function missingonce_orderCount() {
-        return Order::where('user_id', $this->id)->count();
+        return Order::q()->where('user_id', $this->id)->count();
     }
 }
 
-$user = Model::factory('User')->find_one(1);
+$user = User::q()->find_one(1);
 echo $user->orderCount; // Queries the database
 echo $user->orderCount; // Returns the kept value (no query)
 ```
@@ -853,7 +877,7 @@ class Car extends Model {
     }
 }
 
-$car = Model::factory('Car')->find_one(1);
+$car = Car::q()->find_one(1);
 echo $car->manufactor->name; // Lazy-loaded on first access
 echo $car->manufactor->name; // No database query
 ```
@@ -865,7 +889,7 @@ See the Relationships section below for more detail.
 Lazy-loaded relationships and `missingonce_` values are kept in the model's `$relationships` array. `clear_computed_values()` drops those kept values, so the next read of each affected property works them out again.
 
 ```php
-$user = Model::factory('User')->find_one(1);
+$user = User::q()->find_one(1);
 echo $user->orderCount; // Queries the database
 $user->clear_computed_values();
 echo $user->orderCount; // Queries the database again

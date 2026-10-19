@@ -1,6 +1,5 @@
 <?php
 
-use Granada\Model;
 use Granada\ORM;
 
 class TransactionTest extends \PHPUnit\Framework\TestCase
@@ -33,13 +32,14 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
         $db = ORM::get_db();
 
         $result = ORM::transaction(function () {
-            Tag::create(['name' => 'red'])->save();
+            Tag::create(['name' => 'red'])
+                ->save();
 
             return 'made';
         });
 
         $this->assertSame('made', $result);
-        $this->assertSame(1, Tag::count());
+        $this->assertSame(1, Tag::q()->count());
         $this->assertSame(1, $db->begins);
         $this->assertSame(1, $db->commits);
         $this->assertSame(0, $db->rollbacks);
@@ -52,7 +52,8 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
 
         try {
             ORM::transaction(function () {
-                Tag::create(['name' => 'red'])->save();
+                Tag::create(['name' => 'red'])
+                    ->save();
 
                 throw new RuntimeException('no');
             });
@@ -61,7 +62,7 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
             $this->assertSame('no', $e->getMessage());
         }
 
-        $this->assertSame(0, Tag::count());
+        $this->assertSame(0, Tag::q()->count());
         $this->assertSame(1, $db->rollbacks);
         $this->assertSame(0, $db->commits);
         $this->assertFalse($db->inTransaction());
@@ -70,13 +71,14 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
     public function testFalseReturnCommitsTheWork()
     {
         $result = ORM::transaction(function () {
-            Tag::create(['name' => 'red'])->save();
+            Tag::create(['name' => 'red'])
+                ->save();
 
             return false;
         });
 
         $this->assertFalse($result);
-        $this->assertSame(1, Tag::count());
+        $this->assertSame(1, Tag::q()->count());
     }
 
     public function testNestedTransactionsCollapseToTheOutermost()
@@ -84,17 +86,19 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
         $db = ORM::get_db();
 
         $result = ORM::transaction(function () {
-            Tag::create(['name' => 'red'])->save();
+            Tag::create(['name' => 'red'])
+                ->save();
 
             return ORM::transaction(function () {
-                Tag::create(['name' => 'blue'])->save();
+                Tag::create(['name' => 'blue'])
+                    ->save();
 
                 return 'inner';
             });
         });
 
         $this->assertSame('inner', $result);
-        $this->assertSame(2, Tag::count());
+        $this->assertSame(2, Tag::q()->count());
         $this->assertSame(1, $db->begins);
         $this->assertSame(1, $db->commits);
         $this->assertSame(0, $db->rollbacks);
@@ -106,9 +110,11 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
 
         try {
             ORM::transaction(function () {
-                Tag::create(['name' => 'red'])->save();
+                Tag::create(['name' => 'red'])
+                    ->save();
                 ORM::transaction(function () {
-                    Tag::create(['name' => 'blue'])->save();
+                    Tag::create(['name' => 'blue'])
+                        ->save();
 
                     throw new RuntimeException('inner');
                 });
@@ -118,7 +124,7 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
             $this->assertSame('inner', $e->getMessage());
         }
 
-        $this->assertSame(0, Tag::count());
+        $this->assertSame(0, Tag::q()->count());
         $this->assertSame(1, $db->rollbacks);
         $this->assertSame(0, $db->commits);
         $this->assertFalse($db->inTransaction());
@@ -127,20 +133,22 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
     public function testManualTransactionCommits()
     {
         ORM::beginTransaction();
-        Tag::create(['name' => 'red'])->save();
+        Tag::create(['name' => 'red'])
+            ->save();
         ORM::commit();
 
-        $this->assertSame(1, Tag::count());
+        $this->assertSame(1, Tag::q()->count());
         $this->assertFalse(ORM::get_db()->inTransaction());
     }
 
     public function testManualTransactionRollsBack()
     {
         ORM::beginTransaction();
-        Tag::create(['name' => 'red'])->save();
+        Tag::create(['name' => 'red'])
+            ->save();
         ORM::rollBack();
 
-        $this->assertSame(0, Tag::count());
+        $this->assertSame(0, Tag::q()->count());
         $this->assertFalse(ORM::get_db()->inTransaction());
     }
 
@@ -150,13 +158,14 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
 
         ORM::beginTransaction();
         ORM::beginTransaction();
-        Tag::create(['name' => 'red'])->save();
+        Tag::create(['name' => 'red'])
+            ->save();
         ORM::commit();
         ORM::commit();
 
         $this->assertSame(1, $db->begins);
         $this->assertSame(1, $db->commits);
-        $this->assertSame(1, Tag::count());
+        $this->assertSame(1, Tag::q()->count());
         $this->assertFalse($db->inTransaction());
     }
 
@@ -166,10 +175,11 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
 
         ORM::beginTransaction();
         ORM::beginTransaction();
-        Tag::create(['name' => 'red'])->save();
+        Tag::create(['name' => 'red'])
+            ->save();
         ORM::rollBack();
 
-        $this->assertSame(0, Tag::count());
+        $this->assertSame(0, Tag::q()->count());
         $this->assertSame(1, $db->rollbacks);
         $this->assertFalse($db->inTransaction());
     }
@@ -182,13 +192,11 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
         );
 
         ORM::transaction(function () {
-            Model::factory('Tag', 'alternate')
-                ->create(['name' => 'red'])
-                ->save();
+            ORM::raw_execute('INSERT INTO tag (name) VALUES (?)', ['red'], 'alternate');
         }, 'alternate');
 
-        $this->assertSame(1, Model::factory('Tag', 'alternate')->count());
-        $this->assertSame(0, Tag::count());
+        $this->assertSame(1, \Granada\Granada::for_table('tag', 'alternate')->count());
+        $this->assertSame(0, Tag::q()->count());
     }
 
     public function testManualTransactionOnANamedConnection()
@@ -199,13 +207,11 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
         );
 
         ORM::beginTransaction('alternate');
-        Model::factory('Tag', 'alternate')
-            ->create(['name' => 'red'])
-            ->save();
+        ORM::raw_execute('INSERT INTO tag (name) VALUES (?)', ['red'], 'alternate');
         ORM::commit('alternate');
 
-        $this->assertSame(1, Model::factory('Tag', 'alternate')->count());
-        $this->assertSame(0, Tag::count());
+        $this->assertSame(1, \Granada\Granada::for_table('tag', 'alternate')->count());
+        $this->assertSame(0, Tag::q()->count());
         $this->assertFalse(ORM::get_db('alternate')->inTransaction());
     }
 
@@ -217,12 +223,10 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
         );
 
         ORM::beginTransaction('alternate');
-        Model::factory('Tag', 'alternate')
-            ->create(['name' => 'red'])
-            ->save();
+        ORM::raw_execute('INSERT INTO tag (name) VALUES (?)', ['red'], 'alternate');
         ORM::rollBack('alternate');
 
-        $this->assertSame(0, Model::factory('Tag', 'alternate')->count());
+        $this->assertSame(0, \Granada\Granada::for_table('tag', 'alternate')->count());
         $this->assertFalse(ORM::get_db('alternate')->inTransaction());
     }
 
@@ -230,13 +234,13 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
     {
         $db = ORM::get_db();
 
-        $result = Tag::insert([
+        $result = Tag::q()->insert([
             ['name' => 'red'],
             ['name' => 'blue'],
         ]);
 
         $this->assertSame('2', $result);
-        $this->assertSame(2, Tag::count());
+        $this->assertSame(2, Tag::q()->count());
         $this->assertSame(1, $db->begins);
         $this->assertSame(1, $db->commits);
     }
@@ -246,7 +250,7 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
         $db = ORM::get_db();
 
         try {
-            Tag::insert([
+            Tag::q()->insert([
                 ['name' => 'red'],
                 ['name' => 'red'],
             ]);
@@ -255,7 +259,7 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
             // the second row broke the unique column
         }
 
-        $this->assertSame(0, Tag::count());
+        $this->assertSame(0, Tag::q()->count());
         $this->assertSame(1, $db->begins);
         $this->assertSame(0, $db->commits);
         $this->assertSame(1, $db->rollbacks);

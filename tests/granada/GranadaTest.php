@@ -1,7 +1,6 @@
 <?php
 
 use Granada\ORM;
-use Granada\Model;
 
 class GranadaTest extends \PHPUnit\Framework\TestCase
 {
@@ -24,53 +23,35 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testSimpleAutoTableName()
     {
-        Model::factory('Simple')->find_many();
+        Simple::q()->find_many();
         $expected = 'SELECT * FROM `simple`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testComplexModelClassName()
     {
-        Model::factory('ComplexModelClassName')->find_many();
+        ComplexModelClassName::q()->find_many();
         $expected = 'SELECT * FROM `complex_model_class_name`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testModelWithCustomTable()
     {
-        Model::factory('ModelWithCustomTable')->find_many();
+        ModelWithCustomTable::q()->find_many();
         $expected = 'SELECT * FROM `custom_table`';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testCustomIDColumn()
     {
-        Model::factory('ModelWithCustomTableAndCustomIdColumn')->find_one(5);
+        ModelWithCustomTableAndCustomIdColumn::q()->find_one(5);
         $expected = "SELECT * FROM `custom_table` WHERE `custom_id_column` = '5' LIMIT 1";
-        $this->assertEquals($expected, ORM::get_last_query());
-    }
-
-    public function testFilterWithNoArguments()
-    {
-        Model::factory('ModelWithFilters')
-            ->filter('name_is_fred')
-            ->find_many();
-        $expected = "SELECT * FROM `model_with_filters` WHERE `name` = 'Fred'";
-        $this->assertEquals($expected, ORM::get_last_query());
-    }
-
-    public function testFilterWithArguments()
-    {
-        Model::factory('ModelWithFilters')
-            ->filter('name_is', 'Bob')
-            ->find_many();
-        $expected = "SELECT * FROM `model_with_filters` WHERE `name` = 'Bob'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testInsertData()
     {
-        $widget       = Model::factory('Simple')->create();
+        $widget       = Simple::create();
         $widget->name = 'Fred';
         $widget->age  = 10;
         $widget->save();
@@ -80,21 +61,21 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testFindOneCamelCase()
     {
-        $widget   = Model::factory('Simple')->findOne();
+        $widget   = Simple::q()->findOne();
         $expected = 'SELECT * FROM `simple` LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testFindOneCamelCaseWithId()
     {
-        $widget   = Model::factory('Simple')->findOne(1);
+        $widget   = Simple::q()->findOne(1);
         $expected = "SELECT * FROM `simple` WHERE `id` = '1' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
     public function testUpdateData()
     {
-        $widget       = Model::factory('Simple')->find_one(1);
+        $widget       = Simple::q()->find_one(1);
         $widget->name = 'Bob';
         $widget->age  = 12;
         $widget->save();
@@ -104,7 +85,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testUpdateDataOnlyAge()
     {
-        $widget       = Model::factory('Simple')->find_one(1);
+        $widget       = Simple::q()->find_one(1);
         $widget->name = 'Fred'; // Was Fred before
         $widget->age  = 12;
         $widget->save();
@@ -114,7 +95,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testUpdateDataNoChange()
     {
-        $widget       = Model::factory('Simple')->find_one(1);
+        $widget       = Simple::q()->find_one(1);
         $widget->name = 'Fred';
         $widget->age  = 10;
         $widget->save();
@@ -124,7 +105,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testDeleteData()
     {
-        $widget = Model::factory('Simple')->find_one(1);
+        $widget = Simple::q()->find_one(1);
         $widget->delete();
         $expected = "DELETE FROM `simple` WHERE `id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
@@ -132,7 +113,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testInsertingDataContainingAnExpression()
     {
-        $widget       = Model::factory('Simple')->create();
+        $widget       = Simple::create();
         $widget->name = 'Fred';
         $widget->age  = 10;
         $widget->set_expr('added', 'NOW()');
@@ -143,7 +124,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testHydrateChainsIntoSave()
     {
-        $widget = Model::factory('Simple')->create();
+        $widget = Simple::create();
         $widget->hydrate([
             'name' => 'Fred',
             'age'  => 10,
@@ -154,7 +135,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testSetExprChainsIntoSave()
     {
-        $widget       = Model::factory('Simple')->create();
+        $widget       = Simple::create();
         $widget->name = 'Fred';
         $widget->age  = 10;
         $widget->set_expr('added', 'NOW()')->save();
@@ -164,7 +145,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testSetClassNameChainsIntoFind()
     {
-        $widget = Model::factory('Simple')
+        $widget = Simple::q()
             ->set_class_name('Simple')
             ->find_one(1);
         $this->assertInstanceOf('Simple', $widget);
@@ -172,7 +153,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testRelationshipQueryAsSubquery()
     {
-        $gadget = Gadget::find_one(1);
+        $gadget = Gadget::q()->find_one(1);
 
         $widget_ids = $gadget->widgets()->select('id');
 
@@ -181,7 +162,9 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
             $widget_ids->get_select_query()
         );
 
-        Widget::where_id_in($widget_ids)->find_many();
+        Widget::q()
+            ->where_id_in($widget_ids)
+            ->find_many();
         $this->assertSame(
             "SELECT * FROM `widget` WHERE `enabled` = '1' AND `hidden` = '0' AND `id` IN (SELECT `id` FROM `widget` WHERE `gadget_id` = '1' AND `enabled` = '1' AND `hidden` = '0')",
             ORM::get_last_query()
@@ -190,7 +173,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testHasOneRelation()
     {
-        $user     = Model::factory('User')->find_one(1);
+        $user     = User::q()->find_one(1);
         $profile  = $user->profile()->find_one();
         $expected = "SELECT * FROM `profile` WHERE `user_id` = '1' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
@@ -198,7 +181,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testHasOneWithCustomForeignKeyName()
     {
-        $user2    = Model::factory('UserTwo')->find_one(1);
+        $user2    = UserTwo::q()->find_one(1);
         $profile  = $user2->profile()->find_one();
         $expected = "SELECT * FROM `profile` WHERE `my_custom_fk_column` = '1' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
@@ -206,7 +189,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testBelongsToRelation()
     {
-        $user2            = Model::factory('UserTwo')->find_one(1);
+        $user2            = UserTwo::q()->find_one(1);
         $profile          = $user2->profile()->find_one();
         $profile->user_id = 1;
         $user3            = $profile->user()->find_one();
@@ -216,7 +199,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testBelongsToRelationWithCustomForeignKeyName()
     {
-        $profile2                        = Model::factory('ProfileTwo')->find_one(1);
+        $profile2                        = ProfileTwo::q()->find_one(1);
         $profile2->custom_user_fk_column = 5;
         $user4                           = $profile2->user()->find_one();
         $expected                        = "SELECT * FROM `user` WHERE `id` = '5' LIMIT 1";
@@ -225,7 +208,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testHasManyRelation()
     {
-        $user4    = Model::factory('UserThree')->find_one(1);
+        $user4    = UserThree::q()->find_one(1);
         $posts    = $user4->posts()->find_many();
         $expected = "SELECT * FROM `post` WHERE `user_three_id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
@@ -233,7 +216,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testHasManyRelationWithCustomForeignKeyName()
     {
-        $user5    = Model::factory('UserFour')->find_one(1);
+        $user5    = UserFour::q()->find_one(1);
         $posts    = $user5->posts()->find_many();
         $expected = "SELECT * FROM `post` WHERE `my_custom_fk_column` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
@@ -241,7 +224,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testHasManyThroughRelation()
     {
-        $book     = Model::factory('Book')->find_one(1);
+        $book     = Book::q()->find_one(1);
         $authors  = $book->authors()->find_many();
         $expected = "SELECT `author`.* FROM `author` JOIN `author_book` ON `author`.`id` = `author_book`.`author_id` WHERE `author_book`.`book_id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
@@ -249,7 +232,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testHasManyThroughRelationWithCustomIntermediateModelAndKeyNames()
     {
-        $book2    = Model::factory('BookTwo')->find_one(1);
+        $book2    = BookTwo::q()->find_one(1);
         $authors2 = $book2->authors()->find_many();
         $expected = "SELECT `author`.* FROM `author` JOIN `author_book` ON `author`.`id` = `author_book`.`custom_author_id` WHERE `author_book`.`custom_book_id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
@@ -257,7 +240,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
 
     public function testHasManyThroughWithCustomIdColumns()
     {
-        $book     = Model::factory('BookThree')->find_one(1);
+        $book     = BookThree::q()->find_one(1);
         $authors  = $book->authors()->find_many();
         $expected = "SELECT `author`.* FROM `author` JOIN `author_book_three` ON `author`.`id` = `author_book_three`.`author_id` WHERE `author_book_three`.`book_three_id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());

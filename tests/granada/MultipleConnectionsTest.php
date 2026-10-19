@@ -1,5 +1,6 @@
 <?php
 
+use Granada\Granada;
 use Granada\ORM;
 use Granada\Model;
 use Granada\Orm\ConnectionManager;
@@ -25,23 +26,23 @@ class MultipleConnectionsTest extends \PHPUnit\Framework\TestCase
 
     public function testMultipleConnections()
     {
-        $simple    = Model::factory('Simple')->find_one(1);
+        $simple    = Simple::q()->find_one(1);
         $statement = ORM::get_last_statement();
         $this->assertInstanceOf('MockPDOStatement', $statement);
 
-        $simple = Model::factory('Simple', self::ALTERNATE); // Change the object's default connection
+        $simple = Granada::for_table('simple', self::ALTERNATE); // The model-less door takes a connection name
         $simple->find_one(1);
         $statement = ORM::get_last_statement();
         $this->assertInstanceOf('MockDifferentPDOStatement', $statement);
 
-        $temp      = Model::factory('Simple', self::ALTERNATE)->find_one(1);
+        $temp      = Granada::for_table('simple', self::ALTERNATE)->find_one(1);
         $statement = ORM::get_last_statement();
         $this->assertInstanceOf('MockDifferentPDOStatement', $statement);
     }
 
     public function testCustomConnectionName()
     {
-        $person3   = Model::factory('ModelWithCustomConnection')->find_one(1);
+        $person3   = ModelWithCustomConnection::q()->find_one(1);
         $statement = ORM::get_last_statement();
         $this->assertInstanceOf('MockDifferentPDOStatement', $statement);
     }

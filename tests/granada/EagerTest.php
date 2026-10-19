@@ -40,7 +40,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testFindOneWith1BelongsTo()
     {
-        $car = Model::factory('Car')
+        $car = Car::q()
             ->with('manufactor')
             ->find_one(1);
 
@@ -58,7 +58,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testFindOneWith2BelongsTo()
     {
-        $car = Model::factory('Car')
+        $car = Car::q()
             ->with('owner', 'manufactor')
             ->find_one(1);
 
@@ -77,7 +77,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testFindOneWith1HasOne()
     {
-        $owner = Model::factory('Owner')
+        $owner = Owner::q()
             ->with('car')
             ->find_one(1);
 
@@ -95,7 +95,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testFindOneWith1HasMany()
     {
-        $manufactor = Model::factory('Manufactor')
+        $manufactor = Manufactor::q()
             ->with('cars')
             ->find_one(1);
 
@@ -112,7 +112,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testFindOneWithHasManyThrough()
     {
-        $car = Model::factory('Car')
+        $car = Car::q()
             ->with('parts')
             ->find_one(1);
         $actualParts = [];
@@ -152,7 +152,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testFindManyWith2BelongsTo()
     {
-        $cars = Model::factory('Car')
+        $cars = Car::q()
             ->with('owner', 'manufactor')
             ->find_many();
 
@@ -171,7 +171,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testFindManyWith1HasOne()
     {
-        $owner = Model::factory('Owner')
+        $owner = Owner::q()
             ->with('car')
             ->find_many();
 
@@ -189,7 +189,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testFindManyWith1HasMany()
     {
-        $manufactor = Model::factory('Manufactor')
+        $manufactor = Manufactor::q()
             ->with('cars')
             ->find_many();
 
@@ -207,7 +207,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testFindManyWithHasManyThrough()
     {
-        $parts = Model::factory('Part')
+        $parts = Part::q()
             ->with('cars')
             ->find_many();
 
@@ -363,7 +363,9 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testChainedRelationships()
     {
-        $owner        = Owner::with(['car' => ['with' => 'manufactor']])->find_one(1);
+        $owner = Owner::q()
+            ->with(['car' => ['with' => 'manufactor']])
+            ->find_one(1);
         $fullQueryLog = ORM::get_query_log();
         // Return last three queries
         $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 3);
@@ -378,7 +380,9 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testDotNotationEagerLoading()
     {
-        $owner = Owner::with('car.manufactor')->find_one(1);
+        $owner = Owner::q()
+            ->with('car.manufactor')
+            ->find_one(1);
 
         $this->assertNotNull($owner);
         $this->assertNotNull($owner->car);
@@ -401,7 +405,9 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testDotNotationEagerLoadingFindMany()
     {
-        $owners = Owner::with('car.manufactor')->find_many();
+        $owners = Owner::q()
+            ->with('car.manufactor')
+            ->find_many();
 
         $this->assertCount(4, $owners);
 
@@ -424,7 +430,9 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testChainedAdterHas_Many_Through()
     {
-        $car         = Car::with(['parts' => ['with' => 'cars']])->find_one(1);
+        $car = Car::q()
+            ->with(['parts' => ['with' => 'cars']])
+            ->find_one(1);
         $test_exists = $car->as_array();
         $test_exists = $car->parts->as_array();
         foreach ($car->parts as $part) {
@@ -459,7 +467,9 @@ class EagerTest extends \PHPUnit\Framework\TestCase
      */
     public function testChainedHasManyThroughAssignsCarsToTheRightParts()
     {
-        $car = Car::with(['parts' => ['with' => 'cars']])->find_one(1);
+        $car = Car::q()
+            ->with(['parts' => ['with' => 'cars']])
+            ->find_one(1);
 
         $this->assertSame([
             [0, 'Part1', ['Car1', 'Car2', 'Car3', 'Car4', 'Car1']],
@@ -474,7 +484,9 @@ class EagerTest extends \PHPUnit\Framework\TestCase
      */
     public function testChainedHasManyThroughOnCarWithoutIdAtOwnPosition()
     {
-        $car = Car::with(['parts' => ['with' => 'cars']])->find_one(4);
+        $car = Car::q()
+            ->with(['parts' => ['with' => 'cars']])
+            ->find_one(4);
 
         $this->assertSame([
             [0, 'Part1', ['Car1', 'Car2', 'Car3', 'Car4', 'Car1']],
@@ -484,8 +496,10 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testChainedHasManyThroughEagerMatchesLazy()
     {
-        $lazy  = $this->partRows(Car::find_one(1));
-        $eager = $this->partRows(Car::with(['parts' => ['with' => 'cars']])->find_one(1));
+        $lazy  = $this->partRows(Car::q()->find_one(1));
+        $eager = $this->partRows(Car::q()
+            ->with(['parts' => ['with' => 'cars']])
+            ->find_one(1));
 
         $this->assertSame([
             [0, 'Part1', ['Car1', 'Car2', 'Car3', 'Car4', 'Car1']],
@@ -499,7 +513,9 @@ class EagerTest extends \PHPUnit\Framework\TestCase
     {
         ORM::configure('return_result_sets', false);
 
-        $car = Car::with(['parts' => ['with' => 'cars']])->find_one(1);
+        $car = Car::q()
+            ->with(['parts' => ['with' => 'cars']])
+            ->find_one(1);
 
         $this->assertSame([
             [0, 'Part1', ['Car1', 'Car2', 'Car3', 'Car4', 'Car1']],
@@ -510,7 +526,10 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testWithMagicBelongsToSelect()
     {
-        $car = Car::with_manufactor(fn($q) => $q->select('id, name'))->find_one(1);
+        $car = Car::q()
+            ->with_manufactor(fn($q) => $q
+                ->select('id, name'))
+            ->find_one(1);
 
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
@@ -525,7 +544,11 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testWithMagicBelongsToSelectAndOrderBy()
     {
-        Car::with_manufactor(fn($q) => $q->select('id, name')->order_by_desc('name'))->find_many();
+        Car::q()
+            ->with_manufactor(fn($q) => $q
+                ->select('id, name')
+                ->order_by_desc('name'))
+            ->find_many();
 
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0'";
@@ -539,7 +562,10 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testWithMagicBelongsToAutoIncludeId()
     {
-        $car = Car::with_owner(fn($q) => $q->select('name'))->find_one(1);
+        $car = Car::q()
+            ->with_owner(fn($q) => $q
+                ->select('name'))
+            ->find_one(1);
 
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
@@ -554,7 +580,10 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testWithMagicHasManySelect()
     {
-        $manufactor = Manufactor::with_cars(fn($q) => $q->select('id, name'))->find_one(1);
+        $manufactor = Manufactor::q()
+            ->with_cars(fn($q) => $q
+                ->select('id, name'))
+            ->find_one(1);
 
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `manufactor` WHERE `id` = '1' LIMIT 1";
@@ -568,7 +597,10 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testWithMagicHasOneSelect()
     {
-        $owner = Owner::with_car(fn($q) => $q->select('id, name'))->find_one(1);
+        $owner = Owner::q()
+            ->with_car(fn($q) => $q
+                ->select('id, name'))
+            ->find_one(1);
 
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `owner` WHERE `id` = '1' LIMIT 1";
@@ -582,7 +614,10 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testWithMagicHasManyThroughSelect()
     {
-        $car = Car::with_parts(fn($q) => $q->select('part.id, part.name'))->find_one(1);
+        $car = Car::q()
+            ->with_parts(fn($q) => $q
+                ->select('part.id, part.name'))
+            ->find_one(1);
 
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
@@ -596,7 +631,9 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testWithMagicNoCallback()
     {
-        $car = Car::with_manufactor()->find_one(1);
+        $car = Car::q()
+            ->with_manufactor()
+            ->find_one(1);
 
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
@@ -610,7 +647,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testWithMagicMixedWithExistingWith()
     {
-        $car = Car::with_manufactor(fn($q) => $q->select('name'))
+        $car = Car::q()
+            ->with_manufactor(fn($q) => $q->select('name'))
             ->with('owner')
             ->find_one(1);
 
@@ -627,10 +665,11 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testWithMagicNestedWithCallback()
     {
-        $owner = Owner::with_car(
-            fn($q) => $q->select('id, manufactor_id')
-                ->with_manufactor(fn($q) => $q->select('name'))
-        )->find_one(1);
+        $owner = Owner::q()
+            ->with_car(
+                fn($q) => $q->select('id, manufactor_id')
+                    ->with_manufactor(fn($q) => $q->select('name'))
+            )->find_one(1);
 
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `owner` WHERE `id` = '1' LIMIT 1";
@@ -653,7 +692,10 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testWithMagicFindManySelect()
     {
-        $cars = Car::with_manufactor(fn($q) => $q->select('id, name'))->find_many();
+        $cars = Car::q()
+            ->with_manufactor(fn($q) => $q
+                ->select('id, name'))
+            ->find_many();
 
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0'";
@@ -673,28 +715,30 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testLazyLoading()
     {
-        $owner = Model::factory('Owner')->find_one(1);
+        $owner = Owner::q()->find_one(1);
         $this->assertEquals($owner->car->manufactor_id, 1);
     }
 
     public function testLazyMissingManufacturerNull()
     {
-        $man1          = Manufactor::find_one(1);
+        $man1          = Manufactor::q()->find_one(1);
         $man1->enabled = false;
         $man1->save();
 
-        $car1 = Car::find_one(1);
+        $car1 = Car::q()->find_one(1);
 
         $this->assertNull($car1->manufactor);
     }
 
     public function testEagerMissingManufacturerNull()
     {
-        $man1          = Manufactor::find_one(1);
+        $man1          = Manufactor::q()->find_one(1);
         $man1->enabled = false;
         $man1->save();
 
-        $car1 = Car::with('manufactor')->find_one(1);
+        $car1 = Car::q()
+            ->with('manufactor')
+            ->find_one(1);
 
         $this->assertNull($car1->manufactor);
     }
@@ -707,8 +751,11 @@ class EagerTest extends \PHPUnit\Framework\TestCase
     {
         ORM::get_db()->exec("INSERT INTO manufactor(id, name, enabled) VALUES (3, 'Manufactor3', 1)");
 
-        $lazy  = Manufactor::find_one(3)->cars;
-        $eager = Manufactor::with('cars')
+        $lazy = Manufactor::q()
+            ->find_one(3)
+            ->cars;
+        $eager = Manufactor::q()
+            ->with('cars')
             ->find_one(3)
             ->cars;
 
@@ -730,8 +777,11 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         ORM::configure('return_result_sets', false);
         ORM::get_db()->exec("INSERT INTO manufactor(id, name, enabled) VALUES (3, 'Manufactor3', 1)");
 
-        $lazy  = Manufactor::find_one(3)->cars;
-        $eager = Manufactor::with('cars')
+        $lazy = Manufactor::q()
+            ->find_one(3)
+            ->cars;
+        $eager = Manufactor::q()
+            ->with('cars')
             ->find_one(3)
             ->cars;
 
@@ -744,7 +794,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
     {
         ORM::get_db()->exec("INSERT INTO manufactor(id, name, enabled) VALUES (3, 'Manufactor3', 1)");
 
-        $manufactors = Manufactor::non_associative()
+        $manufactors = Manufactor::q()
+            ->non_associative()
             ->with('cars')
             ->find_many();
 
@@ -765,7 +816,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         ORM::configure('return_result_sets', false);
         ORM::get_db()->exec("INSERT INTO manufactor(id, name, enabled) VALUES (3, 'Manufactor3', 1)");
 
-        $manufactors = Manufactor::non_associative()
+        $manufactors = Manufactor::q()
+            ->non_associative()
             ->with('cars')
             ->find_many();
 
@@ -778,7 +830,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testEagerHasOneMatchesPositionKeyedParentsById()
     {
-        $owners = Owner::non_associative()
+        $owners = Owner::q()
+            ->non_associative()
             ->with('car')
             ->find_many();
 
@@ -792,8 +845,11 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
     public function testEagerLoadedEmptyHasManyThroughMatchesLazyLoading()
     {
-        $lazy  = Car::find_one(6)->parts;
-        $eager = Car::with('parts')
+        $lazy = Car::q()
+            ->find_one(6)
+            ->parts;
+        $eager = Car::q()
+            ->with('parts')
             ->find_one(6)
             ->parts;
 
@@ -814,8 +870,11 @@ class EagerTest extends \PHPUnit\Framework\TestCase
     {
         ORM::configure('return_result_sets', false);
 
-        $lazy  = Car::find_one(6)->parts;
-        $eager = Car::with('parts')
+        $lazy = Car::q()
+            ->find_one(6)
+            ->parts;
+        $eager = Car::q()
+            ->with('parts')
             ->find_one(6)
             ->parts;
 
@@ -828,7 +887,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
     {
         ORM::get_db()->exec("INSERT INTO manufactor(id, name, enabled) VALUES (3, 'Manufactor3', 1)");
 
-        $manufactors = Manufactor::with('cars')
+        $manufactors = Manufactor::q()
+            ->with('cars')
             ->find_many()
             ->as_array();
 
@@ -853,7 +913,9 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             . " VALUES (7, 'Car7', 3, 1, '2026-01-01', 1, 0)"
         );
 
-        $manufactor = Manufactor::with('cars.parts')->find_one(3);
+        $manufactor = Manufactor::q()
+            ->with('cars.parts')
+            ->find_one(3);
 
         $cars = $manufactor->cars->as_array();
         $this->assertSame([7 => 'Car7'], array_map(fn($car) => $car->name, $cars));
@@ -868,10 +930,12 @@ class EagerTest extends \PHPUnit\Framework\TestCase
     {
         ORM::get_db()->exec("INSERT INTO gadget(id, name, enabled, hidden) VALUES (5, 'Gadget5', 1, 0)");
 
-        $empty = GadgetWithCustomResultSet::with('custom_widgets')
+        $empty = GadgetWithCustomResultSet::q()
+            ->with('custom_widgets')
             ->find_one(5)
             ->custom_widgets;
-        $full = GadgetWithCustomResultSet::with('custom_widgets')
+        $full = GadgetWithCustomResultSet::q()
+            ->with('custom_widgets')
             ->find_one(1)
             ->custom_widgets;
 

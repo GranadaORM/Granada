@@ -31,7 +31,8 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
     private function linkedBoltIds(int $machine_id): array
     {
         $ids = [];
-        foreach (Machine::find_one($machine_id)
+        foreach (Machine::q()
+            ->find_one($machine_id)
             ->bolts()
             ->find_many() as $bolt) {
             $ids[] = (int) $bolt->id;
@@ -42,14 +43,16 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 
     public function testAttachCreatesTheLinkRow()
     {
-        Machine::find_one(1)->attach_bolts(1);
+        Machine::q()
+            ->find_one(1)
+            ->attach_bolts(1);
 
         $this->assertSame([1], $this->linkedBoltIds(1));
     }
 
     public function testAttachIsIdempotent()
     {
-        $machine = Machine::find_one(1);
+        $machine = Machine::q()->find_one(1);
         $machine->attach_bolts(1);
         $machine->attach_bolts(1);
 
@@ -58,11 +61,12 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 
     public function testAttachWithDataUpdatesAnExistingLink()
     {
-        $machine = Machine::find_one(1);
+        $machine = Machine::q()->find_one(1);
         $machine->attach_bolts(1, ['qty' => 2]);
         $machine->attach_bolts(1, ['qty' => 7]);
 
-        $link = MachineBolt::where_bolt_id(1)
+        $link = MachineBolt::q()
+            ->where_bolt_id(1)
             ->where_machine_id(1)
             ->find_one();
 
@@ -72,9 +76,12 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 
     public function testAttachWritesExtraLinkColumns()
     {
-        Machine::find_one(1)->attach_bolts(1, ['qty' => 4]);
+        Machine::q()
+            ->find_one(1)
+            ->attach_bolts(1, ['qty' => 4]);
 
-        $link = MachineBolt::where_machine_id(1)
+        $link = MachineBolt::q()
+            ->where_machine_id(1)
             ->where_bolt_id(1)
             ->find_one();
 
@@ -83,7 +90,7 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 
     public function testDetachRemovesThatLink()
     {
-        $machine = Machine::find_one(1);
+        $machine = Machine::q()->find_one(1);
         $machine->attach_bolts(1);
         $machine->attach_bolts(2);
 
@@ -94,7 +101,7 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 
     public function testDetachWithNoArgumentRemovesEveryLink()
     {
-        $machine = Machine::find_one(1);
+        $machine = Machine::q()->find_one(1);
         $machine->attach_bolts(1);
         $machine->attach_bolts(2);
 
@@ -105,7 +112,7 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 
     public function testSyncCreatesDeletesAndKeeps()
     {
-        $machine = Machine::find_one(1);
+        $machine = Machine::q()->find_one(1);
         $machine->attach_bolts(1);
         $machine->attach_bolts(2);
 
@@ -116,12 +123,13 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 
     public function testSyncUpdatesDataForAKeptId()
     {
-        $machine = Machine::find_one(1);
+        $machine = Machine::q()->find_one(1);
         $machine->attach_bolts(1, ['qty' => 9]);
 
         $machine->sync_bolts([1 => ['qty' => 2]]);
 
-        $link = MachineBolt::where_machine_id(1)
+        $link = MachineBolt::q()
+            ->where_machine_id(1)
             ->where_bolt_id(1)
             ->find_one();
 
@@ -130,7 +138,7 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 
     public function testSyncWithAnEmptyListRemovesEveryLink()
     {
-        $machine = Machine::find_one(1);
+        $machine = Machine::q()->find_one(1);
         $machine->attach_bolts(1);
         $machine->attach_bolts(2);
 
@@ -141,43 +149,49 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 
     public function testAttachOnAnOrderedRelationAppendsMaxPlusOne()
     {
-        $machine = Machine::find_one(1);
+        $machine = Machine::q()->find_one(1);
         $machine->ordered_bolts()->attach(1);
         $machine->ordered_bolts()->attach(2);
 
-        $this->assertSame(1, (int) MachineBolt::where_bolt_id(1)
+        $this->assertSame(1, (int) MachineBolt::q()
+            ->where_bolt_id(1)
             ->find_one()
             ->sort_order);
-        $this->assertSame(2, (int) MachineBolt::where_bolt_id(2)
+        $this->assertSame(2, (int) MachineBolt::q()
+            ->where_bolt_id(2)
             ->find_one()
             ->sort_order);
     }
 
     public function testSyncOnAnOrderedRelationNumbersCreatedAndKeptRowsInListOrder()
     {
-        $machine = Machine::find_one(1);
+        $machine = Machine::q()->find_one(1);
         $machine->ordered_bolts()->attach(1);
 
         $machine->ordered_bolts()->sync([3, 1, 2]);
 
-        $this->assertSame(1, (int) MachineBolt::where_bolt_id(3)
+        $this->assertSame(1, (int) MachineBolt::q()
+            ->where_bolt_id(3)
             ->find_one()
             ->sort_order);
-        $this->assertSame(2, (int) MachineBolt::where_bolt_id(1)
+        $this->assertSame(2, (int) MachineBolt::q()
+            ->where_bolt_id(1)
             ->find_one()
             ->sort_order);
-        $this->assertSame(3, (int) MachineBolt::where_bolt_id(2)
+        $this->assertSame(3, (int) MachineBolt::q()
+            ->where_bolt_id(2)
             ->find_one()
             ->sort_order);
     }
 
     public function testReadsThroughAnOrderedRelationOrderByTheOrderColumn()
     {
-        $machine = Machine::find_one(1);
+        $machine = Machine::q()->find_one(1);
         $machine->ordered_bolts()->sync([3, 1, 2]);
 
         $names = [];
-        foreach (Machine::find_one(1)
+        foreach (Machine::q()
+            ->find_one(1)
             ->ordered_bolts()
             ->find_many() as $bolt) {
             $names[] = $bolt->name;
@@ -190,9 +204,15 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
     {
         $db = ORM::get_db();
 
-        Machine::find_one(1)->attach_bolts(1);
-        Machine::find_one(1)->sync_bolts([1, 2]);
-        Machine::find_one(1)->detach_bolts(1);
+        Machine::q()
+            ->find_one(1)
+            ->attach_bolts(1);
+        Machine::q()
+            ->find_one(1)
+            ->sync_bolts([1, 2]);
+        Machine::q()
+            ->find_one(1)
+            ->detach_bolts(1);
 
         $this->assertSame(3, $db->begins);
         $this->assertSame(3, $db->commits);
@@ -202,7 +222,7 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 
     public function testAFailedSyncRollsBackEveryWrite()
     {
-        $machine = Machine::find_one(1);
+        $machine = Machine::q()->find_one(1);
 
         try {
             $machine->sync_bolts([
@@ -221,13 +241,14 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 
     public function testTheChainFormWritesThroughTheRelation()
     {
-        $machine = Machine::find_one(1);
+        $machine = Machine::q()->find_one(1);
 
         $machine->bolts()->attach(1, ['qty' => 2]);
 
         $this->assertSame([1], $this->linkedBoltIds(1));
 
-        $link = MachineBolt::where_machine_id(1)
+        $link = MachineBolt::q()
+            ->where_machine_id(1)
             ->where_bolt_id(1)
             ->find_one();
 
@@ -236,10 +257,13 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 
     public function testTheRelationOnTheOtherSideWritesToo()
     {
-        Bolt::find_one(1)->attach_machines(2);
+        Bolt::q()
+            ->find_one(1)
+            ->attach_machines(2);
 
         $ids = [];
-        foreach (Machine::find_one(2)
+        foreach (Machine::q()
+            ->find_one(2)
             ->bolts()
             ->find_many() as $bolt) {
             $ids[] = (int) $bolt->id;
@@ -250,7 +274,7 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 
     public function testASaveNeverWritesLinkRows()
     {
-        $machine                         = Machine::find_one(2);
+        $machine                         = Machine::q()->find_one(2);
         $machine->relationships['bolts'] = [1, 2];
 
         $machine->save();
@@ -260,14 +284,15 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 
     public function testAnUnsavedParentWritesNoLink()
     {
-        Machine::create(['name' => 'New'])->attach_bolts(1);
+        Machine::create(['name' => 'New'])
+            ->attach_bolts(1);
 
-        $this->assertSame(0, MachineBolt::count());
+        $this->assertSame(0, MachineBolt::q()->count());
     }
 
     public function testAJunctionWriteOnAPlainHasManyThrows()
     {
-        $machine = Machine::find_one(1);
+        $machine = Machine::q()->find_one(1);
 
         $this->expectException(LogicException::class);
         $this->expectExceptionMessage('Cannot attach: the has_many relationship has no link table');
@@ -277,14 +302,16 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
 
     public function testSyncMatchesStringKeysThroughANonIdTableKey()
     {
-        $machine = Machine::find_one(1);
+        $machine = Machine::q()->find_one(1);
         $machine->attach_bolt_codes('AAA');
         $machine->attach_bolt_codes('BBB');
 
         $machine->sync_bolt_codes(['BBB', 'CCC']);
 
         $codes = [];
-        foreach (MachineBoltCode::order_by_id()->find_many() as $link) {
+        foreach (MachineBoltCode::q()
+            ->order_by_id()
+            ->find_many() as $link) {
             $codes[] = $link->bolt_code;
         }
 
