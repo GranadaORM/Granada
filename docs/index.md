@@ -543,7 +543,7 @@ $items = User::q()->where('name', 'Fred')
 If a situation where a field to select is already specified, and you want all fields, just select('_') and the `_` goes to the front of the list:
 
 ```php
-$items = User::select('name')
+$items = User::q()->select('name')
     ->select('*')
     ->find_one();
     // SELECT *, `name` FROM `user` LIMIT 1
@@ -986,3 +986,41 @@ $new_total = $widget->increment('views');  // reads the value back from the row
 `$new_total` and `$widget->views` store the new value.
 On a newly created model, the database isn't updated until you `save()`.
 If something goes wrong, they return `false`.
+
+## Mass updates
+
+`update_many()` writes the same values to every row the query matches, in one UPDATE, without loading any rows.
+
+```php
+Car::q()
+    ->where('enabled', 0)
+    ->update_many(['name' => 'Sold']);
+```
+
+It returns `true` when the statement runs and `false` when the write fails.
+Call it with an empty array and nothing is written.
+
+The query's where conditions pick the rows.
+A query with no where conditions updates every row in the table.
+
+```php
+Part::q()->update_many(['price' => 0]);
+// Updates every part
+```
+
+A query with a join throws.
+A soft-delete model's hidden rows stay hidden; `clear_where()` lifts the hiding.
+
+An `Expression` value writes raw SQL, for shifts like `sort_order + 1`.
+
+```php
+use Granada\Orm\Expression;
+
+Part::q()
+    ->where('name', 'Wheel')
+    ->update_many([
+        'price' => new Expression('price * 1.1'),
+    ]);
+```
+
+Every other value runs through the model's `set_<column>()` method, so a date or money object reaches the database converted.

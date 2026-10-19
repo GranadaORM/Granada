@@ -273,6 +273,7 @@ ModelName::q()->aname($argument1, $argument2)->...
 - pluck : returns a single column from the result.
 - find_pairs : Return array of key=>value as result
 - delete_many (accept join clauses)
+- update_many : writes the same values to every row the query matches
 
 ### Overload SET
 

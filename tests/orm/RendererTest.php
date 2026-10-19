@@ -8,6 +8,7 @@ use Granada\Orm\BulkUpdateSpec;
 use Granada\Orm\Condition;
 use Granada\Orm\ConnectedBy;
 use Granada\Orm\Dialect;
+use Granada\Orm\Expression;
 use Granada\Orm\JoinSource;
 use Granada\Orm\Renderer;
 use Granada\Orm\SelectSpec;
@@ -88,6 +89,19 @@ class RendererTest extends \PHPUnit\Framework\TestCase
         ]));
 
         $this->assertSame('UPDATE `person` SET `is_deleted` = ?', $statement->query);
+        $this->assertSame([1], $statement->values);
+    }
+
+    public function testUpdateManyRendersAnExpressionValueRaw()
+    {
+        $statement = Renderer::update_many($this->bulkUpdateSpec([
+            'set' => [
+                'sort_order' => new Expression('sort_order + 1'),
+                'enabled'    => 1,
+            ],
+        ]));
+
+        $this->assertSame('UPDATE `person` SET `sort_order` = sort_order + 1, `enabled` = ?', $statement->query);
         $this->assertSame([1], $statement->values);
     }
 
