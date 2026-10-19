@@ -36,7 +36,7 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
 
     public function testFindManyKeysByRowIdWhenAssociative()
     {
-        $results = KeyedRow::find_many();
+        $results = KeyedRow::q()->find_many();
 
         $this->assertSame([1, 2, 3, 4], array_keys($results));
         $this->assertSame(['a-dup', 'null-id', 'c', 'zero'], $this->names($results));
@@ -46,7 +46,7 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
     {
         $this->seed([[5, 'first'], [5, 'second'], [5, 'third']]);
 
-        $results = KeyedRow::find_many();
+        $results = KeyedRow::q()->find_many();
 
         $this->assertSame([5], array_keys($results));
         $this->assertSame(['third'], $this->names($results));
@@ -56,7 +56,7 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
     {
         $this->seed([[1, 'a'], [null, 'orphan'], [2, 'b']]);
 
-        $results = KeyedRow::find_many();
+        $results = KeyedRow::q()->find_many();
 
         // The positional key 1 collides with the id 1 and overwrites it.
         $this->assertSame([1, 2], array_keys($results));
@@ -67,7 +67,7 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
     {
         $this->seed([[7, 'seven'], [0, 'zero']]);
 
-        $results = KeyedRow::find_many();
+        $results = KeyedRow::q()->find_many();
 
         $this->assertSame([7, 1], array_keys($results));
         $this->assertSame(['seven', 'zero'], $this->names($results));
@@ -75,7 +75,9 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
 
     public function testRowsWithoutTheIdColumnSelectedAreNumberedPositionally()
     {
-        $results = KeyedRow::select('name')->find_many();
+        $results = KeyedRow::q()
+            ->select('name')
+            ->find_many();
 
         $this->assertSame([0, 1, 2, 3, 4], array_keys($results));
         $this->assertSame(['a', 'a-dup', 'null-id', 'c', 'zero'], $this->names($results));
@@ -85,7 +87,7 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
     {
         ORM::configure('find_many_primary_id_as_key', false);
 
-        $results = KeyedRow::find_many();
+        $results = KeyedRow::q()->find_many();
 
         $this->assertSame([0, 1, 2, 3, 4], array_keys($results));
         $this->assertSame(['a', 'a-dup', 'null-id', 'c', 'zero'], $this->names($results));
@@ -93,7 +95,9 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
 
     public function testNonAssociativeNumbersRowsPositionally()
     {
-        $results = KeyedRow::non_associative()->find_many();
+        $results = KeyedRow::q()
+            ->non_associative()
+            ->find_many();
 
         $this->assertSame([0, 1, 2, 3, 4], array_keys($results));
         $this->assertSame(['a', 'a-dup', 'null-id', 'c', 'zero'], $this->names($results));
@@ -101,7 +105,9 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
 
     public function testAssociativeKeysRowsByRowIdWhenConfigIsOn()
     {
-        $results = KeyedRow::associative()->find_many();
+        $results = KeyedRow::q()
+            ->associative()
+            ->find_many();
 
         $this->assertSame([1, 2, 3, 4], array_keys($results));
         $this->assertSame(['a-dup', 'null-id', 'c', 'zero'], $this->names($results));
@@ -111,7 +117,9 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
     {
         ORM::configure('find_many_primary_id_as_key', false);
 
-        $results = KeyedRow::associative()->find_many();
+        $results = KeyedRow::q()
+            ->associative()
+            ->find_many();
 
         $this->assertSame([1, 2, 3, 4], array_keys($results));
         $this->assertSame(['a-dup', 'null-id', 'c', 'zero'], $this->names($results));
@@ -121,7 +129,9 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
     {
         ORM::configure('find_many_primary_id_as_key', false);
 
-        $results = KeyedRow::non_associative()->find_many();
+        $results = KeyedRow::q()
+            ->non_associative()
+            ->find_many();
 
         $this->assertSame([0, 1, 2, 3, 4], array_keys($results));
         $this->assertSame(['a', 'a-dup', 'null-id', 'c', 'zero'], $this->names($results));
@@ -131,14 +141,16 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
     {
         ORM::configure('find_many_primary_id_as_key', false);
 
-        $positional = KeyedRow::associative()
+        $positional = KeyedRow::q()
+            ->associative()
             ->non_associative()
             ->find_many();
 
         $this->assertSame([0, 1, 2, 3, 4], array_keys($positional));
         $this->assertSame(['a', 'a-dup', 'null-id', 'c', 'zero'], $this->names($positional));
 
-        $keyed = KeyedRow::non_associative()
+        $keyed = KeyedRow::q()
+            ->non_associative()
             ->associative()
             ->find_many();
 
@@ -148,7 +160,8 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
 
     public function testResetAssociativeRestoresKeyingByIdWhenConfigIsOn()
     {
-        $results = KeyedRow::non_associative()
+        $results = KeyedRow::q()
+            ->non_associative()
             ->reset_associative()
             ->find_many();
 
@@ -160,7 +173,8 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
     {
         ORM::configure('find_many_primary_id_as_key', false);
 
-        $results = KeyedRow::associative()
+        $results = KeyedRow::q()
+            ->associative()
             ->reset_associative()
             ->find_many();
 
@@ -170,7 +184,7 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
 
     public function testCustomIdColumnKeysRows()
     {
-        $results = KeyedRowCustomId::find_many();
+        $results = KeyedRowCustomId::q()->find_many();
 
         $this->assertSame([7], array_keys($results));
         $this->assertSame(['seven'], $this->names($results));
@@ -198,7 +212,7 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
     {
         ORM::configure('return_result_sets', true);
 
-        $results = KeyedRow::find_many();
+        $results = KeyedRow::q()->find_many();
 
         $this->assertInstanceOf(ResultSet::class, $results);
         $this->assertSame([1, 2, 3, 4], array_keys($results->as_array()));
@@ -206,14 +220,16 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
 
     public function testFindManyOnAnEmptyTableReturnsAnEmptyArray()
     {
-        $results = KeyedRow::where('id', 99999)->find_many();
+        $results = KeyedRow::q()
+            ->where('id', 99999)
+            ->find_many();
 
         $this->assertSame([], $results);
     }
 
     public function testFindOneReturnsTheModel()
     {
-        $result = KeyedRow::find_one(3);
+        $result = KeyedRow::q()->find_one(3);
 
         $this->assertInstanceOf(KeyedRow::class, $result);
         $this->assertSame(3, $result->id());
@@ -222,7 +238,7 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
 
     public function testFindOneWithACustomIdColumn()
     {
-        $result = KeyedRowCustomId::find_one(7);
+        $result = KeyedRowCustomId::q()->find_one(7);
 
         $this->assertInstanceOf(KeyedRowCustomId::class, $result);
         $this->assertSame(7, $result->id());
@@ -230,12 +246,13 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
 
     public function testFindOneWithoutAMatchReturnsNull()
     {
-        $this->assertNull(KeyedRow::find_one(999));
+        $this->assertNull(KeyedRow::q()->find_one(999));
     }
 
     public function testFindOneAttachesEagerLoadedRelationshipsWhenNonAssociative()
     {
-        $car = Car::non_associative()
+        $car = Car::q()
+            ->non_associative()
             ->with('manufactor')
             ->find_one(1);
 
@@ -246,7 +263,8 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
 
     public function testFindOneAttachesEagerLoadedRelationshipsWhenAssociative()
     {
-        $car = Car::associative()
+        $car = Car::q()
+            ->associative()
             ->with('manufactor')
             ->find_one(1);
 
@@ -257,7 +275,7 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
 
     public function testHydratingManyRowsResolvesTheConnectionOnce()
     {
-        KeyedRow::find_many();
+        KeyedRow::q()->find_many();
 
         // One resolution each for building the query, running the
         // SELECT and hydrating the whole result, whatever the row count.
@@ -266,7 +284,9 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
 
     public function testHydratingOneRowResolvesTheConnectionOnce()
     {
-        KeyedRow::where('id', 3)->find_many();
+        KeyedRow::q()
+            ->where('id', 3)
+            ->find_many();
 
         $this->assertSame(3, $this->manager->get_db_calls);
     }
@@ -275,7 +295,7 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
     {
         ORM::configure('return_result_sets', true);
 
-        $keyed = KeyedRow::find_map(fn($row) => $row->name);
+        $keyed = KeyedRow::q()->find_map(fn($row) => $row->name);
 
         $this->assertSame([
             1 => 'a-dup',
@@ -284,7 +304,9 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
             4 => 'zero',
         ], $keyed);
 
-        $positional = KeyedRow::non_associative()->find_map(fn($row) => $row->name);
+        $positional = KeyedRow::q()
+            ->non_associative()
+            ->find_map(fn($row) => $row->name);
 
         $this->assertSame([
             0 => 'a',
@@ -297,15 +319,19 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
 
     public function testFindPairsOutputDoesNotDependOnTheToggle()
     {
-        $pairs = KeyedRow::find_pairs('id', 'name');
+        $pairs = KeyedRow::q()->find_pairs('id', 'name');
 
         $this->assertSame([
             1 => 'a-dup',
             3 => 'c',
             0 => 'zero',
         ], $pairs);
-        $this->assertSame($pairs, KeyedRow::associative()->find_pairs('id', 'name'));
-        $this->assertSame($pairs, KeyedRow::non_associative()->find_pairs('id', 'name'));
+        $this->assertSame($pairs, KeyedRow::q()
+            ->associative()
+            ->find_pairs('id', 'name'));
+        $this->assertSame($pairs, KeyedRow::q()
+            ->non_associative()
+            ->find_pairs('id', 'name'));
     }
 
     /**

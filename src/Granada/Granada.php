@@ -108,7 +108,7 @@ class Granada implements ArrayAccess
     /**
      * The ORM instance used by this model
      * instance to communicate with the database.
-     * @var Orm\Wrapper
+     * @var ORM
      */
     public $orm;
 
@@ -164,7 +164,7 @@ class Granada implements ArrayAccess
      * value supplied as the third argument (which defaults to null).
      * @param string $property
      */
-    protected static function _get_static_property(string $class_name, string $property, mixed $default = null): mixed
+    public static function _get_static_property(string $class_name, string $property, mixed $default = null): mixed
     {
         if (!class_exists($class_name) || !property_exists($class_name, $property)) {
             return $default;
@@ -182,7 +182,7 @@ class Granada implements ArrayAccess
      * the _class_name_to_table_name method method.
      * @param string $class_name
      */
-    protected static function _get_table_name(string $class_name): string
+    public static function _get_table_name(string $class_name): string
     {
         $specified_table_name = self::_get_static_property($class_name, '_table');
         if (is_null($specified_table_name)) {
@@ -239,79 +239,47 @@ class Granada implements ArrayAccess
 
     /**
      * The table-first entry point: build a query on a table without a
-     * model class.
-     * Finds return query objects, not models, and named filters and the
-     * default filter do not apply, since both live on a model class.
+     * model class. Finds return ORM rows, not models, and the default
+     * filter does not apply.
      */
-    public static function for_table(string $table_name, ?string $connection_name = null): Orm\Wrapper
+    public static function for_table(string $table_name, ?string $connection_name = null): Query
     {
-        return Orm\Wrapper::_for_table(
+        return Query::_for_table(
             $table_name,
-            $connection_name ?? Orm\Wrapper::DEFAULT_CONNECTION
+            $connection_name ?? Query::DEFAULT_CONNECTION
         );
     }
 
     /**
-     * Factory method used to acquire instances of the given class.
-     * The class name should be supplied as a string, and the class
-     * should already have been loaded by PHP (or a suitable autoloader
-     * should exist). This method actually returns a wrapped ORM object
-     * which allows a database query to be built. The wrapped ORM object is
-     * responsible for returning instances of the correct class when
-     * its find_one or find_many methods are called.
-     * @return Orm\Wrapper
+     * The query for this model: conditions, the where_* and
+     * order_by_* magic, aggregates, and finds, with the model's
+     * defaultFilter() applied. Always table-wide; instance-scoped
+     * querying is the relationship methods.
      */
-    public static function factory(string $class_name, ?string $connection_name = null): Orm\Wrapper
+    public static function q(): Query
     {
-        $class_name = self::$auto_prefix_models . $class_name;
-
-        return self::_apply_default_filter($class_name, self::_wrapper_for_class($class_name, $connection_name));
+        return Query::_for_model(self::$auto_prefix_models . static::class);
     }
 
     /**
-     * Build a query for a (fully prefixed) model class without applying
-     * its default filter.
+     * Create a new, unsaved model row, seeded with the given column
+     * values. Every field given is written on the next save().
      */
-    private static function _wrapper_for_class(string $class_name, ?string $connection_name = null): Orm\Wrapper
+    public static function create(?array $data = null): static
     {
-        $table_name = self::_get_table_name($class_name);
-
-        if (!$connection_name) {
-            $connection_name = self::_get_static_property(
-                $class_name,
-                '_connection_name',
-                Orm\Wrapper::DEFAULT_CONNECTION
-            );
+        $class = self::$auto_prefix_models . static::class;
+        $model = new static();
+        // create(null) marks the row new, so the next save() inserts
+        $model->set_orm(ORM::_new_row(
+            self::_get_table_name($class),
+            self::_get_static_property($class, '_connection_name', ORM::DEFAULT_CONNECTION),
+            self::_get_id_column_name($class),
+        )->create(null));
+        if ($data !== null) {
+            $model->set($data);
         }
 
-        $wrapper = Orm\Wrapper::_for_table($table_name, $connection_name);
-        $wrapper->set_class_name($class_name);
-        $wrapper->use_id_column(self::_get_id_column_name($class_name));
-        $wrapper->resultSetClass = $class_name::$resultSetClass;
-
-        if ($class_name::$_soft_delete) {
-            $wrapper->_soft_delete = true;
-        }
-        $wrapper->_soft_delete_column = $class_name::$_soft_delete_column;
-
-        $wrapper->_auto_timestamps        = $class_name::$_auto_timestamps;
-        $wrapper->_auto_timestamp_columns = $class_name::$_auto_timestamp_columns;
-        $wrapper->_auto_timestamps_ignore = $class_name::$_auto_timestamps_ignore;
-
-        return $wrapper;
-    }
-
-    /**
-     * The soft-delete hiding goes on before the model's own default
-     * filter, so the model's filter adds only its own conditions.
-     */
-    private static function _apply_default_filter(string $class_name, Orm\Wrapper $query, bool $hide_soft_deleted = true): Orm\Wrapper
-    {
-        if ($hide_soft_deleted && $query->_soft_delete) {
-            $query->where(self::_get_table_name($class_name) . '.' . $query->_soft_delete_column, 0);
-        }
-
-        return $class_name::_defaultFilter($query);
+        return $model;
     }
 
     /**
@@ -319,9 +287,9 @@ class Granada implements ArrayAccess
      * $hide_soft_deleted false to keep rows the soft-delete flag would
      * hide, as sync does so it can match a flagged child.
      */
-    public function _relationship_query(Relationship $relationship, bool $hide_soft_deleted = true): Orm\Wrapper
+    public function _relationship_query(Relationship $relationship, bool $hide_soft_deleted = true): Query
     {
-        $query = self::_wrapper_for_class($relationship->class, $relationship->connection);
+        $query = Query::_for_model($relationship->class, $relationship->connection, apply_model_filter: false);
 
         $where_value = $relationship->local_key ? $this->{$relationship->local_key} : $this->id();
 
@@ -355,21 +323,25 @@ class Granada implements ArrayAccess
      * Build the query that eager-loads a relationship. It has no
      * per-parent condition; the eager loader adds those.
      */
-    public static function _eager_relationship_query(Relationship $relationship): Orm\Wrapper
+    public static function _eager_relationship_query(Relationship $relationship): Query
     {
         return self::_finish_relationship_query(
-            self::_wrapper_for_class($relationship->class, $relationship->connection),
+            Query::_for_model($relationship->class, $relationship->connection, apply_model_filter: false),
             $relationship
         );
     }
 
     /**
-     * The model's default filter goes on before the join: with a join
-     * present, where() prefixes bare column names with the table.
+     * The model's hiding and defaultFilter() go on before the join:
+     * with a join present, where() prefixes bare column names with
+     * the table.
      */
-    private static function _finish_relationship_query(Orm\Wrapper $query, Relationship $relationship, bool $hide_soft_deleted = true): Orm\Wrapper
+    private static function _finish_relationship_query(Query $query, Relationship $relationship, bool $hide_soft_deleted = true): Query
     {
-        $query = self::_apply_default_filter($relationship->class, $query, $hide_soft_deleted);
+        if ($hide_soft_deleted && $query->_soft_delete) {
+            $query->where(self::_get_table_name($relationship->class) . '.' . $query->_soft_delete_column, 0);
+        }
+        $query->defaultFilter();
 
         if ($relationship->table) {
             $associated_table_name = self::_get_table_name($relationship->class);
@@ -395,7 +367,7 @@ class Granada implements ArrayAccess
      * Load the related models for this instance. Uses the query built by
      * chained calls when there is one; otherwise builds it.
      */
-    private function _load_relationship(Relationship $relationship, ?Orm\Wrapper $query = null): mixed
+    private function _load_relationship(Relationship $relationship, ?Query $query = null): mixed
     {
         $query ??= $this->_relationship_query($relationship);
 
@@ -541,10 +513,10 @@ class Granada implements ArrayAccess
     }
 
     /**
-     * Set the wrapped ORM instance associated with this Model instance.
-     * @param Orm\Wrapper $orm
+     * Set the row instance associated with this Model instance.
+     * @param ORM $orm
      */
-    public function set_orm(Orm\Wrapper $orm): void
+    public function set_orm(ORM $orm): void
     {
         $orm->_auto_timestamps        = static::$_auto_timestamps;
         $orm->_auto_timestamp_columns = static::$_auto_timestamp_columns;
@@ -613,7 +585,7 @@ class Granada implements ArrayAccess
                         ->set_computed_value($property, $this->_load_relationship($relationship));
                 }
 
-                if ($relationship instanceof Orm\Wrapper && $relationship->_relationship) {
+                if ($relationship instanceof Query && $relationship->_relationship) {
                     return $this
                         ->value_stash()
                         ->set_computed_value($property, $this->_load_relationship($relationship->_relationship, $relationship));
@@ -946,56 +918,17 @@ class Granada implements ArrayAccess
     }
 
     /**
-     * Set a filter that runs on every query for this model.
-     * For example if you have a field 'is_deleted' that you want to only show if set to 0,
-     *
-     * Use return $query->where('is_deleted', 0);
-     *
-     * @param Orm\Wrapper $query
-     * @return Orm\Wrapper
-     */
-    protected static function _defaultFilter(Orm\Wrapper $query)
-    {
-        return $query;
-    }
-
-    /**
-     * The query this model stands in for inside a closure. Null on
-     * ordinary models. Method calls that are not model methods go to
-     * this query.
-     */
-    public ?Orm\Wrapper $_query_standin = null;
-
-    /**
-     * The class a query closure's stand-in uses, so closures can
-     * type the parameter as a query-hint class for IDE completion.
-     * Generated model bases override this with their query-hint
-     * class.
-     */
-    public static function _query_standin_class(): string
-    {
-        return static::class;
-    }
-
-    /**
-     * A closure stand-in builds onto the query it stands in for. An
-     * ordinary model runs the call as a query for its own table, so
-     * instance calls like max('sort_order') aggregate over that
-     * table. A call such as attach_roles names a relationship instead,
-     * and runs that relationship's write.
+     * A call that is not a model method names a relationship write,
+     * such as attach_roles.
      */
     public function __call(string $method, array $parameters): mixed
     {
-        if ($this->_query_standin !== null) {
-            return $this->_query_standin->$method(...$parameters);
-        }
-
         [$relationship, $write] = $this->resolve_junction_write($method);
         if ($relationship !== null) {
             return $relationship->$write(...$parameters);
         }
 
-        return self::factory(static::class)->$method(...$parameters);
+        throw new \Error('Call to undefined method ' . static::class . "::{$method}()");
     }
 
     /**
@@ -1021,7 +954,7 @@ class Granada implements ArrayAccess
             }
 
             $relationship = $this->$relation();
-            if ($relationship instanceof Orm\Wrapper) {
+            if ($relationship instanceof Query) {
                 $relationship = $relationship->_relationship;
             }
             if (!$relationship instanceof Relationship) {
@@ -1032,15 +965,5 @@ class Granada implements ArrayAccess
         }
 
         return [null, null];
-    }
-
-    /**
-     * Calls static methods directly on the Orm\Wrapper
-     */
-    public static function __callStatic(string $method, array $parameters): mixed
-    {
-        $model = self::factory(get_called_class());
-
-        return $model->$method(...$parameters);
     }
 }

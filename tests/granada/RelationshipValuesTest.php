@@ -1,6 +1,5 @@
 <?php
 
-use Granada\Model;
 use Granada\ORM;
 
 /**
@@ -26,7 +25,7 @@ class RelationshipValuesTest extends \PHPUnit\Framework\TestCase
 
     public function testLazyResultKeptWhenAnotherKeyIsWritten()
     {
-        $gadget  = Model::factory('Gadget')->find_one(1);
+        $gadget  = Gadget::q()->find_one(1);
         $widgets = $gadget->widgets;
         $this->assertSame($widgets, $gadget->relationships['widgets']);
 
@@ -39,7 +38,7 @@ class RelationshipValuesTest extends \PHPUnit\Framework\TestCase
 
     public function testListAppendKeepsExistingEntries()
     {
-        $gadget  = Model::factory('Gadget')->find_one(1);
+        $gadget  = Gadget::q()->find_one(1);
         $widgets = $gadget->widgets;
 
         $gadget->relationships['list']   = ['a'];
@@ -51,7 +50,7 @@ class RelationshipValuesTest extends \PHPUnit\Framework\TestCase
 
     public function testWholeArrayWriteReplacesAllEntries()
     {
-        $gadget = Model::factory('Gadget')->find_one(1);
+        $gadget = Gadget::q()->find_one(1);
         $gadget->widgets;
         $this->assertArrayHasKey('widgets', $gadget->relationships);
 
@@ -62,7 +61,7 @@ class RelationshipValuesTest extends \PHPUnit\Framework\TestCase
 
     public function testClearComputedValuesRecomputesLazyResult()
     {
-        $gadget = Model::factory('Gadget')->find_one(1);
+        $gadget = Gadget::q()->find_one(1);
         $first  = $gadget->widgets;
         $this->assertSame($first, $gadget->widgets);
 
@@ -79,7 +78,7 @@ class RelationshipValuesTest extends \PHPUnit\Framework\TestCase
 
     public function testClearComputedValuesChainsIntoPropertyRead()
     {
-        $gadget = Model::factory('Gadget')->find_one(1);
+        $gadget = Gadget::q()->find_one(1);
         $first  = $gadget->widgets;
 
         $second = $gadget->clear_computed_values()->widgets;
@@ -90,7 +89,7 @@ class RelationshipValuesTest extends \PHPUnit\Framework\TestCase
 
     public function testClearComputedValuesKeepsEagerResults()
     {
-        $gadget = Model::factory('Gadget')
+        $gadget = Gadget::q()
             ->with('widgets')
             ->find_one(1);
         $eager = $gadget->relationships['widgets'];
@@ -105,7 +104,7 @@ class RelationshipValuesTest extends \PHPUnit\Framework\TestCase
 
     public function testClearComputedValuesRecomputesMissingonceValue()
     {
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::q()->find_one(1);
         $this->assertSame('expensive value', $car->expensiveProperty);
         $this->assertSame(1, $car->missingonceCallCount);
 
@@ -118,7 +117,7 @@ class RelationshipValuesTest extends \PHPUnit\Framework\TestCase
 
     public function testClearComputedValuesKeepsSetValues()
     {
-        $car = Model::factory('Car')->find_one(1);
+        $car = Car::q()->find_one(1);
 
         $car->manufactor                = 'test';
         $car->relationships['external'] = 'kept';
@@ -131,7 +130,7 @@ class RelationshipValuesTest extends \PHPUnit\Framework\TestCase
 
     public function testCloneGetsItsOwnStash()
     {
-        $gadget = Model::factory('Gadget')->find_one(1);
+        $gadget = Gadget::q()->find_one(1);
         $gadget->widgets;
         $clone = clone $gadget;
 

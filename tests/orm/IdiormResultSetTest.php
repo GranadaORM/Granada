@@ -1,7 +1,6 @@
 <?php
 
 use Granada\ORM;
-use Granada\Granada;
 use Granada\ResultSet;
 
 class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
@@ -53,7 +52,7 @@ class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
 
     public function testAsArrayArgs()
     {
-        $item = Granada::for_table('test')->create([
+        $item = ORM::_new_row('test')->create([
             'name'  => 'Test1',
             'phone' => '012345678',
             'email' => 'test@gmail.com',
@@ -125,8 +124,8 @@ class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
     public function testCallingMethods()
     {
         $result_set = [
-            'item'  => Granada::for_table('test'),
-            'item2' => Granada::for_table('test'),
+            'item'  => ORM::_new_row('test'),
+            'item2' => ORM::_new_row('test'),
         ];
         $ResultSet = new ResultSet($result_set);
         $ResultSet->set('field', 'value')->set('field2', 'value');
@@ -142,9 +141,9 @@ class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
 
     public function testAsJson()
     {
-        $a       = Granada::for_table('test');
+        $a       = ORM::_new_row('test');
         $a->name = 'Test1';
-        $b       = Granada::for_table('test');
+        $b       = ORM::_new_row('test');
         $b->name = 'Test2';
 
         $ResultSet = new ResultSet([$a, $b]);
@@ -160,23 +159,23 @@ class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
     public function testKeys()
     {
         $ResultSet = new ResultSet([
-            'a' => Granada::for_table('test'),
-            'b' => Granada::for_table('test'),
+            'a' => ORM::_new_row('test'),
+            'b' => ORM::_new_row('test'),
         ]);
         $this->assertSame(['a', 'b'], $ResultSet->keys());
     }
 
     public function testKeysNumeric()
     {
-        $ResultSet = new ResultSet([Granada::for_table('test'), Granada::for_table('test')]);
+        $ResultSet = new ResultSet([ORM::_new_row('test'), ORM::_new_row('test')]);
         $this->assertSame([0, 1], $ResultSet->keys());
     }
 
     public function testFirst()
     {
-        $a       = Granada::for_table('test');
+        $a       = ORM::_new_row('test');
         $a->name = 'First';
-        $b       = Granada::for_table('test');
+        $b       = ORM::_new_row('test');
         $b->name = 'Second';
 
         $ResultSet = new ResultSet([$a, $b]);
@@ -192,9 +191,9 @@ class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
 
     public function testLast()
     {
-        $a       = Granada::for_table('test');
+        $a       = ORM::_new_row('test');
         $a->name = 'First';
-        $b       = Granada::for_table('test');
+        $b       = ORM::_new_row('test');
         $b->name = 'Last';
 
         $ResultSet = new ResultSet([$a, $b]);
@@ -211,7 +210,7 @@ class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
     public function testAdd()
     {
         $ResultSet = new ResultSet();
-        $item      = Granada::for_table('test');
+        $item      = ORM::_new_row('test');
         $ResultSet->add($item);
         $this->assertSame($item, $ResultSet[0]);
         $this->assertSame(1, $ResultSet->count());
@@ -221,18 +220,18 @@ class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
     {
         $ResultSet = new ResultSet();
         $ResultSet
-            ->add(Granada::for_table('test'))
-            ->add(Granada::for_table('test'));
+            ->add(ORM::_new_row('test'))
+            ->add(ORM::_new_row('test'));
         $this->assertSame(2, $ResultSet->count());
     }
 
     public function testFirstAndLastWithStringKeys()
     {
-        $a       = Granada::for_table('test');
+        $a       = ORM::_new_row('test');
         $a->name = 'First';
-        $b       = Granada::for_table('test');
+        $b       = ORM::_new_row('test');
         $b->name = 'Middle';
-        $c       = Granada::for_table('test');
+        $c       = ORM::_new_row('test');
         $c->name = 'Last';
 
         $ResultSet = new ResultSet([
@@ -251,12 +250,12 @@ class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
         $this->assertFalse($ResultSet->offsetExists('key'));
         $this->assertFalse($ResultSet->offsetExists('missing'));
 
-        $a = Granada::for_table('test');
+        $a = ORM::_new_row('test');
         $ResultSet->offsetSet('key', $a);
         $this->assertTrue($ResultSet->offsetExists('key'));
         $this->assertSame($a, $ResultSet->offsetGet('key'));
 
-        $b = Granada::for_table('test');
+        $b = ORM::_new_row('test');
         $ResultSet->offsetSet(null, $b);
         $this->assertTrue($ResultSet->offsetExists(0));
         $this->assertSame($b, $ResultSet[0]);
@@ -272,7 +271,7 @@ class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
         $ResultSet = new ResultSet();
         $this->assertFalse($ResultSet->has_results());
 
-        $ResultSet->add(Granada::for_table('test'));
+        $ResultSet->add(ORM::_new_row('test'));
         $this->assertTrue($ResultSet->has_results());
     }
 }

@@ -26,11 +26,13 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testEagerBelongsTo()
     {
-        $widget = Widget::with('gadget')->find_one(1);
+        $widget = Widget::q()
+            ->with('gadget')
+            ->find_one(1);
 
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `widget` WHERE `enabled` = '1' AND `hidden` = '0' AND `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `enabled` = '1' AND `hidden` = '0' AND `id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `enabled` = '1' AND `id` IN ('1')";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
@@ -41,17 +43,21 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testEagerBelongsToFilteredParentGivesNull()
     {
-        $widget = Widget::with('gadget')->find_one(3);
+        $widget = Widget::q()
+            ->with('gadget')
+            ->find_one(3);
 
         $this->assertNull($widget->relationships['gadget']);
     }
 
     public function testEagerHasMany()
     {
-        $gadgets = Gadget::with('widgets')->find_many();
+        $gadgets = Gadget::q()
+            ->with('widgets')
+            ->find_many();
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `enabled` = '1' AND `hidden` = '0'";
+        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `enabled` = '1'";
         $expectedSql[] = "SELECT * FROM `widget` WHERE `enabled` = '1' AND `hidden` = '0' AND `gadget_id` IN ('1', '4')";
 
         $fullQueryLog = ORM::get_query_log();
@@ -64,10 +70,12 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testEagerHasManyWithChainedWhere()
     {
-        $gadgets = Gadget::with('named_widgets')->find_many();
+        $gadgets = Gadget::q()
+            ->with('named_widgets')
+            ->find_many();
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `enabled` = '1' AND `hidden` = '0'";
+        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `enabled` = '1'";
         $expectedSql[] = "SELECT * FROM `widget` WHERE `enabled` = '1' AND `hidden` = '0' AND `name` = 'Widget1' AND `gadget_id` IN ('1', '4')";
 
         $fullQueryLog = ORM::get_query_log();
@@ -80,10 +88,12 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testEagerHasOne()
     {
-        $gadgets = Gadget::with('featured')->find_many();
+        $gadgets = Gadget::q()
+            ->with('featured')
+            ->find_many();
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `enabled` = '1' AND `hidden` = '0'";
+        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `enabled` = '1'";
         $expectedSql[] = "SELECT * FROM `widget` WHERE `enabled` = '1' AND `hidden` = '0' AND `gadget_id` IN ('1', '4')";
 
         $fullQueryLog = ORM::get_query_log();
@@ -100,7 +110,9 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testEagerHasManyThrough()
     {
-        $widgets = Widget::with('kits')->find_many();
+        $widgets = Widget::q()
+            ->with('kits')
+            ->find_many();
 
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `widget` WHERE `enabled` = '1' AND `hidden` = '0'";
@@ -123,11 +135,11 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testLazyBelongsTo()
     {
-        $widget = Widget::find_one(1);
+        $widget = Widget::q()->find_one(1);
         $widget->gadget;
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `gadget` WHERE `id` = '1' AND `gadget`.`hidden` = '0' AND `enabled` = '1' AND `hidden` = '0' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `gadget` WHERE `id` = '1' AND `gadget`.`hidden` = '0' AND `enabled` = '1' LIMIT 1";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 1);
@@ -138,21 +150,21 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testLazyBelongsToFilteredParentGivesNull()
     {
-        $widget = Widget::find_one(3);
+        $widget = Widget::q()->find_one(3);
 
         $this->assertNull($widget->gadget);
     }
 
     public function testLazyBelongsToNullFkGivesNull()
     {
-        $widget = Widget::find_one(4);
+        $widget = Widget::q()->find_one(4);
 
         $this->assertNull($widget->gadget);
     }
 
     public function testLazyHasMany()
     {
-        $gadget = Gadget::find_one(1);
+        $gadget = Gadget::q()->find_one(1);
         $gadget->widgets;
 
         $expectedSql   = [];
@@ -167,7 +179,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testLazyHasManyWithChainedWhere()
     {
-        $gadget = Gadget::find_one(1);
+        $gadget = Gadget::q()->find_one(1);
         $gadget->named_widgets;
 
         $expectedSql   = [];
@@ -182,7 +194,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testLazyHasOne()
     {
-        $gadget = Gadget::find_one(1);
+        $gadget = Gadget::q()->find_one(1);
         $gadget->featured;
 
         $expectedSql   = [];
@@ -197,7 +209,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testLazyHasManyThrough()
     {
-        $widget = Widget::find_one(1);
+        $widget = Widget::q()->find_one(1);
         $widget->kits;
 
         $expectedSql   = [];
@@ -213,11 +225,11 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testDirectFindOneExecutes()
     {
-        $widget = Widget::find_one(1);
+        $widget = Widget::q()->find_one(1);
         $gadget = $widget->gadget()->find_one();
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `gadget` WHERE `id` = '1' AND `gadget`.`hidden` = '0' AND `enabled` = '1' AND `hidden` = '0' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `gadget` WHERE `id` = '1' AND `gadget`.`hidden` = '0' AND `enabled` = '1' LIMIT 1";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 1);
@@ -229,7 +241,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testDirectFindManyExecutes()
     {
-        $gadget  = Gadget::find_one(1);
+        $gadget  = Gadget::q()->find_one(1);
         $widgets = $gadget->widgets()->find_many();
 
         $this->assertCount(2, $widgets);
@@ -238,7 +250,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testDirectBuildingCallThenFindMany()
     {
-        $gadget  = Gadget::find_one(1);
+        $gadget  = Gadget::q()->find_one(1);
         $widgets = $gadget->widgets()
             ->where('name', 'Widget1')
             ->find_many();
@@ -255,30 +267,32 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testDirectCountExecutes()
     {
-        $gadget = Gadget::find_one(1);
+        $gadget = Gadget::q()->find_one(1);
 
         $this->assertSame(2, $gadget->widgets()->count());
     }
 
     public function testDirectPluckExecutes()
     {
-        $gadget = Gadget::find_one(1);
+        $gadget = Gadget::q()->find_one(1);
 
         $this->assertSame('Widget1', $gadget->widgets()->pluck('name'));
     }
 
     public function testDirectDeleteManyExecutes()
     {
-        $gadget = Gadget::find_one(1);
+        $gadget = Gadget::q()->find_one(1);
         $gadget->widgets()->delete_many();
 
-        $this->assertSame(3, Widget::count());
+        $this->assertSame(3, Widget::q()->count());
     }
 
     public function testRelationshipQueryAsSubquery()
     {
-        $gadget = Gadget::find_one(1);
+        $gadget = Gadget::q()->find_one(1);
 
-        $this->assertCount(2, Widget::where_id_in($gadget->widgets()->select('id'))->find_many());
+        $this->assertCount(2, Widget::q()
+            ->where_id_in($gadget->widgets()->select('id'))
+            ->find_many());
     }
 }

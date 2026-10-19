@@ -72,7 +72,7 @@ class RowHydrator
      * @param array<int|string, ORM|Granada>|ResultSet $instances
      * @return array<int|string, ORM|Granada>|ResultSet
      */
-    public function many(Wrapper $query, array|ResultSet $instances, bool $return_result_set): array|ResultSet
+    public function many(\Granada\Query $query, array|ResultSet $instances, bool $return_result_set): array|ResultSet
     {
         if ($instances instanceof ResultSet) {
             if (!$instances->has_results()) {
@@ -92,7 +92,7 @@ class RowHydrator
      * results, so the instance is hydrated as a one-entry array.
      * Null passes through.
      */
-    public function one(Wrapper $query, null|Granada|ORM $instance, bool $return_result_set): mixed
+    public function one(\Granada\Query $query, null|Granada|ORM $instance, bool $return_result_set): mixed
     {
         if ($instance === null) {
             return null;

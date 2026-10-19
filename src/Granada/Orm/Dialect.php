@@ -8,7 +8,7 @@ use PDOStatement;
 
 /**
  * Everything driver-specific about the database in one place, so the
- * renderer, save() and Wrapper ask a dialect object instead of
+ * renderer, save() and Query ask a dialect object instead of
  * comparing driver names or querying a live database connection.
  *
  * @internal

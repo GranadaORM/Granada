@@ -106,7 +106,7 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
         ]);
         $row->save();
 
-        $row       = Stamped::find_one($row->id);
+        $row       = Stamped::q()->find_one($row->id);
         $row->name = 'b';
         $row->save();
 
@@ -123,7 +123,7 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
         ]);
         $row->save();
 
-        $row             = Stamped::find_one($row->id);
+        $row             = Stamped::q()->find_one($row->id);
         $row->name       = 'b';
         $row->updated_at = '2002-03-04 05:06:07';
         $row->save();
@@ -140,7 +140,7 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
         ]);
         $row->save();
 
-        $row             = Stamped::find_one($row->id);
+        $row             = Stamped::q()->find_one($row->id);
         $row->name       = 'b';
         $row->created_at = '2002-03-04 05:06:07';
         $row->save();
@@ -157,7 +157,7 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
         ]);
         $row->save();
 
-        $row             = StampedChild::find_one($row->id);
+        $row             = StampedChild::q()->find_one($row->id);
         $row->last_login = '2001-02-03 04:05:06';
         $row->save();
 
@@ -173,7 +173,7 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
         ]);
         $row->save();
 
-        $row             = StampedChild::find_one($row->id);
+        $row             = StampedChild::q()->find_one($row->id);
         $row->sort_order = 5;
         $row->save();
 
@@ -205,7 +205,7 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
 
         // The subclass's list names last_login, so sort_order is no
         // longer ignored, and changing it writes changed_on.
-        $row             = StampedChildOverride::find_one($row->id);
+        $row             = StampedChildOverride::q()->find_one($row->id);
         $row->sort_order = 9;
         $row->save();
 
@@ -218,7 +218,7 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
         $row = Stamped::create(['name' => 'a']);
         $row->save();
 
-        $row    = Stamped::find_one($row->id);
+        $row    = Stamped::q()->find_one($row->id);
         $before = $this->raw('stamped', $row->id);
 
         $this->assertTrue($row->save());
@@ -242,7 +242,7 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
             ->set('updated_at', '2001-02-03 04:05:06')
             ->save();
 
-        $row = Stamped::find_one($row->id);
+        $row = Stamped::q()->find_one($row->id);
         $this->assertSame(2, $row->increment('views'));
 
         $raw = $this->raw('stamped', $row->id);
@@ -264,7 +264,7 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
             ->set('updated_at', '2001-02-03 04:05:06')
             ->save();
 
-        $row = Stamped::find_one($row->id);
+        $row = Stamped::q()->find_one($row->id);
         $this->assertSame(3, $row->decrement('views', 2));
 
         $raw = $this->raw('stamped', $row->id);
@@ -285,7 +285,9 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
             'updated_at' => '2001-02-03 04:05:06',
         ])->save();
 
-        StampedSoft::where('name', 'a')->delete_many();
+        StampedSoft::q()
+            ->where('name', 'a')
+            ->delete_many();
 
         $raw = $this->raw('stamped_soft', $a->id);
         $this->assertSame(1, (int) $raw['is_deleted']);
@@ -294,7 +296,7 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
 
     public function testBulkInsertWritesTimestamps()
     {
-        Stamped::insert([
+        Stamped::q()->insert([
             ['name' => 'x'],
             ['name' => 'y'],
         ]);
@@ -311,7 +313,7 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
 
     public function testModelLessQueryWritesNoTimestamps()
     {
-        \Granada\Granada::for_table('stamped')
+        ORM::_new_row('stamped')
             ->create(['name' => 'a'])
             ->save();
 

@@ -24,39 +24,39 @@ class ORMTest extends \PHPUnit\Framework\TestCase
     public function testForTable()
     {
         $result = Granada::for_table('test');
-        $this->assertTrue(is_a($result, 'Granada\ORM'));
+        $this->assertTrue(is_a($result, 'Granada\Query'));
     }
 
     public function testCreate()
     {
-        $model = Granada::for_table('test')->create();
+        $model = ORM::_new_row('test')->create();
         $this->assertTrue(is_a($model, 'Granada\ORM'));
         $this->assertTrue($model->is_new());
     }
 
     public function testIsNew()
     {
-        $model = Granada::for_table('test')->create();
+        $model = ORM::_new_row('test')->create();
         $this->assertTrue($model->is_new());
 
-        $model = Granada::for_table('test')->create(['test' => 'test']);
+        $model = ORM::_new_row('test')->create(['test' => 'test']);
         $this->assertTrue($model->is_new());
     }
 
     public function testIsDirty()
     {
-        $model = Granada::for_table('test')->create();
+        $model = ORM::_new_row('test')->create();
         $this->assertFalse($model->is_dirty('test'));
         $this->assertFalse($model->is_any_dirty());
 
-        $model = Granada::for_table('test')->create(['test' => 'test']);
+        $model = ORM::_new_row('test')->create(['test' => 'test']);
         $this->assertTrue($model->is_dirty('test'));
         $this->assertTrue($model->is_any_dirty());
     }
 
     public function testIsDirtySimilarFloats()
     {
-        $model       = Granada::for_table('test')->create();
+        $model       = ORM::_new_row('test')->create();
         $model->test = 5.2;
         $this->assertTrue($model->is_dirty('test'));
         $model->save();
@@ -68,33 +68,33 @@ class ORMTest extends \PHPUnit\Framework\TestCase
 
     public function testNewRecordSetZeroNullNanIsDirty()
     {
-        $model       = Granada::for_table('test')->create();
+        $model       = ORM::_new_row('test')->create();
         $model->test = 0;
         $this->assertTrue($model->is_dirty('test'));
 
-        $model       = Granada::for_table('test')->create();
+        $model       = ORM::_new_row('test')->create();
         $model->test = 0.0;
         $this->assertTrue($model->is_dirty('test'));
 
-        $model       = Granada::for_table('test')->create();
+        $model       = ORM::_new_row('test')->create();
         $model->test = null;
         $this->assertTrue($model->is_dirty('test'));
 
-        $model       = Granada::for_table('test')->create();
+        $model       = ORM::_new_row('test')->create();
         $model->test = NAN;
         $this->assertTrue($model->is_dirty('test'));
     }
 
     public function testNewRecordSetExprFloatZeroIsDirty()
     {
-        $model = Granada::for_table('test')->create();
+        $model = ORM::_new_row('test')->create();
         $model->set_expr('test', 0.0);
         $this->assertTrue($model->is_dirty('test'));
     }
 
     public function testSavedRecordChangedFloatIsDirty()
     {
-        $model       = Granada::for_table('test')->create();
+        $model       = ORM::_new_row('test')->create();
         $model->test = 5.2;
         $model->save();
         $this->assertFalse($model->is_dirty('test'));
@@ -104,7 +104,7 @@ class ORMTest extends \PHPUnit\Framework\TestCase
 
     public function testIsDirtyIntegerType()
     {
-        $model = Granada::for_table('test')->create([
+        $model = ORM::_new_row('test')->create([
             'age' => 5,
         ]);
         $model->save();
@@ -115,7 +115,7 @@ class ORMTest extends \PHPUnit\Framework\TestCase
 
     public function testIsDirtyIntegerTypePrefixZero()
     {
-        $model = Granada::for_table('test')->create([
+        $model = ORM::_new_row('test')->create([
             'age' => 5,
         ]);
         $model->save();
@@ -127,7 +127,7 @@ class ORMTest extends \PHPUnit\Framework\TestCase
 
     public function testIsDirtyExactString()
     {
-        $model       = Granada::for_table('test')->create();
+        $model       = ORM::_new_row('test')->create();
         $model->test = '5';
         $this->assertTrue($model->is_dirty('test'));
         $model->save();
@@ -144,7 +144,7 @@ class ORMTest extends \PHPUnit\Framework\TestCase
 
     public function testIsDirtyUnset()
     {
-        $model       = Granada::for_table('test')->create();
+        $model       = ORM::_new_row('test')->create();
         $model->test = 5;
         $this->assertTrue($model->is_dirty('test'));
         unset($model->test);
@@ -154,7 +154,7 @@ class ORMTest extends \PHPUnit\Framework\TestCase
 
     public function testIsDirtySetNull()
     {
-        $model       = Granada::for_table('test')->create();
+        $model       = ORM::_new_row('test')->create();
         $model->test = 5;
         $this->assertTrue($model->is_dirty('test'));
         $model->save();
@@ -172,43 +172,43 @@ class ORMTest extends \PHPUnit\Framework\TestCase
 
     public function testIsDirtyNullTransitions()
     {
-        $model       = Granada::for_table('test')->create();
+        $model       = ORM::_new_row('test')->create();
         $model->test = 0;
         $model->save();
         $model->test = null;
         $this->assertTrue($model->is_dirty('test'));
 
-        $model       = Granada::for_table('test')->create();
+        $model       = ORM::_new_row('test')->create();
         $model->test = 0.0;
         $model->save();
         $model->test = null;
         $this->assertTrue($model->is_dirty('test'));
 
-        $model       = Granada::for_table('test')->create();
+        $model       = ORM::_new_row('test')->create();
         $model->test = false;
         $model->save();
         $model->test = null;
         $this->assertTrue($model->is_dirty('test'));
 
-        $model       = Granada::for_table('test')->create();
+        $model       = ORM::_new_row('test')->create();
         $model->test = null;
         $model->save();
         $model->test = 0;
         $this->assertTrue($model->is_dirty('test'));
 
-        $model       = Granada::for_table('test')->create();
+        $model       = ORM::_new_row('test')->create();
         $model->test = null;
         $model->save();
         $model->test = 0.0;
         $this->assertTrue($model->is_dirty('test'));
 
-        $model       = Granada::for_table('test')->create();
+        $model       = ORM::_new_row('test')->create();
         $model->test = null;
         $model->save();
         $model->test = '';
         $this->assertTrue($model->is_dirty('test'));
 
-        $model       = Granada::for_table('test')->create();
+        $model       = ORM::_new_row('test')->create();
         $model->test = null;
         $model->save();
         $model->test = false;
@@ -218,7 +218,7 @@ class ORMTest extends \PHPUnit\Framework\TestCase
     public function testArrayAccess()
     {
         $value         = 'test';
-        $model         = Granada::for_table('test')->create();
+        $model         = ORM::_new_row('test')->create();
         $model['test'] = $value;
         $this->assertTrue(isset($model['test']));
         $this->assertEquals($model['test'], $value);

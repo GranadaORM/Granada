@@ -34,22 +34,26 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
 
     public function testLazyFindReturnsAGenerator()
     {
-        $results = Car::find_many_lazy();
+        $results = Car::q()->find_many_lazy();
 
         $this->assertInstanceOf(Generator::class, $results);
     }
 
     public function testYieldsTheModelsFindManyWouldReturnInTheSameOrder()
     {
-        $expected = Car::order_by_asc('name')->find_many();
-        $walked   = Car::order_by_asc('name')->find_many_lazy();
+        $expected = Car::q()
+            ->order_by_asc('name')
+            ->find_many();
+        $walked = Car::q()
+            ->order_by_asc('name')
+            ->find_many_lazy();
 
         $this->assertSame($this->pairs($expected), $this->pairs($walked));
     }
 
     public function testKeysAreRowIdsByDefault()
     {
-        $walked = Car::find_many_lazy();
+        $walked = Car::q()->find_many_lazy();
 
         $this->assertSame([1, 2, 3, 4, 6], array_keys(iterator_to_array($walked)));
     }
@@ -59,19 +63,19 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
         ORM::configure('find_many_primary_id_as_key', false);
 
         // Five cars over chunks of two: the keys must not restart per chunk.
-        $walked = Car::find_many_lazy(2);
+        $walked = Car::q()->find_many_lazy(2);
 
         $this->assertSame([0, 1, 2, 3, 4], array_keys(iterator_to_array($walked)));
     }
 
-    public function testAWrapperQueryWithoutAnIdColumnNumbersRowsPositionally()
+    public function testAModelLessQueryWithoutAnIdColumnNumbersRowsPositionally()
     {
         $walked = Granada::for_table('car')->find_many_lazy();
 
         $this->assertSame([0, 1, 2, 3, 4, 5], array_keys(iterator_to_array($walked)));
     }
 
-    public function testAWrapperQueryWithAnIdColumnKeysRowsById()
+    public function testAModelLessQueryWithAnIdColumnKeysRowsById()
     {
         $walked = Granada::for_table('car')
             ->use_id_column('id')
@@ -82,7 +86,7 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
 
     public function testOneIdQueryThenOneRowQueryPerChunk()
     {
-        iterator_to_array(Car::find_many_lazy(2));
+        iterator_to_array(Car::q()->find_many_lazy(2));
 
         $log = $this->log();
 
@@ -94,10 +98,14 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
 
     public function testChangingTheChunkSizeChangesOnlyTheQueryCount()
     {
-        $expected = $this->pairs(Car::order_by_asc('name')->find_many());
+        $expected = $this->pairs(Car::q()
+            ->order_by_asc('name')
+            ->find_many());
 
         foreach ([1, 2, 1000] as $chunk_size) {
-            $walked = Car::order_by_asc('name')->find_many_lazy($chunk_size);
+            $walked = Car::q()
+                ->order_by_asc('name')
+                ->find_many_lazy($chunk_size);
 
             $this->assertSame($expected, $this->pairs($walked), "chunk size {$chunk_size}");
         }
@@ -105,7 +113,9 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
 
     public function testEagerLoadsRunOncePerChunkAgainstThatChunksParents()
     {
-        $walked  = Car::with('parts')->find_many_lazy(2);
+        $walked = Car::q()
+            ->with('parts')
+            ->find_many_lazy(2);
         $results = iterator_to_array($walked);
 
         $log = $this->log();
@@ -113,7 +123,9 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
         // Three chunks, so three part queries, not one per car.
         $this->assertSame(3, $this->queriesContaining($log, 'FROM `part`'));
 
-        $expected = Car::with('parts')->find_many();
+        $expected = Car::q()
+            ->with('parts')
+            ->find_many();
         foreach ($expected as $id => $car) {
             $this->assertCount(count($car->parts), $results[$id]->parts, "car {$id}");
         }
@@ -121,7 +133,9 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
 
     public function testEveryYieldedModelHasItsEagerLoads()
     {
-        $walked = Car::with('manufactor')->find_many_lazy(2);
+        $walked = Car::q()
+            ->with('manufactor')
+            ->find_many_lazy(2);
 
         foreach ($walked as $car) {
             $this->assertInstanceOf(Manufactor::class, $car->manufactor);
@@ -132,7 +146,9 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
     public function testLazyRelationshipAccessMidWalkCostsOneQueryPerTouch()
     {
         $owners = [];
-        $walked = Car::order_by_asc('id')->find_many_lazy(2);
+        $walked = Car::q()
+            ->order_by_asc('id')
+            ->find_many_lazy(2);
         foreach ($walked as $car) {
             $owners[] = $car->owner->name;
         }
@@ -146,11 +162,13 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
 
     public function testLimitAndOffsetMatchFindMany()
     {
-        $expected = Car::order_by_asc('id')
+        $expected = Car::q()
+            ->order_by_asc('id')
             ->limit(3)
             ->offset(1)
             ->find_many();
-        $walked = Car::order_by_asc('id')
+        $walked = Car::q()
+            ->order_by_asc('id')
             ->limit(3)
             ->offset(1)
             ->find_many_lazy();
@@ -160,10 +178,12 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
 
     public function testSelectMatchesFindMany()
     {
-        $expected = Car::select('name')
+        $expected = Car::q()
+            ->select('name')
             ->order_by_asc('id')
             ->find_many();
-        $walked = Car::select('name')
+        $walked = Car::q()
+            ->select('name')
             ->order_by_asc('id')
             ->find_many_lazy();
 
@@ -175,7 +195,8 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
 
     public function testAJoinedQueryWithTheDefaultSelectYieldsTheBaseRowsInIdPassOrder()
     {
-        $walked = Car::join('manufactor', ['car.manufactor_id', '=', 'manufactor.id'])
+        $walked = Car::q()
+            ->join('manufactor', ['car.manufactor_id', '=', 'manufactor.id'])
             ->where('manufactor.name', 'Manufactor2')
             ->order_by_asc('car.name')
             ->find_many_lazy();
@@ -192,14 +213,15 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        Car::join('manufactor', ['car.manufactor_id', '=', 'manufactor.id'])
+        Car::q()
+            ->join('manufactor', ['car.manufactor_id', '=', 'manufactor.id'])
             ->select('manufactor.name')
             ->find_many_lazy();
     }
 
     public function testGroupByThrowsBeforeAnyQueryRuns()
     {
-        $query = Car::group_by('manufactor_id');
+        $query = Car::q()->group_by('manufactor_id');
 
         try {
             $query->find_many_lazy();
@@ -213,19 +235,23 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        Car::raw_query('SELECT * FROM car')->find_many_lazy();
+        Car::q()
+            ->raw_query('SELECT * FROM car')
+            ->find_many_lazy();
     }
 
     public function testAChunkSizeBelowOneThrows()
     {
         $this->expectException(InvalidArgumentException::class);
 
-        Car::find_many_lazy(0);
+        Car::q()->find_many_lazy(0);
     }
 
     public function testAnEmptyResultYieldsNothingBeyondTheIdPass()
     {
-        $walked = Car::where('id', 99999)->find_many_lazy();
+        $walked = Car::q()
+            ->where('id', 99999)
+            ->find_many_lazy();
 
         $this->assertSame([], iterator_to_array($walked));
         $this->assertCount(1, $this->log());
@@ -233,7 +259,7 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
 
     public function testTheWalkIsSingleUse()
     {
-        $walked = Car::find_many_lazy();
+        $walked = Car::q()->find_many_lazy();
         $walked->current();
         $walked->next();
 
@@ -245,7 +271,7 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
     {
         ORM::configure('return_result_sets', true);
 
-        $this->assertInstanceOf(Generator::class, Car::find_many_lazy());
+        $this->assertInstanceOf(Generator::class, Car::q()->find_many_lazy());
     }
 
     public function testRowsWithANullIdAreSkipped()
@@ -254,7 +280,7 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
         // The null id has no row to fetch by, so that row is
         // skipped; the duplicated id comes back once per
         // occurrence, in row order.
-        $walked = KeyedRow::find_many_lazy();
+        $walked = KeyedRow::q()->find_many_lazy();
 
         $this->assertSame(['a', 'a-dup', 'c', 'zero'], $this->names($walked));
     }

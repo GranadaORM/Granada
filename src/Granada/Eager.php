@@ -22,10 +22,10 @@ class Eager
     /**
      * Attempts to execute any relationship defined for eager loading
      *
-     * @param Orm\Wrapper $orm
+     * @param Query $orm
      * @param array|ResultSet $results
      */
-    public static function hydrate(Orm\Wrapper $orm, array|ResultSet &$results, bool $return_result_set = false): array|ResultSet
+    public static function hydrate(Query $orm, array|ResultSet &$results, bool $return_result_set = false): array|ResultSet
     {
         if (!$results) {
             return $results;
@@ -84,7 +84,7 @@ class Eager
 
             $relationship = $model->{$include['name']}(...$include['args']);
 
-            if ($relationship instanceof Orm\Wrapper) {
+            if ($relationship instanceof Query) {
                 // Chained calls return the query, with the relationship attached
                 $relationship = $relationship->_relationship;
             }
@@ -148,7 +148,7 @@ class Eager
 
         $result_set_class = null;
         if ($return_result_set) {
-            $result_set_class = ORM::_result_set_class($relationship->class::$resultSetClass);
+            $result_set_class = Query::_result_set_class($relationship->class::$resultSetClass);
         }
 
         // Eager and lazy loading must hold the same type. "Many"
@@ -184,13 +184,13 @@ class Eager
     /**
      * Eagerly load a 1:1 relationship.
      *
-     * @param  Orm\Wrapper  $relationship
+     * @param  Query  $relationship
      * @param  array|ResultSet  $parents
      * @param  string|array  $relating_key
      * @param  string  $include
      * @return void
      */
-    private static function has_one(Orm\Wrapper $relationship, array|ResultSet &$parents, array|string $relating_key, string $include): void
+    private static function has_one(Query $relationship, array|ResultSet &$parents, array|string $relating_key, string $include): void
     {
         $keys    = static::getKeys($parents);
         $related = $relationship->where_in($relating_key, $keys)->find_many();
@@ -211,13 +211,13 @@ class Eager
     /**
      * Eagerly load a 1:* relationship.
      *
-     * @param  Orm\Wrapper  $relationship
+     * @param  Query  $relationship
      * @param  array|ResultSet  $parents
      * @param  string|array  $relating_key
      * @param  string  $include
      * @return void
      */
-    private static function has_many(Orm\Wrapper $relationship, array|ResultSet &$parents, array|string $relating_key, string $include): void
+    private static function has_many(Query $relationship, array|ResultSet &$parents, array|string $relating_key, string $include): void
     {
         $keys    = static::getKeys($parents);
         $related = $relationship->where_in($relating_key, $keys)->find_many();
@@ -251,13 +251,13 @@ class Eager
     /**
      * Eagerly load a 1:1 belonging relationship.
      *
-     * @param  Orm\Wrapper  $relationship
+     * @param  Query  $relationship
      * @param  array|ResultSet  $parents
      * @param  string  $relating_key
      * @param  string  $include
      * @return void
      */
-    private static function belongs_to(Orm\Wrapper $relationship, array|ResultSet &$parents, string $relating_key, string $include): void
+    private static function belongs_to(Query $relationship, array|ResultSet &$parents, string $relating_key, string $include): void
     {
         $keys = [];
         foreach ($parents as &$parent) {
@@ -281,7 +281,7 @@ class Eager
     /**
      * Eagerly load a many-to-many relationship.
      *
-     * @param  Orm\Wrapper  $relationship
+     * @param  Query  $relationship
      * @param  array|ResultSet  $parents
      * @param  string  $relating_key
      * @param  string  $relating_table
@@ -289,7 +289,7 @@ class Eager
      *
      * @return void
      */
-    private static function has_many_through(Orm\Wrapper $relationship, array|ResultSet &$parents, string $relating_key, string $relating_table, string $include): void
+    private static function has_many_through(Query $relationship, array|ResultSet &$parents, string $relating_key, string $relating_table, string $include): void
     {
         $keys = static::getKeys($parents);
 
@@ -317,7 +317,7 @@ class Eager
         }
     }
 
-    private static function auto_include_required_columns(Orm\Wrapper $query, Relationship $relationship): void
+    private static function auto_include_required_columns(Query $query, Relationship $relationship): void
     {
         switch ($relationship->kind) {
             case 'belongs_to':

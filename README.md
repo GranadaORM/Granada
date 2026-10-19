@@ -22,7 +22,7 @@ class User extends Model
 class Post extends Model {}
 
 // select
-$user = User::where('name', 'John')->find_one();
+$user = User::q()->where('name', 'John')->find_one();
 
 // modify
 $user->first_name = 'Doe';
@@ -66,7 +66,7 @@ As always, you can check it in detail on [Paris documentation](http://idiorm.rea
 You can use the "with" method to add relationships eager loading to the query.
 
 ```php
-$results = User::with('avatar', 'posts')->find_many();
+$results = User::q()->with('avatar', 'posts')->find_many();
 ```
 
 will use 3 querys to fetch the users and the relationships:
@@ -93,7 +93,7 @@ foreach($results as $result){
 Triying to access to a not fetched relationship will call and return it
 
 ```php
-$results = User::find_many();
+$results = User::q()->find_many();
 foreach($results as $result){
     echo $result->avatar->img;
 }
@@ -110,7 +110,7 @@ thousands of rows. The loop looks the same, but your script holds
 one model at a time:
 
 ```php
-foreach (User::where('active', 1)->find_many_lazy() as $id => $user) {
+foreach (User::q()->where('active', 1)->find_many_lazy() as $id => $user) {
     echo $user->name;
 }
 ```
@@ -125,7 +125,7 @@ size. The default is 1000:
 
 ```php
 // 200 rows per query
-foreach (User::find_many_lazy(200) as $user) { ... }
+foreach (User::q()->find_many_lazy(200) as $user) { ... }
 ```
 
 A smaller chunk uses less memory and runs more queries. A bigger
@@ -137,7 +137,7 @@ chunk does the opposite. The results you get are identical.
 not once per model:
 
 ```php
-foreach (Car::with('parts')->find_many_lazy() as $car) {
+foreach (Car::q()->with('parts')->find_many_lazy() as $car) {
     echo $car->parts[0]->name;
 }
 ```
@@ -170,27 +170,27 @@ Use `with_{relation}()` to eager-load a relationship and optionally configure th
 
 ```php
 // Basic - equivalent to with('manufactor')
-$car = Car::with_manufactor()->find_one(1);
+$car = Car::q()->with_manufactor()->find_one(1);
 
 // Limit columns selected
-$car = Car::with_manufactor(fn($q) => $q->select('id, name'))->find_one(1);
+$car = Car::q()->with_manufactor(fn($q) => $q->select('id, name'))->find_one(1);
 // SELECT `id`, `name` FROM `manufactor` WHERE ...
 
 // Add ordering (has_many - multiple related records)
-$manufactor = Manufactor::with_cars(fn($q) => $q->select('id, name')->order_by_desc('name'))->find_one(1);
+$manufactor = Manufactor::q()->with_cars(fn($q) => $q->select('id, name')->order_by_desc('name'))->find_one(1);
 // SELECT `id`, `name`, `manufactor_id` FROM `car` WHERE ... ORDER BY `name` DESC
 ```
 
 Mix with the existing `with()` method:
 
 ```php
-$car = Car::with_manufactor(fn($q) => $q->select('name'))->with('owner')->find_one(1);
+$car = Car::q()->with_manufactor(fn($q) => $q->select('name'))->with('owner')->find_one(1);
 ```
 
 Nested eager loading via `with_*` inside the callback:
 
 ```php
-$owner = Owner::with_car(fn($q) => $q->select('id, manufactor_id')
+$owner = Owner::q()->with_car(fn($q) => $q->select('id, manufactor_id')
     ->with_manufactor(fn($q) => $q->select('name'))
 )->find_one(1);
 ```
@@ -209,7 +209,7 @@ If you already include these columns in your `select()`, they won't be added twi
 **has_many_through.** Qualify column names with the table because the query involves a join:
 
 ```php
-$car = Car::with_parts(fn($q) => $q->select('part.id, part.name'))->find_one(1);
+$car = Car::q()->with_parts(fn($q) => $q->select('part.id, part.name'))->find_one(1);
 ```
 
 ### Chained relationships with arguments for eager loading
@@ -218,12 +218,12 @@ It is possible to chain relationships and add arguments to the relationships cal
 
 ```php
 // chained relationships with dot notation
-$results = User::with('posts.comments')->find_many();
+$results = User::q()->with('posts.comments')->find_many();
 
 // OR
 
 // chained relationships use the "with" reserved word. (usefull if you want to pass arguments to the relationships)
-$results = User::with(array('posts'=>array('with'=>array('comments'))))->find_many();
+$results = User::q()->with(array('posts'=>array('with'=>array('comments'))))->find_many();
 
 // SELECT * FROM user
 // SELECT * FROM post WHERE user_id IN (....)
@@ -239,30 +239,28 @@ foreach($results as $result){
 }
 
 // you can use arguments (one or more) to call the models relationships
-$results = User::with(array('posts'=>array('arg1')))->find_many();
+$results = User::q()->with(array('posts'=>array('arg1')))->find_many();
 // will call the relationship defined in the user model with the argument "arg1"
 ```
 
-### Custom query filters
+### Custom query actions
 
-It's possible to create static functions on the model to work as filter in queries. Prepended it with "filter\_":
+We use a query class to build filters for a query.
+To add custom filters to a Query model, create a `Query<ModelName>` class that extends `\Granada\Query`.
 
 ```php
-use Granada\Model;
-
-class ModelName extends Model {
-    ....
-    public static function filter_aname($query, $argument1, $argument2...){
-        return $query->where('property', 'value')->limit('X')......;
+class QueryModelName extends \Granada\Query {
+    public function aname($argument1, $argument2): static
+    {
+        return $this->where('property', 'value')->limit(10);
     }
-    ....
 }
 ```
 
-and call it on a static call
+and call it through `q()`:
 
 ```php
-ModelName::aname($argument1, $argument2)->....
+ModelName::q()->aname($argument1, $argument2)->...
 ```
 
 ### Multiple additions names for Granada
@@ -305,8 +303,8 @@ $content_instance->title = 'A title';
 ### Mass assignment
 
 `create()` and `set()` write every key they are given. There is no fillable or
-guarded list to declare: Granada does not know which fields are safe to write,
-and the model does not filter for you.
+guarded list to declare: Granada does not know what is safe to write, and the
+model does not filter for you.
 
 If the array comes from a request, keep only the fields the request was meant
 to set before it reaches the model:
@@ -319,7 +317,7 @@ $enquiry = Enquiry::create(array_intersect_key($data, array_flip($allowed)));
 Unknown keys are not dropped. They are stored like any other field, and the
 save fails with a database error if the column does not exist. Filtering
 request data is the caller's job, because the caller is the one who knows
-which fields the form offered.
+the fields the form offered.
 
 ### Overload GET and MISSING property
 
@@ -358,7 +356,7 @@ public static $resultSetClass = 'TreeResultSet';
 
 ```php
 // outside of the model
-var_dump(Content::find_many());
+var_dump(Content::q()->find_many());
 
 // echoes
 object(TreeResultSet)[10]
@@ -371,7 +369,7 @@ On eager load, the results are consistent.
 For example, if we have a `Content` model, with `$resultSetClass = 'TreeResultSet'` and a `has_many` relationship defined as `media`:
 
 ```php
-Content::with('media')->find_many();
+Content::q()->with('media')->find_many();
 ```
 
 will return a `TreeResultSet` with instances of `Content` each with a `property $media` containing `Granada\ResultSet` (the default resultSet if none if defined on the Model)

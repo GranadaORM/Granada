@@ -19,8 +19,8 @@ namespace Granada;
 class Relationship
 {
     /** @var array<int, array{string, mixed[]}> */
-    private array $filters      = [];
-    private ?Orm\Wrapper $query = null;
+    private array $filters = [];
+    private ?Query $query  = null;
 
     private ?string $order_column = null;
 
@@ -89,7 +89,7 @@ class Relationship
                 return;
             }
 
-            $link = $this->link_query($link_table)->create();
+            $link = $this->new_link_row($link_table);
             $link->set($this->key, $this->parent_key());
             $link->set($this->other_key, $id);
             if ($this->order_column !== null) {
@@ -156,7 +156,7 @@ class Relationship
                 $order++;
                 $row = $existing[$id] ?? null;
                 if ($row === null) {
-                    $row = $this->link_query($link_table)->create();
+                    $row = $this->new_link_row($link_table);
                     $row->set($this->key, $this->parent_key());
                     $row->set($this->other_key, $id);
                 }
@@ -204,9 +204,7 @@ class Relationship
                 unset($row[$id_column]);
 
                 if ($id === null) {
-                    $child = $this->model
-                        ->_relationship_query($this)
-                        ->create();
+                    $child = $this->class::create();
                 } elseif (array_key_exists($id, $existing)) {
                     $child = $existing[$id];
                     unset($existing[$id]);
@@ -262,17 +260,25 @@ class Relationship
         throw new \LogicException("Cannot {$write}: the {$this->kind} relationship has no link table");
     }
 
-    private function link_query(string $link_table): Orm\Wrapper
+    private function link_query(string $link_table): Query
     {
         return Granada::for_table($link_table, $this->connection);
     }
 
-    private function link_row(string $link_table, mixed $id): ?Orm\Wrapper
+    private function link_row(string $link_table, mixed $id): ?ORM
     {
         return $this->link_query($link_table)
             ->where($this->key, $this->parent_key())
             ->where($this->other_key, $id)
             ->find_one();
+    }
+
+    /**
+     * An unsaved link row on the link table's connection.
+     */
+    private function new_link_row(string $link_table): ORM
+    {
+        return ORM::_new_row($link_table, $this->connection ?? ORM::DEFAULT_CONNECTION)->create(null);
     }
 
     /**
@@ -312,7 +318,7 @@ class Relationship
         $this->query ??= $this->model->_relationship_query($this);
         $result = $this->query->$method(...$args);
 
-        if ($result instanceof Orm\Wrapper) {
+        if ($result instanceof Query) {
             $this->filters[]       = [$method, $args];
             $result->_relationship = $this;
         }

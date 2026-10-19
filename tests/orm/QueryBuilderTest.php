@@ -1156,7 +1156,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
 
     public function testInsertData()
     {
-        $widget       = Granada::for_table('widget')->create();
+        $widget       = ORM::_new_row('widget')->create();
         $widget->name = 'Fred';
         $widget->age  = 10;
         $widget->save();
@@ -1166,7 +1166,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
 
     public function testInsertDataContainingAnExpression()
     {
-        $widget       = Granada::for_table('widget')->create();
+        $widget       = ORM::_new_row('widget')->create();
         $widget->name = 'Fred';
         $widget->age  = 10;
         $widget->set_expr('added', 'NOW()');
@@ -1177,7 +1177,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
 
     public function testInsertDataUsingArrayAccess()
     {
-        $widget         = Granada::for_table('widget')->create();
+        $widget         = ORM::_new_row('widget')->create();
         $widget['name'] = 'Fred';
         $widget['age']  = 10;
         $widget->save();
@@ -1187,7 +1187,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
 
     public function testInsertDataWithNull()
     {
-        $widget       = Granada::for_table('widget')->create();
+        $widget       = ORM::_new_row('widget')->create();
         $widget->name = 'Fred';
         $widget->age  = null;
         $widget->save();
@@ -1544,7 +1544,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
 
     public function testTypedClosureReceivesTheQuery()
     {
-        $query = Granada::for_table('widget')->where(function (ORM $q): void {
+        $query = Granada::for_table('widget')->where(function (\Granada\Query $q): void {
             $q->where('age', 18)->where('role', 'admin');
         });
 
@@ -1554,7 +1554,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public function testClosureOnAWrapperWithoutModelClass()
+    public function testClosureOnAModelLessQuery()
     {
         $query = Granada::for_table('widget')->where(function ($q): void {
             $q->where('age', 18);
@@ -1566,7 +1566,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public function testMagicWhereSuffixOnAWrapperWithoutModelClass()
+    public function testMagicWhereSuffixOnAModelLessQuery()
     {
         $query = Granada::for_table('user')
             ->where_last_login_gt('2020-01-01')
@@ -1578,7 +1578,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public function testMagicOrderBySuffixOnAWrapperWithoutModelClass()
+    public function testMagicOrderBySuffixOnAModelLessQuery()
     {
         $query = Granada::for_table('part')->order_by_name_desc();
 
@@ -1588,19 +1588,9 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public function testMagicWithSuffixOnAWrapperWithoutModelClass()
+    public function testMagicWithSuffixOnAModelLessQuery()
     {
         $query = Granada::for_table('widget')->with_user();
-
-        $this->assertSame(
-            'SELECT * FROM `widget`',
-            $query->get_select_query()
-        );
-    }
-
-    public function testFilterOnAWrapperWithoutModelClass()
-    {
-        $query = Granada::for_table('widget')->filter('by_name', 'Fred');
 
         $this->assertSame(
             'SELECT * FROM `widget`',
