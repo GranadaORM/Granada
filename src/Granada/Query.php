@@ -24,11 +24,9 @@ class Query extends Orm\Db
     protected ?string $_class_name = null;
 
     /**
-     * This query's model uses soft-delete
+     * The write rules of this query's model.
      */
-    public bool $_soft_delete = false;
-
-    public string $_soft_delete_column = 'is_deleted';
+    public Orm\WriteRules $_write_rules;
 
     /**
      * The relationship this query was built from,
@@ -43,18 +41,11 @@ class Query extends Orm\Db
     public array $relationships = [];
 
     /**
-     * Whether this query's model writes automatic timestamps.
+     * The related counts and exists flags this query selects, as the
+     * alias each is stored under: {relation}_count or {relation}_exists.
+     * @var array<string, Orm\RelatedCount>
      */
-    public bool $_auto_timestamps = false;
-
-    /** @var array{created: string, updated: string} */
-    public array $_auto_timestamp_columns = [
-        'created' => 'created_at',
-        'updated' => 'updated_at',
-    ];
-
-    /** @var string[] */
-    public array $_auto_timestamps_ignore = [];
+    public array $related_counts = [];
 
     // Alias for the table to be used in SELECT queries
     protected ?string $_table_alias = null;
@@ -261,21 +252,14 @@ class Query extends Orm\Db
         $this->_class_name    = $model_class;
         $this->resultSetClass = $model_class::$resultSetClass;
         $this->use_id_column(Granada::_get_id_column_name($model_class));
-        $this->_soft_delete            = Granada::_get_static_property($model_class, '_soft_delete', false);
-        $this->_soft_delete_column     = Granada::_get_static_property($model_class, '_soft_delete_column', 'is_deleted');
-        $this->_auto_timestamps        = Granada::_get_static_property($model_class, '_auto_timestamps', false);
-        $this->_auto_timestamp_columns = Granada::_get_static_property($model_class, '_auto_timestamp_columns', [
-            'created' => 'created_at',
-            'updated' => 'updated_at',
-        ]);
-        $this->_auto_timestamps_ignore = Granada::_get_static_property($model_class, '_auto_timestamps_ignore', []);
+        $this->_write_rules = $model_class::_write_rules();
 
         if (!$apply_model_filter) {
             return $this;
         }
 
-        if ($this->_soft_delete) {
-            $this->where($this->_table_name . '.' . $this->_soft_delete_column, 0);
+        if ($this->_write_rules->soft_delete_column !== null) {
+            $this->where($this->_table_name . '.' . $this->_write_rules->soft_delete_column, 0);
         }
 
         return $this->defaultFilter();
@@ -314,8 +298,8 @@ class Query extends Orm\Db
      */
     public function __construct(string $table_name, string $connection_name = self::DEFAULT_CONNECTION)
     {
-        $this->_table_name = $table_name;
-
+        $this->_table_name      = $table_name;
+        $this->_write_rules     = new Orm\WriteRules();
         $this->_connection_name = $connection_name;
 
         // Set the flag as config dictates
@@ -602,7 +586,8 @@ class Query extends Orm\Db
         // as where() does.
         $id_query = clone $this;
         $id_query->clear_select();
-        $id_pass_column = $id_column;
+        $id_query->related_counts = [];
+        $id_pass_column           = $id_column;
         if ($this->_join_sources !== []) {
             $id_pass_column = ($this->_table_alias ?? $this->_table_name) . '.' . $id_column;
         }
@@ -621,7 +606,8 @@ class Query extends Orm\Db
 
         foreach (array_chunk($ids, $chunk_size) as $chunk_ids) {
             // Each chunk's rows load by id from the table alone.
-            $query = static::_for_table($this->_table_name, $this->_connection_name);
+            $query                 = static::_for_table($this->_table_name, $this->_connection_name);
+            $query->related_counts = $this->related_counts;
             if ($this->_table_alias !== null) {
                 $query->table_alias($this->_table_alias);
             }
@@ -827,9 +813,12 @@ class Query extends Orm\Db
     {
         $alias                 = strtolower($sql_function);
         $result_columns        = $this->_result_columns;
+        $related_counts        = $this->related_counts;
         $this->_result_columns = [new Orm\Aggregate(strtoupper($sql_function), $column, $alias)];
+        $this->related_counts  = [];
         $result                = $this->find_one();
         $this->_result_columns = $result_columns;
+        $this->related_counts  = $related_counts;
 
         $return_value = 0;
         if ($result !== null && isset($result->$alias)) {
@@ -864,13 +853,14 @@ class Query extends Orm\Db
     }
 
     /**
-     * Flag every matching row instead of deleting it, on a model with
-     * soft deletes. `$target` names the table or alias the hard delete
-     * removes from in the join form.
+     * Flag every matching row instead of deleting it, on a model that
+     * names $_soft_delete_column. `$target` names the table or alias the
+     * hard delete removes from in the join form.
      */
     public function delete_many(string $target = ''): ?bool
     {
-        if (!$this->_soft_delete) {
+        $flag = $this->_write_rules->soft_delete_column;
+        if ($flag === null) {
             $statement = Renderer::delete_many($this->_bulk_delete_spec($target));
 
             return self::_execute_write($statement->query, $statement->values, $this->_connection_name);
@@ -880,10 +870,8 @@ class Query extends Orm\Db
             throw new \InvalidArgumentException('delete_many() on a soft-delete model does not support joined queries');
         }
 
-        $set = [$this->_soft_delete_column => 1];
-        if ($this->_auto_timestamps) {
-            $set[$this->_auto_timestamp_columns['updated']] = gmdate('Y-m-d H:i:s');
-        }
+        $set = [$flag => 1];
+        $set += $this->_write_rules->stamp($set, false);
 
         $statement = Renderer::update_many(new BulkUpdateSpec(
             table_name: $this->_table_name,
@@ -915,18 +903,7 @@ class Query extends Orm\Db
             $values = (new $this->_class_name())->_convert_update_values($values);
         }
 
-        if ($this->_auto_timestamps) {
-            $updated = $this->_auto_timestamp_columns['updated'];
-            foreach (array_keys($values) as $column) {
-                if (in_array($column, $this->_auto_timestamps_ignore, true)) {
-                    continue;
-                }
-                if (!isset($values[$updated])) {
-                    $values[$updated] = gmdate('Y-m-d H:i:s');
-                }
-                break;
-            }
-        }
+        $values += $this->_write_rules->stamp($values, false);
 
         $statement = Renderer::update_many(new BulkUpdateSpec(
             table_name: $this->_table_name,
@@ -1889,6 +1866,178 @@ class Query extends Orm\Db
     }
 
     /**
+     * Keep only the rows with a related row matching the conditions.
+     * The paired relationship is matched by EXISTS, so each row stays
+     * one row.
+     *
+     * $conditions is one of:
+     * - null, to match any related row;
+     * - an array of column => value pairs, ANDed together, where a null
+     *   value becomes IS NULL the way where() treats it;
+     * - a closure receiving the related model's query.
+     *
+     * $count keeps only rows with at least that many matching related
+     * rows.
+     *
+     * @param array<string, mixed>|Closure|null $conditions
+     */
+    public function where_has(string $relation, null|array|Closure $conditions = null, ?int $count = null): static
+    {
+        $relationship = $this->_existence_relationship($relation, 'where_has');
+        $subquery     = $this->_correlated_relationship_query($relationship, $conditions);
+
+        if ($count === null) {
+            [$sql, $values] = $this->_subquery_statement($subquery, '1');
+
+            return $this->_add_where_condition(Orm\Condition::exists($sql, $values));
+        }
+
+        [$sql, $values] = $this->_subquery_statement($subquery, 'COUNT(*)');
+
+        // The threshold is a caller-supplied int, inlined so the
+        // comparison is numeric on every dialect.
+        return $this->_add_where_condition(Orm\Condition::raw('( ' . $sql . ' ) >= ' . $count, $values));
+    }
+
+    /**
+     * Keep only the rows with no related row matching the conditions.
+     * $conditions takes the same three forms as where_has().
+     *
+     * @param array<string, mixed>|Closure|null $conditions
+     */
+    public function where_not_has(string $relation, null|array|Closure $conditions = null): static
+    {
+        $relationship   = $this->_existence_relationship($relation, 'where_not_has');
+        $subquery       = $this->_correlated_relationship_query($relationship, $conditions);
+        [$sql, $values] = $this->_subquery_statement($subquery, '1');
+
+        return $this->_add_where_condition(Orm\Condition::exists($sql, $values, negate: true));
+    }
+
+    /**
+     * Count the related rows on each row, without loading them.
+     * The count is stored on the model as {relation}_count. $constraint
+     * takes the same three forms as where_has()'s conditions.
+     *
+     * @param array<string, mixed>|Closure|null $constraint
+     */
+    public function with_count(string $relation, null|array|Closure $constraint = null): static
+    {
+        return $this->_add_related_count($relation, $constraint, false);
+    }
+
+    /**
+     * Record whether each row has a related row, without loading it.
+     * The boolean is stored on the model as {relation}_exists. $constraint
+     * takes the same three forms as where_has()'s conditions.
+     *
+     * @param array<string, mixed>|Closure|null $constraint
+     */
+    public function with_exists(string $relation, null|array|Closure $constraint = null): static
+    {
+        return $this->_add_related_count($relation, $constraint, true);
+    }
+
+    /**
+     * @param array<string, mixed>|Closure|null $constraint
+     */
+    private function _add_related_count(string $relation, null|array|Closure $constraint, bool $exists): static
+    {
+        $method         = $exists ? 'with_exists' : 'with_count';
+        $relationship   = $this->_existence_relationship($relation, $method);
+        $subquery       = $this->_correlated_relationship_query($relationship, $constraint);
+        [$sql, $values] = $this->_subquery_statement($subquery, $exists ? '1' : 'COUNT(*)');
+
+        $alias                        = $relation . ($exists ? '_exists' : '_count');
+        $this->related_counts[$alias] = new Orm\RelatedCount($alias, $sql, $values, $exists);
+
+        return $this;
+    }
+
+    /**
+     * A related query as a scalar subquery: its select list becomes the
+     * one expression, so a relationship's own select() does not leak a
+     * second column into it.
+     *
+     * @return array{string, mixed[]}
+     */
+    private function _subquery_statement(self $subquery, string $select): array
+    {
+        $subquery->clear_select();
+        $subquery->select_expr($select);
+        $sql = $subquery->_build_select();
+
+        return [$sql, $subquery->_values];
+    }
+
+    /**
+     * The relationship an existence filter or related count names,
+     * read from a fresh instance of this query's model.
+     */
+    private function _existence_relationship(string $relation, string $method): Relationship
+    {
+        if ($this->_class_name === null) {
+            throw new \LogicException("Cannot {$method}(): the query has no model to read the {$relation} relationship from");
+        }
+
+        $model        = Granada::_new_model_row($this->_class_name);
+        $relationship = $model->_relationship($relation);
+        if ($relationship === null) {
+            throw new \LogicException("Cannot {$method}(): {$this->_class_name} has no {$relation} relationship");
+        }
+        if ($relationship->kind === 'has_many_through') {
+            throw new \LogicException("Cannot {$method}(): the {$relation} relationship is a has_many_through; existence filters and related counts do not support it");
+        }
+
+        return $relationship;
+    }
+
+    /**
+     * The related query an existence filter or related count runs on:
+     * the relationship's own query, correlated to this query's table.
+     * $conditions filter it as where_has() received them.
+     *
+     * @param array<string, mixed>|Closure|null $conditions
+     */
+    private function _correlated_relationship_query(Relationship $relationship, null|array|Closure $conditions): Query
+    {
+        $related = Granada::_related_query($relationship);
+        // A scalar subquery needs no ordering, and a relation's own
+        // order_by would make SQL Server reject it.
+        $related->order_by_clear();
+
+        [$related_column, $outer_column] = match ($relationship->kind) {
+            'belongs_to' => [$relationship->related_key, $relationship->key],
+            default      => [$relationship->key, $relationship->local_key ?? $this->_get_id_column_name()],
+        };
+
+        $related_table = Granada::_get_table_name($relationship->class);
+        $outer_table   = $this->_table_alias ?? $this->_table_name;
+
+        $related->where_raw(
+            $this->_quote_identifier($related_table . '.' . $related_column)
+            . ' = '
+            . $this->_quote_identifier($outer_table . '.' . $outer_column)
+        );
+
+        if ($conditions === null) {
+            return $related;
+        }
+
+        if ($conditions instanceof Closure) {
+            $conditions($related);
+
+            return $related;
+        }
+
+        foreach ($conditions as $column => $value) {
+            $related->where($column, $value);
+        }
+
+        return $related;
+    }
+
+    /**
      * Add a LIMIT to the query
      */
     public function limit(?int $limit): static
@@ -2226,6 +2375,7 @@ class Query extends Orm\Db
             table_alias: $this->_table_alias,
             result_columns: $this->_result_columns,
             join_sources: $this->_join_sources,
+            related_counts: array_values($this->related_counts),
             distinct: $this->_distinct,
             where_conditions: $this->_where_conditions,
             having_conditions: $this->_having_conditions,
@@ -2320,6 +2470,15 @@ class Query extends Orm\Db
         // Handle where_*
         if (str_starts_with($method, 'or_where_')) {
             return $this->_handle_where_method('where_' . substr($method, 9), $parameters, Orm\ConnectedBy::Or);
+        }
+
+        // Handle where_has_* / where_not_has_* relationship methods
+        if (str_starts_with($method, 'where_not_has_')) {
+            return $this->where_not_has(substr($method, 14), $parameters[0] ?? null);
+        }
+
+        if (str_starts_with($method, 'where_has_')) {
+            return $this->where_has(substr($method, 10), $parameters[0] ?? null, $parameters[1] ?? null);
         }
 
         if (str_starts_with($method, 'where_')) {

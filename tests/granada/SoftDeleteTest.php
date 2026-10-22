@@ -5,8 +5,8 @@ use Granada\LazyItemCache;
 use Granada\ORM;
 
 /**
- * Soft deletes: a model with $_soft_delete set makes delete() keep the
- * row and hide it, and its queries leave soft-deleted rows out.
+ * Soft deletes: a model that names $_soft_delete_column makes delete() keep
+ * the row and hide it, and its queries leave soft-deleted rows out.
  */
 class SoftDeleteTest extends \PHPUnit\Framework\TestCase
 {

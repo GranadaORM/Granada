@@ -191,7 +191,7 @@ class Relationship
             // Soft-delete hiding is off so a flagged child listed again
             // is matched rather than duplicated.
             $children         = $this->model->_relationship_query($this, hide_soft_deleted: false);
-            $soft_delete_flag = $children->_soft_delete ? $children->_soft_delete_column : null;
+            $soft_delete_flag = $children->_write_rules->soft_delete_column;
 
             $existing = [];
             foreach ($children->find_many() as $child) {

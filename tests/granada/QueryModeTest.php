@@ -77,7 +77,7 @@ class QueryModeTest extends \PHPUnit\Framework\TestCase
         ));
         $this->assertSame(BaseQueryResolutionBaseOnly::class, $lazy_query::class);
 
-        $eager_query = Granada::_eager_relationship_query(new \Granada\Relationship(
+        $eager_query = Granada::_related_query(new \Granada\Relationship(
             $gadget,
             'has_many',
             ResolutionBaseOnly::class,

@@ -62,16 +62,9 @@ class Granada implements ArrayAccess
     public const DEFAULT_FOREIGN_KEY_SUFFIX = '_id';
 
     /**
-     * Set on a model to make delete() flag rows instead of removing
-     * them. Flagged rows drop out of finds, counts, and relationship
-     * queries for that model.
+     * Set _soft_delete_column to enable soft deletes.
      */
-    protected static bool $_soft_delete = false;
-
-    /**
-     * The column the soft-delete flag is written to.
-     */
-    protected static string $_soft_delete_column = 'is_deleted';
+    protected static ?string $_soft_delete_column = null;
 
     /**
      * Set on a model to write created_at and updated_at in UTC on every
@@ -283,6 +276,25 @@ class Granada implements ArrayAccess
     }
 
     /**
+     * A new, unsaved row for an already-resolved model class name,
+     * with its ORM attached. Unlike create(), it does not re-apply
+     * $auto_prefix_models.
+     *
+     * @internal
+     */
+    public static function _new_model_row(string $model_class): Granada
+    {
+        $model = new $model_class();
+        $model->set_orm(ORM::_new_row(
+            self::_get_table_name($model_class),
+            self::_get_static_property($model_class, '_connection_name', ORM::DEFAULT_CONNECTION),
+            self::_get_id_column_name($model_class),
+        )->create(null));
+
+        return $model;
+    }
+
+    /**
      * Build the query that loads a relationship for this model. Set
      * $hide_soft_deleted false to keep rows the soft-delete flag would
      * hide, as sync does so it can match a flagged child.
@@ -320,10 +332,12 @@ class Granada implements ArrayAccess
     }
 
     /**
-     * Build the query that eager-loads a relationship. It has no
-     * per-parent condition; the eager loader adds those.
+     * The related model's query with its soft-delete hiding, its
+     * default filter, and the relationship's own filters, without a
+     * condition on the parent. Eager loading and existence filters both
+     * start from it and add their own parent condition.
      */
-    public static function _eager_relationship_query(Relationship $relationship): Query
+    public static function _related_query(Relationship $relationship): Query
     {
         return self::_finish_relationship_query(
             Query::_for_model($relationship->class, $relationship->connection, apply_model_filter: false),
@@ -338,8 +352,8 @@ class Granada implements ArrayAccess
      */
     private static function _finish_relationship_query(Query $query, Relationship $relationship, bool $hide_soft_deleted = true): Query
     {
-        if ($hide_soft_deleted && $query->_soft_delete) {
-            $query->where(self::_get_table_name($relationship->class) . '.' . $query->_soft_delete_column, 0);
+        if ($hide_soft_deleted && $query->_write_rules->soft_delete_column !== null) {
+            $query->where(self::_get_table_name($relationship->class) . '.' . $query->_write_rules->soft_delete_column, 0);
         }
         $query->defaultFilter();
 
@@ -518,10 +532,21 @@ class Granada implements ArrayAccess
      */
     public function set_orm(ORM $orm): void
     {
-        $orm->_auto_timestamps        = static::$_auto_timestamps;
-        $orm->_auto_timestamp_columns = static::$_auto_timestamp_columns;
-        $orm->_auto_timestamps_ignore = static::$_auto_timestamps_ignore;
-        $this->orm                    = $orm;
+        $orm->_write_rules = static::_write_rules();
+        $this->orm         = $orm;
+    }
+
+    /**
+     * @internal
+     */
+    public static function _write_rules(): Orm\WriteRules
+    {
+        return new Orm\WriteRules(
+            soft_delete_column: static::$_soft_delete_column,
+            created: static::$_auto_timestamps ? static::$_auto_timestamp_columns['created'] : null,
+            updated: static::$_auto_timestamps ? static::$_auto_timestamp_columns['updated'] : null,
+            ignored: static::$_auto_timestamps_ignore,
+        );
     }
 
     /**
@@ -842,16 +867,13 @@ class Granada implements ArrayAccess
 
     /**
      * Delete the database row associated with this model instance.
-     * On a model with $_soft_delete set, writes the flag and keeps
-     * the row; delete_forced() removes it.
+     * On a model that names $_soft_delete_column, writes the flag and
+     * keeps the row; delete_forced() removes it.
      */
     public function delete(): ?bool
     {
-        if (static::$_soft_delete) {
-            return $this->_write_soft_delete_flag(true);
-        }
-
-        return $this->delete_forced();
+        // If the model has no soft delete, we force delete
+        return $this->_write_soft_delete_flag(true) ?? $this->delete_forced();
     }
 
     /**
@@ -867,18 +889,23 @@ class Granada implements ArrayAccess
      */
     public function restore(): ?bool
     {
-        if (!static::$_soft_delete) {
-            return false;
-        }
-
-        return $this->_write_soft_delete_flag(false);
+        return $this->_write_soft_delete_flag(false) ?? false;
     }
 
     /**
      * Set or clear the soft-delete flag on this row and save.
+     * Returns null when the model has no soft deletes, so delete() can
+     * fall through to a real delete.
      */
     private function _write_soft_delete_flag(bool $deleted): ?bool
     {
+        $column = $this->orm
+            ->_write_rules
+            ->soft_delete_column;
+        if ($column === null) {
+            return null;
+        }
+
         if ($this->is_new()) {
             return true;
         }
@@ -887,7 +914,7 @@ class Granada implements ArrayAccess
             return true;
         }
 
-        $this->{static::$_soft_delete_column} = $deleted ? 1 : 0;
+        $this->$column = $deleted ? 1 : 0;
 
         return $this->save();
     }
@@ -953,6 +980,27 @@ class Granada implements ArrayAccess
     }
 
     /**
+     * The relationship a relation method such as widgets() declares, or
+     * null when the method is absent or does not return one. Chained
+     * calls return the query, with the relationship attached.
+     *
+     * @internal
+     */
+    public function _relationship(string $relation): ?Relationship
+    {
+        if (!method_exists($this, $relation)) {
+            return null;
+        }
+
+        $result = $this->$relation();
+        if ($result instanceof Query) {
+            $result = $result->_relationship;
+        }
+
+        return $result instanceof Relationship ? $result : null;
+    }
+
+    /**
      * The relationship and write a method such as attach_roles names.
      * Any other name gives [null, null].
      *
@@ -969,16 +1017,8 @@ class Granada implements ArrayAccess
                 continue;
             }
 
-            $relation = substr($method, strlen($prefix));
-            if (!method_exists($this, $relation)) {
-                return [null, null];
-            }
-
-            $relationship = $this->$relation();
-            if ($relationship instanceof Query) {
-                $relationship = $relationship->_relationship;
-            }
-            if (!$relationship instanceof Relationship) {
+            $relationship = $this->_relationship(substr($method, strlen($prefix)));
+            if ($relationship === null) {
                 return [null, null];
             }
 

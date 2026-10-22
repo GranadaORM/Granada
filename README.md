@@ -6,6 +6,8 @@
 
 Granada is a easy to use Active Record implementation, and ORM based on Idiorm/Paris.
 
+Upgrading from 6.x? Read [the upgrading guide](docs/upgrading-to-7.md).
+
 ## A quick view
 
 ```php

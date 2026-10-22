@@ -253,9 +253,7 @@ class BookThree extends Model
  */
 class Gadget extends Model
 {
-    protected static bool $_soft_delete = true;
-
-    protected static string $_soft_delete_column = 'hidden';
+    protected static ?string $_soft_delete_column = 'hidden';
 
     public function widgets()
     {
@@ -270,6 +268,15 @@ class Gadget extends Model
     public function featured()
     {
         return $this->has_one('Widget');
+    }
+
+    /**
+     * A relation with its own select(), so a related-count subquery
+     * must ignore that select list.
+     */
+    public function picked_widgets()
+    {
+        return $this->has_many('Widget')->select('widget.id');
     }
 }
 
@@ -457,7 +464,7 @@ class CrateItem extends Model {}
 
 class CrateExtra extends Model
 {
-    protected static bool $_soft_delete = true;
+    protected static ?string $_soft_delete_column = 'is_deleted';
 }
 
 /**
@@ -514,7 +521,22 @@ class StampedSoft extends Model
 {
     public static $_table = 'stamped_soft';
 
-    protected static bool $_soft_delete = true;
+    protected static ?string $_soft_delete_column = 'is_deleted';
 
     protected static bool $_auto_timestamps = true;
+}
+
+/**
+ * Its ignore list names the soft-delete flag, so marking a row writes
+ * no timestamp.
+ */
+class StampedSoftIgnored extends Model
+{
+    public static $_table = 'stamped_soft_ignored';
+
+    protected static ?string $_soft_delete_column = 'is_deleted';
+
+    protected static bool $_auto_timestamps = true;
+
+    protected static array $_auto_timestamps_ignore = ['is_deleted'];
 }

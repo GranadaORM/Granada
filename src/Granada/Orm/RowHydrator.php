@@ -84,6 +84,8 @@ class RowHydrator
             }
         }
 
+        $this->place_related_counts($query, $instances);
+
         return Eager::hydrate($query, $instances, $return_result_set);
     }
 
@@ -102,9 +104,39 @@ class RowHydrator
 
         $key     = ($this->associative_results && $this->id_column !== null) ? ($instance->id() ?? '') : 0;
         $results = [$key => $instance];
+        $this->place_related_counts($query, $results);
         Eager::hydrate($query, $results, $return_result_set);
 
         return $results[$key];
+    }
+
+    /**
+     * Move each related count out of the row data and onto the model's
+     * relationships, as a set value the way eager loads are stored.
+     * The value reads back from the alias, {relation}_count or
+     * {relation}_exists.
+     *
+     * @param array<int|string, ORM|Granada>|ResultSet $instances
+     */
+    private function place_related_counts(\Granada\Query $query, array|ResultSet $instances): void
+    {
+        if ($query->related_counts === []) {
+            return;
+        }
+
+        foreach ($instances as $instance) {
+            $data = $instance->as_array();
+            foreach ($query->related_counts as $alias => $related_count) {
+                if (!array_key_exists($alias, $data)) {
+                    continue;
+                }
+
+                $instance->offsetUnset($alias);
+                $instance->relationships[$alias] = $related_count->exists
+                    ? (bool) $data[$alias]
+                    : (int) $data[$alias];
+            }
+        }
     }
 
     /**
