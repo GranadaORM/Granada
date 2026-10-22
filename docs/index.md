@@ -590,24 +590,13 @@ $count = Car::q()->count();
 
 ## Soft deletes
 
-Setting `$_soft_delete` on a model makes `delete()` soft-delete the row instead of removing it.
+Setting `$_soft_delete_column` on a model makes `delete()` soft-delete the row instead of removing it.
 Soft-deleted rows drop out of finds, counts, and relationship queries for that model.
 
 ```php
 class Car extends Model
 {
-    protected static bool $_soft_delete = true;
-}
-```
-
-The flag column defaults to `is_deleted`.
-Set `$_soft_delete_column` to use another column.
-
-```php
-class Car extends Model
-{
-    protected static bool $_soft_delete = true;
-    protected static string $_soft_delete_column = 'deleted';
+    protected static ?string $_soft_delete_column = 'is_deleted';
 }
 ```
 
@@ -807,6 +796,94 @@ $entry->ordered_extras()->sync([['name' => 'A'], ['name' => 'B']]); // positions
 ```
 
 A model's `save()` never writes children; the call is always explicit.
+
+## Existence filters and related counts
+
+Filter rows by their related rows, or keep a related count on each row, without loading them.
+
+### Filtering by related rows
+
+`where_has()` keeps the rows that have at least one related row matching.
+Pass the relationship method name.
+The relationship is `has_one`, `has_many` or `belongs_to`.
+
+```php
+$users = User::q()->where_has('invoices')->find_many();
+// SELECT * FROM `user` WHERE EXISTS ( SELECT 1 FROM `invoice` WHERE `invoice`.`user_id` = `user`.`id` )
+```
+
+Filter the related rows with an array of column => value pairs.
+A null value becomes `IS NULL`.
+
+```php
+$users = User::q()->where_has('invoices', ['is_paid' => 0])->find_many();
+// SELECT * FROM `user` WHERE EXISTS ( SELECT 1 FROM `invoice` WHERE `invoice`.`user_id` = `user`.`id` AND `is_paid` = '0' )
+```
+
+Or filter them with a closure.
+It receives the related model's query, so type it as the related query class - `QueryInvoice` for the `Invoice` model - or as the base `Granada\Query`.
+
+```php
+$users = User::q()->where_has('invoices', function (QueryInvoice $query) {
+    $query->where('is_paid', 0)->where_gt('amount', 100);
+})->find_many();
+```
+
+`where_not_has()` keeps the rows with none.
+
+```php
+$users = User::q()->where_not_has('invoices')->find_many();
+// SELECT * FROM `user` WHERE NOT EXISTS ( SELECT 1 FROM `invoice` WHERE `invoice`.`user_id` = `user`.`id` )
+```
+
+Naming the relationship in the method gives `where_has_{relation}()` and `where_not_has_{relation}()`.
+
+```php
+$users = User::q()->where_has_invoices()->find_many();
+$users = User::q()->where_not_has_invoices(['is_paid' => 0])->find_many();
+```
+
+A row that matches appears once, whatever the number of related rows, so `count()`, `limit()` and `offset()` include it once.
+
+### Keeping rows with at least N related rows
+
+Pass `count` to keep only rows with at least that many matching related rows.
+
+```php
+$users = User::q()->where_has('invoices', count: 3)->find_many();
+// SELECT * FROM `user` WHERE ( SELECT COUNT(*) FROM `invoice` WHERE `invoice`.`user_id` = `user`.`id` ) >= 3
+```
+
+### Keeping a related count on each row
+
+`with_count()` gives each row the number of its related rows, on the model as `{relation}_count`.
+The count is read in the one find query, so the related rows are never loaded.
+
+```php
+foreach (User::q()->with_count('invoices')->find_many() as $user) {
+    echo $user->invoices_count; // the count, as an integer
+}
+// SELECT *, ( SELECT COUNT(*) FROM `invoice` WHERE `invoice`.`user_id` = `user`.`id` ) AS `invoices_count` FROM `user`
+```
+
+`with_exists()` puts a boolean on `{relation}_exists`.
+
+```php
+foreach (User::q()->with_exists('invoices')->find_many() as $user) {
+    echo $user->invoices_exists ? 'has invoices' : 'none'; // a boolean
+}
+```
+
+Both take the same array or closure as `where_has()` to filter what is counted.
+
+```php
+$users = User::q()->with_count('invoices', ['is_paid' => 0])->find_many();
+```
+
+The count is a set value on the model's relationships, so `clear_computed_values()` keeps it.
+
+Existence filters and related counts cover `has_one`, `has_many` and `belongs_to`.
+A `has_many_through` relationship is not supported yet and throws.
 
 ## Property Access Methods
 

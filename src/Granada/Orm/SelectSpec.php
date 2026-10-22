@@ -15,6 +15,8 @@ class SelectSpec
         public readonly array $result_columns = ['*'],
         /** @var JoinSource[]|string[] */
         public readonly array $join_sources = [],
+        /** @var RelatedCount[] */
+        public readonly array $related_counts = [],
         public readonly bool $distinct = false,
         /** @var Condition[] */
         public readonly array $where_conditions = [],

@@ -294,6 +294,32 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
         $this->assertTrue($this->isUtcNow($raw['updated_at']), "updated_at was {$raw['updated_at']}");
     }
 
+    public function testASoftDeleteThatIgnoresTheFlagWritesNoUpdatedAt()
+    {
+        $a = StampedSoftIgnored::create([
+            'name'       => 'a',
+            'updated_at' => '2001-02-03 04:05:06',
+        ]);
+        $a->save();
+
+        $a->delete();
+        $raw = $this->raw('stamped_soft_ignored', $a->id);
+        $this->assertSame(1, (int) $raw['is_deleted']);
+        $this->assertSame('2001-02-03 04:05:06', $raw['updated_at']);
+
+        $a->restore();
+        $raw = $this->raw('stamped_soft_ignored', $a->id);
+        $this->assertSame(0, (int) $raw['is_deleted']);
+        $this->assertSame('2001-02-03 04:05:06', $raw['updated_at']);
+
+        StampedSoftIgnored::q()
+            ->where('id', $a->id)
+            ->delete_many();
+        $raw = $this->raw('stamped_soft_ignored', $a->id);
+        $this->assertSame(1, (int) $raw['is_deleted']);
+        $this->assertSame('2001-02-03 04:05:06', $raw['updated_at']);
+    }
+
     public function testBulkInsertWritesTimestamps()
     {
         Stamped::q()->insert([

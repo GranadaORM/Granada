@@ -28,13 +28,23 @@ class Renderer
             self::offset($spec),
         ]);
 
-        return new Statement($sql, array_merge($where->values, $having->values));
+        return new Statement($sql, array_merge(
+            self::related_count_values($spec->related_counts),
+            $where->values,
+            $having->values
+        ));
     }
 
     private static function select_start(SelectSpec $spec): string
     {
         $fragment       = 'SELECT ';
-        $result_columns = implode(', ', self::result_columns($spec));
+        $result_columns = self::result_columns($spec);
+
+        foreach ($spec->related_counts as $related_count) {
+            $result_columns[] = self::related_count_column($related_count, $spec->dialect);
+        }
+
+        $result_columns = implode(', ', $result_columns);
 
         $fragment .= $spec->dialect->select_top_fragment($spec->limit);
 
@@ -49,6 +59,36 @@ class Renderer
         }
 
         return $fragment;
+    }
+
+    /**
+     * The correlated subquery behind a related count or exists column.
+     * The subquery arrives quoted and correlated; only the alias is
+     * quoted here.
+     */
+    private static function related_count_column(RelatedCount $related_count, Dialect $dialect): string
+    {
+        $subquery = $related_count->exists
+            ? "EXISTS ( {$related_count->subquery} )"
+            : "( {$related_count->subquery} )";
+
+        return $subquery . ' AS ' . $dialect->quote_identifier($related_count->alias);
+    }
+
+    /**
+     * The bound values of the related count subqueries, in the order
+     * their placeholders appear in the SELECT list.
+     * @param RelatedCount[] $related_counts
+     * @return mixed[]
+     */
+    private static function related_count_values(array $related_counts): array
+    {
+        $values = [];
+        foreach ($related_counts as $related_count) {
+            $values = array_merge($values, $related_count->values);
+        }
+
+        return $values;
     }
 
     /**

@@ -167,6 +167,14 @@ CREATE TABLE stamped_soft (
     updated_at TEXT
 );
 
+CREATE TABLE stamped_soft_ignored (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    is_deleted INTEGER DEFAULT 0,
+    created_at TEXT,
+    updated_at TEXT
+);
+
 CREATE TABLE unstamped (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,

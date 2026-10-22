@@ -86,18 +86,9 @@ class ORM extends Orm\Db implements ArrayAccess
     protected bool $_is_new = false;
 
     /**
-     * Whether this row's model writes automatic timestamps.
+     * The write rules of this row's model.
      */
-    public bool $_auto_timestamps = false;
-
-    /** @var array{created: string, updated: string} */
-    public array $_auto_timestamp_columns = [
-        'created' => 'created_at',
-        'updated' => 'updated_at',
-    ];
-
-    /** @var string[] */
-    public array $_auto_timestamps_ignore = [];
+    public Orm\WriteRules $_write_rules;
 
     // ---------------------- //
     // --- STATIC METHODS --- //
@@ -127,10 +118,10 @@ class ORM extends Orm\Db implements ArrayAccess
      */
     protected function __construct(string $table_name, array $data = [], string $connection_name = self::DEFAULT_CONNECTION)
     {
-        $this->_table_name = $table_name;
-        $this->_data       = $data;
-        $this->_clean_data = [];
-
+        $this->_table_name      = $table_name;
+        $this->_data            = $data;
+        $this->_clean_data      = [];
+        $this->_write_rules     = new Orm\WriteRules();
         $this->_connection_name = $connection_name;
     }
 
@@ -418,38 +409,10 @@ class ORM extends Orm\Db implements ArrayAccess
      */
     protected function _apply_auto_timestamps(): void
     {
-        if (!$this->_auto_timestamps) {
-            return;
-        }
-
-        $now     = gmdate('Y-m-d H:i:s');
-        $created = $this->_auto_timestamp_columns['created'];
-        $updated = $this->_auto_timestamp_columns['updated'];
-
-        if ($this->_is_new) {
-            if (!isset($this->_data[$created])) {
-                $this->_dirty_fields[$created] = $now;
-                $this->_data[$created]         = $now;
-            }
-            if (!isset($this->_data[$updated])) {
-                $this->_dirty_fields[$updated] = $now;
-                $this->_data[$updated]         = $now;
-            }
-
-            return;
-        }
-
-        foreach (array_keys($this->_dirty_fields + $this->_expr_fields) as $field) {
-            if (in_array($field, $this->_auto_timestamps_ignore, true)) {
-                continue;
-            }
-
-            if (!isset($this->_dirty_fields[$updated])) {
-                $this->_dirty_fields[$updated] = $now;
-                $this->_data[$updated]         = $now;
-            }
-
-            return;
+        $stamped = $this->_write_rules->stamp($this->_dirty_fields + $this->_expr_fields, $this->_is_new);
+        foreach ($stamped as $column => $value) {
+            $this->_dirty_fields[$column] = $value;
+            $this->_data[$column]         = $value;
         }
     }
 

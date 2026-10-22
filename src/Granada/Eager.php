@@ -131,7 +131,7 @@ class Eager
      */
     private static function eagerly(Relationship $relationship, array|ResultSet &$parents, array $include, bool $return_result_set): void
     {
-        $query = Granada::_eager_relationship_query($relationship);
+        $query = Granada::_related_query($relationship);
 
         if ($include['query'] instanceof \Closure) {
             // Might have non-standard selects, we need to clear them to set a limited subset

@@ -10,6 +10,7 @@ use Granada\Orm\ConnectedBy;
 use Granada\Orm\Dialect;
 use Granada\Orm\Expression;
 use Granada\Orm\JoinSource;
+use Granada\Orm\RelatedCount;
 use Granada\Orm\Renderer;
 use Granada\Orm\SelectSpec;
 use Granada\Orm\Term;
@@ -248,6 +249,28 @@ class RendererTest extends \PHPUnit\Framework\TestCase
             $statement->query
         );
         $this->assertSame(['a'], $statement->values);
+    }
+
+    public function testSelectRendersRelatedCountColumnsAndBindsTheirValuesFirst()
+    {
+        $spec = $this->selectSpec([
+            'related_counts' => [
+                new RelatedCount('comments_count', 'SELECT COUNT(*) FROM `comment` WHERE `comment`.`approved` = ?', [1], false),
+                new RelatedCount('tags_exists', 'SELECT 1 FROM `tag` WHERE `tag`.`name` = ?', ['news'], true),
+            ],
+            'where_conditions' => [Condition::compare('name', '=', 'fred')],
+        ]);
+
+        $statement = Renderer::select($spec);
+
+        $this->assertSame(
+            'SELECT *, ( SELECT COUNT(*) FROM `comment` WHERE `comment`.`approved` = ? ) AS `comments_count`'
+            . ', EXISTS ( SELECT 1 FROM `tag` WHERE `tag`.`name` = ? ) AS `tags_exists`'
+            . ' FROM `person` WHERE `name` = ?',
+            $statement->query
+        );
+        // SELECT-list placeholders bind before the WHERE placeholder.
+        $this->assertSame([1, 'news', 'fred'], $statement->values);
     }
 
     public function testDoubleQuoteIdentifiersWhenConfigured()
