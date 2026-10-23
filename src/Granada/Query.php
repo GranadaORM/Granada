@@ -106,109 +106,142 @@ class Query extends Orm\Db
     // associative results flag
     protected bool $_associative_results = true;
 
-    /** @var array<string, array{length: int, method: string, timezone: bool}> */
-    private static array $_where_suffixes = [
-        '_not_in_or_null' => [
-            'length'   => 15,
-            'method'   => 'where_not_in_or_null',
-            'timezone' => false,
-        ],
-        '_lte_or_null' => [
-            'length'   => 12,
-            'method'   => 'where_lte_or_null',
-            'timezone' => true,
-        ],
-        '_gte_or_null' => [
-            'length'   => 12,
-            'method'   => 'where_gte_or_null',
-            'timezone' => true,
-        ],
-        '_lt_or_null' => [
-            'length'   => 11,
-            'method'   => 'where_lt_or_null',
-            'timezone' => true,
-        ],
-        '_gt_or_null' => [
-            'length'   => 11,
-            'method'   => 'where_gt_or_null',
-            'timezone' => true,
-        ],
-        '_not_equal' => [
-            'length'   => 10,
-            'method'   => 'where_not_equal',
-            'timezone' => true,
-        ],
-        '_not_like' => [
-            'length'   => 9,
-            'method'   => 'where_not_like',
-            'timezone' => true,
-        ],
-        '_not_null' => [
-            'length'   => 9,
-            'method'   => 'where_not_null',
-            'timezone' => false,
-        ],
-        '_not_in' => [
-            'length'   => 7,
-            'method'   => 'where_not_in',
-            'timezone' => false,
-        ],
-        '_like' => [
-            'length'   => 5,
-            'method'   => 'where_like',
-            'timezone' => true,
-        ],
-        '_null' => [
-            'length'   => 5,
-            'method'   => 'where_null',
-            'timezone' => false,
-        ],
-        '_gte' => [
-            'length'   => 4,
-            'method'   => 'where_gte',
-            'timezone' => true,
-        ],
-        '_lte' => [
-            'length'   => 4,
-            'method'   => 'where_lte',
-            'timezone' => true,
-        ],
-        '_gt' => [
-            'length'   => 3,
-            'method'   => 'where_gt',
-            'timezone' => true,
-        ],
-        '_lt' => [
-            'length'   => 3,
-            'method'   => 'where_lt',
-            'timezone' => true,
-        ],
-        '_in' => [
-            'length'   => 3,
-            'method'   => 'where_in',
-            'timezone' => false,
-        ],
-    ];
+    /**
+     * @return array<string, array{factory: callable(string, mixed): ?Orm\Condition, timezone: bool}>
+     */
+    private static function _where_suffixes(): array
+    {
+        static $suffixes = [
+            '_not_in_or_null' => [
+                'timezone' => false,
+                'factory'  => static fn(string $column, mixed $value): ?Orm\Condition
+                => $value ? Orm\Condition::not_in_or_null($column, (array) $value) : null,
+            ],
+            '_lte_or_null' => [
+                'timezone' => true,
+                'factory'  => static fn(string $column, mixed $value): Orm\Condition
+                => Orm\Condition::or_null($column, '<=', $value),
+            ],
+            '_gte_or_null' => [
+                'timezone' => true,
+                'factory'  => static fn(string $column, mixed $value): Orm\Condition
+                => Orm\Condition::or_null($column, '>=', $value),
+            ],
+            '_lt_or_null' => [
+                'timezone' => true,
+                'factory'  => static fn(string $column, mixed $value): Orm\Condition
+                => Orm\Condition::or_null($column, '<', $value),
+            ],
+            '_gt_or_null' => [
+                'timezone' => true,
+                'factory'  => static fn(string $column, mixed $value): Orm\Condition
+                => Orm\Condition::or_null($column, '>', $value),
+            ],
+            '_not_equal' => [
+                'timezone' => true,
+                'factory'  => static fn(string $column, mixed $value): Orm\Condition
+                => is_null($value)
+                    ? Orm\Condition::is_not_null($column)
+                    : Orm\Condition::compare($column, '!=', $value),
+            ],
+            '_not_like' => [
+                'timezone' => true,
+                'factory'  => static fn(string $column, mixed $value): Orm\Condition
+                => Orm\Condition::compare($column, 'NOT LIKE', $value),
+            ],
+            '_not_null' => [
+                'timezone' => false,
+                'factory'  => static fn(string $column, mixed $value): Orm\Condition
+                => Orm\Condition::is_not_null($column),
+            ],
+            '_not_in' => [
+                'timezone' => false,
+                'factory'  => static fn(string $column, mixed $value): ?Orm\Condition
+                => self::_in_condition($column, $value, true),
+            ],
+            '_like' => [
+                'timezone' => true,
+                'factory'  => static fn(string $column, mixed $value): Orm\Condition
+                => Orm\Condition::compare($column, 'LIKE', $value),
+            ],
+            '_null' => [
+                'timezone' => false,
+                'factory'  => static fn(string $column, mixed $value): Orm\Condition
+                => Orm\Condition::is_null($column),
+            ],
+            '_gte' => [
+                'timezone' => true,
+                'factory'  => static fn(string $column, mixed $value): Orm\Condition
+                => Orm\Condition::compare($column, '>=', $value),
+            ],
+            '_lte' => [
+                'timezone' => true,
+                'factory'  => static fn(string $column, mixed $value): Orm\Condition
+                => Orm\Condition::compare($column, '<=', $value),
+            ],
+            '_gt' => [
+                'timezone' => true,
+                'factory'  => static fn(string $column, mixed $value): Orm\Condition
+                => Orm\Condition::compare($column, '>', $value),
+            ],
+            '_lt' => [
+                'timezone' => true,
+                'factory'  => static fn(string $column, mixed $value): Orm\Condition
+                => Orm\Condition::compare($column, '<', $value),
+            ],
+            '_in' => [
+                'timezone' => false,
+                'factory'  => static fn(string $column, mixed $value): ?Orm\Condition
+                => self::_in_condition($column, $value, false),
+            ],
+        ];
 
-    /** @var array<string, array{length: int, method: string}> */
-    private static array $_order_by_suffixes = [
-        '_natural_desc' => [
-            'length' => 13,
-            'method' => '_order_by_natural_desc',
-        ],
-        '_natural_asc' => [
-            'length' => 12,
-            'method' => '_order_by_natural_asc',
-        ],
-        '_desc' => [
-            'length' => 5,
-            'method' => 'order_by_desc',
-        ],
-        '_asc' => [
-            'length' => 4,
-            'method' => 'order_by_asc',
-        ],
-    ];
+        return $suffixes;
+    }
+
+    /**
+     * @return array{factory: callable(string, mixed): ?Orm\Condition, timezone: bool}
+     */
+    private static function _where_suffix(string $suffix): array
+    {
+        $suffixes = self::_where_suffixes();
+
+        if (!array_key_exists($suffix, $suffixes)) {
+            throw new \LogicException("Unknown where suffix {$suffix}");
+        }
+
+        return $suffixes[$suffix];
+    }
+
+    /**
+     * @return array<string, callable(string): Term>
+     */
+    private static function _order_by_suffixes(): array
+    {
+        static $suffixes = [
+            '_natural_desc' => static fn(string $column): Term => Term::natural($column, 'DESC'),
+            '_natural_asc'  => static fn(string $column): Term => Term::natural($column, 'ASC'),
+            '_desc'         => static fn(string $column): Term => Term::column($column, 'DESC'),
+            '_asc'          => static fn(string $column): Term => Term::column($column, 'ASC'),
+        ];
+
+        return $suffixes;
+    }
+
+    /**
+     * The factory for one suffix.
+     * @return callable(string): Term
+     */
+    private static function _order_by_suffix(string $suffix): callable
+    {
+        $suffixes = self::_order_by_suffixes();
+
+        if (!array_key_exists($suffix, $suffixes)) {
+            throw new \LogicException("Unknown order_by suffix {$suffix}");
+        }
+
+        return $suffixes[$suffix];
+    }
 
     // ------------------------ //
     // --- STATIC METHODS   --- //
@@ -1259,7 +1292,9 @@ class Query extends Orm\Db
      */
     protected function _add_simple_having(string $column_name, string $separator, mixed $value): static
     {
-        return $this->_add_having_condition($this->_simple_condition($column_name, $separator, $value));
+        // A HAVING column is usually an aggregate's alias, which a table
+        // prefix would break.
+        return $this->_add_having_condition(Orm\Condition::compare($column_name, $separator, $value));
     }
 
     /**
@@ -1401,8 +1436,9 @@ class Query extends Orm\Db
     }
 
     /**
-     * A COLUMN SEPARATOR VALUE condition. Adds the table name in case
-     * of ambiguous columns; quoting is left to the Renderer.
+     * A WHERE COLUMN SEPARATOR VALUE condition. Adds the table name so a
+     * subquery cannot read the outer table; quoting is left to the
+     * Renderer.
      */
     private function _simple_condition(string $column_name, string $separator, mixed $value): Orm\Condition
     {
@@ -1410,21 +1446,16 @@ class Query extends Orm\Db
     }
 
     /**
-     * The column name qualified with the table (or alias) when the
-     * query joins other tables and the column is unqualified.
+     * The column name qualified with the table, or its alias, unless it
+     * already names a table.
      */
     private function _qualified_column(string $column_name): string
     {
-        if (count($this->_join_sources) > 0 && !str_contains($column_name, '.')) {
-            $table = $this->_table_name;
-            if (!is_null($this->_table_alias)) {
-                $table = $this->_table_alias;
-            }
-
-            $column_name = "{$table}.{$column_name}";
+        if (str_contains($column_name, '.')) {
+            return $column_name;
         }
 
-        return $column_name;
+        return ($this->_table_alias ?? $this->_table_name) . '.' . $column_name;
     }
 
     /**
@@ -1462,9 +1493,13 @@ class Query extends Orm\Db
             return $this->_add_group($column_name, $connected_by, $negate, $add_condition, $list);
         }
 
+        if ($list === 'where') {
+            $column_name = $this->_qualified_column($column_name);
+        }
+
         $condition = is_null($value)
             ? Orm\Condition::is_null($column_name)
-            : $this->_simple_condition($column_name, '=', $value);
+            : Orm\Condition::compare($column_name, '=', $value);
 
         return $add_condition($condition->negate_if($negate)->joined_by($connected_by));
     }
@@ -1512,11 +1547,7 @@ class Query extends Orm\Db
      */
     public function where_equal(string $column_name, mixed $value): static
     {
-        if (is_null($value)) {
-            return $this->where_null($column_name);
-        }
-
-        return $this->_add_where_suffix_condition('where_equal', $this->_qualified_column($column_name), $value, Orm\ConnectedBy::And);
+        return $this->_add_equal_condition($column_name, $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1526,11 +1557,7 @@ class Query extends Orm\Db
      */
     public function where_not_equal(string $column_name, mixed $value): static
     {
-        if (is_null($value)) {
-            return $this->where_not_null($column_name);
-        }
-
-        return $this->_add_where_suffix_condition('where_not_equal', $this->_qualified_column($column_name), $value, Orm\ConnectedBy::And);
+        return $this->_add_suffix_condition('_not_equal', $column_name, $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1595,7 +1622,7 @@ class Query extends Orm\Db
      */
     public function where_like(string $column_name, mixed $value): static
     {
-        return $this->_add_where_suffix_condition('where_like', $this->_qualified_column($column_name), $value, Orm\ConnectedBy::And);
+        return $this->_add_suffix_condition('_like', $column_name, $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1605,7 +1632,7 @@ class Query extends Orm\Db
      */
     public function where_not_like(string $column_name, mixed $value): static
     {
-        return $this->_add_where_suffix_condition('where_not_like', $this->_qualified_column($column_name), $value, Orm\ConnectedBy::And);
+        return $this->_add_suffix_condition('_not_like', $column_name, $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1615,7 +1642,7 @@ class Query extends Orm\Db
      */
     public function where_gt(string $column_name, mixed $value): static
     {
-        return $this->_add_where_suffix_condition('where_gt', $this->_qualified_column($column_name), $value, Orm\ConnectedBy::And);
+        return $this->_add_suffix_condition('_gt', $column_name, $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1625,7 +1652,7 @@ class Query extends Orm\Db
      */
     public function where_lt(string $column_name, mixed $value): static
     {
-        return $this->_add_where_suffix_condition('where_lt', $this->_qualified_column($column_name), $value, Orm\ConnectedBy::And);
+        return $this->_add_suffix_condition('_lt', $column_name, $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1635,7 +1662,7 @@ class Query extends Orm\Db
      */
     public function where_gte(string $column_name, mixed $value): static
     {
-        return $this->_add_where_suffix_condition('where_gte', $this->_qualified_column($column_name), $value, Orm\ConnectedBy::And);
+        return $this->_add_suffix_condition('_gte', $column_name, $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1645,7 +1672,7 @@ class Query extends Orm\Db
      */
     public function where_lte(string $column_name, mixed $value): static
     {
-        return $this->_add_where_suffix_condition('where_lte', $this->_qualified_column($column_name), $value, Orm\ConnectedBy::And);
+        return $this->_add_suffix_condition('_lte', $column_name, $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1655,7 +1682,7 @@ class Query extends Orm\Db
      */
     public function where_lt_or_null(string $column_name, mixed $value): static
     {
-        return $this->_add_where_suffix_condition('where_lt_or_null', $column_name, $value, Orm\ConnectedBy::And);
+        return $this->_add_suffix_condition('_lt_or_null', $column_name, $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1665,7 +1692,7 @@ class Query extends Orm\Db
      */
     public function where_lte_or_null(string $column_name, mixed $value): static
     {
-        return $this->_add_where_suffix_condition('where_lte_or_null', $column_name, $value, Orm\ConnectedBy::And);
+        return $this->_add_suffix_condition('_lte_or_null', $column_name, $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1675,7 +1702,7 @@ class Query extends Orm\Db
      */
     public function where_gt_or_null(string $column_name, mixed $value): static
     {
-        return $this->_add_where_suffix_condition('where_gt_or_null', $column_name, $value, Orm\ConnectedBy::And);
+        return $this->_add_suffix_condition('_gt_or_null', $column_name, $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1685,7 +1712,7 @@ class Query extends Orm\Db
      */
     public function where_gte_or_null(string $column_name, mixed $value): static
     {
-        return $this->_add_where_suffix_condition('where_gte_or_null', $column_name, $value, Orm\ConnectedBy::And);
+        return $this->_add_suffix_condition('_gte_or_null', $column_name, $value, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1694,7 +1721,7 @@ class Query extends Orm\Db
      */
     public function where_in(string $column_name, mixed $values): static
     {
-        return $this->_add_in_condition($column_name, $values, Orm\ConnectedBy::And, false);
+        return $this->_add_suffix_condition('_in', $column_name, $values, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1703,37 +1730,35 @@ class Query extends Orm\Db
      */
     public function where_not_in(string $column_name, mixed $values): static
     {
-        return $this->_add_in_condition($column_name, $values, Orm\ConnectedBy::And, true);
+        return $this->_add_suffix_condition('_not_in', $column_name, $values, Orm\ConnectedBy::And);
     }
 
     /**
      * One IN condition over a list or a subquery. A subquery renders
      * with bound placeholders; its values merge into this query's
-     * statement. An empty list matches no rows; with NOT, an empty
-     * list is left out so every row matches.
+     * statement. An empty list matches no rows; with NOT, it adds no
+     * condition, so every row matches.
+     * @param mixed[]|self $values
      */
-    protected function _add_in_condition(string $column_name, mixed $values, Orm\ConnectedBy $connected_by, bool $negate): static
+    private static function _in_condition(string $column_name, mixed $values, bool $negate): ?Orm\Condition
     {
         if (!$values) {
-            if ($negate) {
-                return $this;
-            }
-
-            return $this->_add_where_condition(Orm\Condition::raw('0')->joined_by($connected_by));
+            return $negate
+                ? null
+                : Orm\Condition::raw('0');
         }
 
         if ($values instanceof self) {
-            $query     = $values->_build_select();
-            $condition = $negate
+            $query = $values->_build_select();
+
+            return $negate
                 ? Orm\Condition::not_in_subquery($column_name, $query, $values->_values)
                 : Orm\Condition::in_subquery($column_name, $query, $values->_values);
-
-            return $this->_add_where_condition($condition->joined_by($connected_by));
         }
 
-        $condition = $negate ? Orm\Condition::not_in($column_name, $values) : Orm\Condition::in($column_name, $values);
-
-        return $this->_add_where_condition($condition->joined_by($connected_by));
+        return $negate
+            ? Orm\Condition::not_in($column_name, $values)
+            : Orm\Condition::in($column_name, $values);
     }
 
     /**
@@ -1743,7 +1768,7 @@ class Query extends Orm\Db
      */
     public function where_not_in_or_null(string $column_name, array $values): static
     {
-        return $this->_add_where_suffix_condition('where_not_in_or_null', $column_name, $values, Orm\ConnectedBy::And);
+        return $this->_add_suffix_condition('_not_in_or_null', $column_name, $values, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1752,7 +1777,7 @@ class Query extends Orm\Db
      */
     public function where_null(string $column_name): static
     {
-        return $this->_add_where_suffix_condition('where_null', $column_name, null, Orm\ConnectedBy::And);
+        return $this->_add_suffix_condition('_null', $column_name, null, Orm\ConnectedBy::And);
     }
 
     /**
@@ -1761,41 +1786,42 @@ class Query extends Orm\Db
      */
     public function where_not_null(string $column_name): static
     {
-        return $this->_add_where_suffix_condition('where_not_null', $column_name, null, Orm\ConnectedBy::And);
+        return $this->_add_suffix_condition('_not_null', $column_name, null, Orm\ConnectedBy::And);
     }
 
     /**
-     * The condition one where_* suffix stands for, ANDing or ORing
-     * as asked.
+     * Adds the condition a suffix stands for, connected as asked.
      */
-    protected function _add_where_suffix_condition(string $target_method, string $column_name, mixed $value, Orm\ConnectedBy $connected_by): static
+    private function _add_suffix_condition(string $suffix, string $column_name, mixed $value, Orm\ConnectedBy $connected_by): static
     {
-        if ($target_method === 'where_in' || $target_method === 'where_not_in') {
-            return $this->_add_in_condition($column_name, $value, $connected_by, $target_method === 'where_not_in');
-        }
+        $suffix_type = self::_where_suffix($suffix);
+        $column      = $this->_qualified_column($column_name);
+        $condition   = ($suffix_type['factory'])($column, $value);
 
-        if ($target_method === 'where_not_in_or_null' && !$value) {
+        return $this->_add_condition($condition, $connected_by);
+    }
+
+    /**
+     * The equality condition, where a null value means IS NULL.
+     */
+    private function _add_equal_condition(string $column_name, mixed $value, Orm\ConnectedBy $connected_by): static
+    {
+        $column    = $this->_qualified_column($column_name);
+        $condition = is_null($value)
+            ? Orm\Condition::is_null($column)
+            : Orm\Condition::compare($column, '=', $value);
+
+        return $this->_add_condition($condition, $connected_by);
+    }
+
+    /**
+     * Adds the condition, unless the suffix's factory returned null.
+     */
+    private function _add_condition(?Orm\Condition $condition, Orm\ConnectedBy $connected_by): static
+    {
+        if ($condition === null) {
             return $this;
         }
-
-        $condition = match ($target_method) {
-            'where_not_in_or_null' => Orm\Condition::not_in_or_null($column_name, (array) $value),
-            'where_lte_or_null'    => Orm\Condition::or_null($column_name, '<=', $value),
-            'where_gte_or_null'    => Orm\Condition::or_null($column_name, '>=', $value),
-            'where_lt_or_null'     => Orm\Condition::or_null($column_name, '<', $value),
-            'where_gt_or_null'     => Orm\Condition::or_null($column_name, '>', $value),
-            'where_not_equal'      => is_null($value) ? Orm\Condition::is_not_null($column_name) : Orm\Condition::compare($column_name, '!=', $value),
-            'where_not_like'       => Orm\Condition::compare($column_name, 'NOT LIKE', $value),
-            'where_not_null'       => Orm\Condition::is_not_null($column_name),
-            'where_like'           => Orm\Condition::compare($column_name, 'LIKE', $value),
-            'where_null'           => Orm\Condition::is_null($column_name),
-            'where_gte'            => Orm\Condition::compare($column_name, '>=', $value),
-            'where_lte'            => Orm\Condition::compare($column_name, '<=', $value),
-            'where_gt'             => Orm\Condition::compare($column_name, '>', $value),
-            'where_lt'             => Orm\Condition::compare($column_name, '<', $value),
-            'where_equal'          => is_null($value) ? Orm\Condition::is_null($column_name) : Orm\Condition::compare($column_name, '=', $value),
-            default                => throw new \LogicException("Unknown where suffix target {$target_method}"),
-        };
 
         return $this->_add_where_condition($condition->joined_by($connected_by));
     }
@@ -2016,8 +2042,8 @@ class Query extends Orm\Db
 
         $related->where_raw(
             $this->_quote_identifier($related_table . '.' . $related_column)
-            . ' = '
-            . $this->_quote_identifier($outer_table . '.' . $outer_column)
+                . ' = '
+                . $this->_quote_identifier($outer_table . '.' . $outer_column)
         );
 
         if ($conditions === null) {
@@ -2063,7 +2089,12 @@ class Query extends Orm\Db
      */
     protected function _add_order_by(string $column_name, string $ordering): static
     {
-        $this->_order_by[] = Orm\Term::column($column_name, $ordering);
+        return $this->_add_order_term(Orm\Term::column($column_name, $ordering));
+    }
+
+    private function _add_order_term(Term $term): static
+    {
+        $this->_order_by[] = $term;
 
         return $this;
     }
@@ -2084,7 +2115,7 @@ class Query extends Orm\Db
      */
     public function order_by_desc(string $column_name): static
     {
-        return $this->_add_order_by($column_name, 'DESC');
+        return $this->_add_order_term(self::_order_by_suffix('_desc')($column_name));
     }
 
     /**
@@ -2093,7 +2124,7 @@ class Query extends Orm\Db
      */
     public function order_by_asc(string $column_name): static
     {
-        return $this->_add_order_by($column_name, 'ASC');
+        return $this->_add_order_term(self::_order_by_suffix('_asc')($column_name));
     }
 
     /**
@@ -2500,69 +2531,48 @@ class Query extends Orm\Db
     }
 
     /**
-     * Performance optimized handler for where_* methods. Each suffix
-     * builds one condition that ANDs or ORs as asked.
+     * Dispatches a suffix method. Only this path adjusts values for the
+     * model's timezone hook.
      */
     private function _handle_where_method(string $method, array $parameters, Orm\ConnectedBy $connected_by = Orm\ConnectedBy::And): mixed
     {
-        $tablename       = $this->_table_name . '.';
         $method_name     = substr($method, 6);
         $adjust_timezone = isset($parameters[0]);
 
-        foreach (self::$_where_suffixes as $suffix => $config) {
-            if (!(str_ends_with($method_name, $suffix))) {
+        foreach (self::_where_suffixes() as $suffix => $config) {
+            if (!str_ends_with($method_name, $suffix)) {
                 continue;
             }
 
-            $varname     = substr($method_name, 0, -$config['length']);
-            $column_name = $tablename . $varname;
+            $varname = substr($method_name, 0, -strlen($suffix));
 
             if ($config['timezone'] && $adjust_timezone) {
                 $parameters[0] = $this->adjustTimezoneForWhere($varname, $parameters[0]);
             }
 
-            return $this->_add_where_suffix_condition($config['method'], $column_name, $parameters[0] ?? null, $connected_by);
+            return $this->_add_suffix_condition($suffix, $varname, $parameters[0] ?? null, $connected_by);
         }
 
-        $varname     = $method_name;
-        $column_name = $tablename . $varname;
+        $value = $adjust_timezone ? $this->adjustTimezoneForWhere($method_name, $parameters[0]) : null;
 
-        $value = $adjust_timezone ? $this->adjustTimezoneForWhere($varname, $parameters[0]) : null;
-
-        return $this->_add_where_suffix_condition('where_equal', $column_name, $value, $connected_by);
+        return $this->_add_equal_condition($method_name, $value, $connected_by);
     }
 
     /**
-     * Performance optimized handler for order_by_* methods
+     * Dispatches an order_by suffix method.
      */
     private function _handle_order_by_method(string $method, array $parameters): mixed
     {
         $method_name = substr($method, 9);
 
-        foreach (self::$_order_by_suffixes as $suffix => $config) {
-            if (!(str_ends_with($method_name, $suffix))) {
+        foreach (self::_order_by_suffixes() as $suffix => $factory) {
+            if (!str_ends_with($method_name, $suffix)) {
                 continue;
             }
 
-            $varname       = substr($method_name, 0, -$config['length']);
-            $target_method = $config['method'];
-
-            if ($target_method === '_order_by_natural_desc') {
-                $this->_order_by[] = Term::natural($varname, 'DESC');
-
-                return $this;
-            }
-            if ($target_method === '_order_by_natural_asc') {
-                $this->_order_by[] = Term::natural($varname, 'ASC');
-
-                return $this;
-            }
-
-            return call_user_func([$this, $target_method], $varname);
+            return $this->_add_order_term($factory(substr($method_name, 0, -strlen($suffix))));
         }
 
-        $varname = $method_name;
-
-        return $this->order_by_asc($varname);
+        return $this->order_by_asc($method_name);
     }
 }

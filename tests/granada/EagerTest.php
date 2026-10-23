@@ -45,8 +45,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             ->find_one(1);
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1')";
 
         $fullQueryLog = ORM::get_query_log();
 
@@ -63,9 +63,9 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             ->find_one(1);
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT * FROM `owner` WHERE `id` IN ('1')";
-        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `owner` WHERE `owner`.`id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1')";
 
         $fullQueryLog = ORM::get_query_log();
 
@@ -82,8 +82,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             ->find_one(1);
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `owner` WHERE `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `owner` WHERE `owner`.`id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`owner_id` IN ('1')";
 
         $fullQueryLog = ORM::get_query_log();
 
@@ -100,8 +100,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             ->find_one(1);
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `enabled` = '1' AND `manufactor_id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`enabled` = '1' AND `car`.`manufactor_id` IN ('1')";
         $fullQueryLog  = ORM::get_query_log();
 
         // Return last two queries
@@ -121,7 +121,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         }
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT `part`.*, `car_part`.`car_id` FROM `part` JOIN `car_part` ON `part`.`id` = `car_part`.`part_id` WHERE `car_part`.`car_id` IN ('1')";
 
         $expectedParts   = [];
@@ -158,8 +158,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0'";
-        $expectedSql[] = "SELECT * FROM `owner` WHERE `id` IN ('1', '2', '3', '4')";
-        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1', '2')";
+        $expectedSql[] = "SELECT * FROM `owner` WHERE `owner`.`id` IN ('1', '2', '3', '4')";
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1', '2')";
 
         $fullQueryLog = ORM::get_query_log();
 
@@ -177,7 +177,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
         $expectedSql   = [];
         $expectedSql[] = 'SELECT * FROM `owner`';
-        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1', '2', '3', '4')";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`owner_id` IN ('1', '2', '3', '4')";
 
         $fullQueryLog = ORM::get_query_log();
 
@@ -195,7 +195,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
         $expectedSql   = [];
         $expectedSql[] = 'SELECT * FROM `manufactor`';
-        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `enabled` = '1' AND `manufactor_id` IN ('1', '2')";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`enabled` = '1' AND `car`.`manufactor_id` IN ('1', '2')";
 
         $fullQueryLog = ORM::get_query_log();
 
@@ -371,9 +371,9 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 3);
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `owner` WHERE `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1')";
-        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `owner` WHERE `owner`.`id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`owner_id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1')";
 
         $this->assertEquals($expectedSql, $actualSql);
     }
@@ -396,9 +396,9 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 3);
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `owner` WHERE `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1')";
-        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `owner` WHERE `owner`.`id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`owner_id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1')";
 
         $this->assertEquals($expectedSql, $actualSql);
     }
@@ -422,8 +422,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
         $expectedSql   = [];
         $expectedSql[] = 'SELECT * FROM `owner`';
-        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1', '2', '3', '4')";
-        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1', '2')";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`owner_id` IN ('1', '2', '3', '4')";
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1', '2')";
 
         $this->assertEquals($expectedSql, $actualSql);
     }
@@ -532,8 +532,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             ->find_one(1);
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT `id`, `name` FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT `id`, `name` FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1')";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
@@ -552,7 +552,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0'";
-        $expectedSql[] = "SELECT `id`, `name` FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1', '2') ORDER BY `name` DESC";
+        $expectedSql[] = "SELECT `id`, `name` FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1', '2') ORDER BY `name` DESC";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
@@ -568,8 +568,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             ->find_one(1);
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT `name`, `id` FROM `owner` WHERE `id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT `name`, `id` FROM `owner` WHERE `owner`.`id` IN ('1')";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
@@ -586,8 +586,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             ->find_one(1);
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT `id`, `name`, `manufactor_id` FROM `car` WHERE `car`.`is_deleted` = '0' AND `enabled` = '1' AND `manufactor_id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT `id`, `name`, `manufactor_id` FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`enabled` = '1' AND `car`.`manufactor_id` IN ('1')";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
@@ -603,8 +603,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             ->find_one(1);
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `owner` WHERE `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT `id`, `name`, `owner_id` FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `owner` WHERE `owner`.`id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT `id`, `name`, `owner_id` FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`owner_id` IN ('1')";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
@@ -620,7 +620,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             ->find_one(1);
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT `part`.`id`, `part`.`name`, `car_part`.`car_id` FROM `part` JOIN `car_part` ON `part`.`id` = `car_part`.`part_id` WHERE `car_part`.`car_id` IN ('1')";
 
         $fullQueryLog = ORM::get_query_log();
@@ -636,8 +636,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             ->find_one(1);
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1')";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
@@ -653,9 +653,9 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             ->find_one(1);
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT `name`, `id` FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
-        $expectedSql[] = "SELECT * FROM `owner` WHERE `id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT `name`, `id` FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `owner` WHERE `owner`.`id` IN ('1')";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 3);
@@ -672,9 +672,9 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             )->find_one(1);
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `owner` WHERE `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT `id`, `manufactor_id`, `owner_id` FROM `car` WHERE `car`.`is_deleted` = '0' AND `owner_id` IN ('1')";
-        $expectedSql[] = "SELECT `name`, `id` FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `owner` WHERE `owner`.`id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT `id`, `manufactor_id`, `owner_id` FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`owner_id` IN ('1')";
+        $expectedSql[] = "SELECT `name`, `id` FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1')";
 
         $this->assertNull($owner->car->enabled);
         $this->assertNull($owner->car
@@ -699,7 +699,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0'";
-        $expectedSql[] = "SELECT `id`, `name` FROM `manufactor` WHERE `enabled` = '1' AND `id` IN ('1', '2')";
+        $expectedSql[] = "SELECT `id`, `name` FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1', '2')";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);

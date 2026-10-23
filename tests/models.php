@@ -498,10 +498,16 @@ abstract class StampedChildBase extends Model
 
 /**
  * Inherits the switch, the custom columns, and the ignore list.
+ * Its last_login column pins the suffix path's timezone adjustment.
  */
 class StampedChild extends StampedChildBase
 {
     public static $_table = 'stamped_child';
+
+    public function adjustTimezoneForWhere(string $varname, mixed $value): mixed
+    {
+        return $varname === 'last_login' ? $value . '@utc' : $value;
+    }
 }
 
 /**

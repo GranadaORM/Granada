@@ -91,7 +91,7 @@ class QueryModeTest extends \PHPUnit\Framework\TestCase
         // Gadget's defaultFilter() adds enabled = 1 beside the
         // soft-delete hiding core Query applies.
         $this->assertSame(
-            "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `enabled` = '1'",
+            "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `gadget`.`enabled` = '1'",
             Gadget::q()->get_select_query()
         );
         $gadgets = Gadget::q()

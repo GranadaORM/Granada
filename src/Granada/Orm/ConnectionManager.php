@@ -341,14 +341,14 @@ class ConnectionManager
      */
     public function record_query(string $inlined_query, string $connection_name): void
     {
-        if (!$this->config($connection_name)['logging']) {
+        if (!$this->setting('logging', $connection_name)) {
             return;
         }
 
         $this->last_query                    = $inlined_query;
         $this->query_log[$connection_name][] = $inlined_query;
 
-        $logger = $this->config($connection_name)['logger'];
+        $logger = $this->setting('logger', $connection_name);
         if (is_callable($logger)) {
             $logger($inlined_query);
         }
@@ -429,7 +429,7 @@ class ConnectionManager
      */
     private function setup_limit_clause_style(string $connection_name): void
     {
-        if ($this->config($connection_name)['limit_clause_style'] !== null) {
+        if ($this->setting('limit_clause_style', $connection_name) !== null) {
             return;
         }
 
@@ -467,6 +467,11 @@ class ConnectionManager
         return array_merge($this->settings[$connection_name], $this->facts[$connection_name] ?? []);
     }
 
+    private function setting(string $key, string $connection_name): mixed
+    {
+        return $this->config($connection_name)[$key];
+    }
+
     /**
      * Detect and initialise the character used to quote identifiers
      * (table names, column names etc), unless specified manually.
@@ -474,7 +479,7 @@ class ConnectionManager
      */
     private function setup_identifier_quote_character(string $connection_name): void
     {
-        if ($this->config($connection_name)['identifier_quote_character'] !== null) {
+        if ($this->setting('identifier_quote_character', $connection_name) !== null) {
             return;
         }
 
@@ -488,7 +493,7 @@ class ConnectionManager
      */
     private function setup_driver_name(string $connection_name): void
     {
-        if ($this->config($connection_name)['driver_name'] !== null) {
+        if ($this->setting('driver_name', $connection_name) !== null) {
             return;
         }
 
@@ -502,11 +507,12 @@ class ConnectionManager
      */
     private function setup_default_driver_options(string $connection_name = self::DEFAULT_CONNECTION): void
     {
-        if ($this->config($connection_name)['driver_options']) {
+        $settings = $this->config($connection_name);
+        if ($settings['driver_options']) {
             return;
         }
 
-        if (str_starts_with($this->config($connection_name)['connection_string'], 'mysql:')) {
+        if (str_starts_with($settings['connection_string'], 'mysql:')) {
             $this->settings[$connection_name]['driver_options'] = [
                 Mysql::ATTR_SSL_CA                 => true,
                 Mysql::ATTR_SSL_VERIFY_SERVER_CERT => false,
@@ -527,7 +533,7 @@ class ConnectionManager
      */
     private function log_query(string $query, array $parameters, string $connection_name): bool
     {
-        if (!$this->config($connection_name)['logging']) {
+        if (!$this->setting('logging', $connection_name)) {
             return false;
         }
 

@@ -31,8 +31,8 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
             ->find_one(1);
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `widget` WHERE `enabled` = '1' AND `hidden` = '0' AND `id` = '1' LIMIT 1";
-        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `enabled` = '1' AND `id` IN ('1')";
+        $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`enabled` = '1' AND `widget`.`hidden` = '0' AND `widget`.`id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `gadget`.`enabled` = '1' AND `gadget`.`id` IN ('1')";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
@@ -57,8 +57,8 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
             ->find_many();
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `enabled` = '1'";
-        $expectedSql[] = "SELECT * FROM `widget` WHERE `enabled` = '1' AND `hidden` = '0' AND `gadget_id` IN ('1', '4')";
+        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `gadget`.`enabled` = '1'";
+        $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`enabled` = '1' AND `widget`.`hidden` = '0' AND `widget`.`gadget_id` IN ('1', '4')";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
@@ -75,8 +75,8 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
             ->find_many();
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `enabled` = '1'";
-        $expectedSql[] = "SELECT * FROM `widget` WHERE `enabled` = '1' AND `hidden` = '0' AND `name` = 'Widget1' AND `gadget_id` IN ('1', '4')";
+        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `gadget`.`enabled` = '1'";
+        $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`enabled` = '1' AND `widget`.`hidden` = '0' AND `widget`.`name` = 'Widget1' AND `widget`.`gadget_id` IN ('1', '4')";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
@@ -93,8 +93,8 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
             ->find_many();
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `enabled` = '1'";
-        $expectedSql[] = "SELECT * FROM `widget` WHERE `enabled` = '1' AND `hidden` = '0' AND `gadget_id` IN ('1', '4')";
+        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `gadget`.`enabled` = '1'";
+        $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`enabled` = '1' AND `widget`.`hidden` = '0' AND `widget`.`gadget_id` IN ('1', '4')";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
@@ -115,9 +115,9 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
             ->find_many();
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `widget` WHERE `enabled` = '1' AND `hidden` = '0'";
+        $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`enabled` = '1' AND `widget`.`hidden` = '0'";
         $expectedSql[] = 'SELECT `kit`.*, `kit_widget`.`widget_id` FROM `kit` JOIN `kit_widget` ON `kit`.`id` = `kit_widget`.`kit_id`'
-            . " WHERE `enabled` = '1' AND `hidden` = '0' AND `kit_widget`.`widget_id` IN ('1', '2', '3', '4', '5')";
+            . " WHERE `kit`.`enabled` = '1' AND `kit`.`hidden` = '0' AND `kit_widget`.`widget_id` IN ('1', '2', '3', '4', '5')";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
@@ -139,7 +139,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $widget->gadget;
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `gadget` WHERE `id` = '1' AND `gadget`.`hidden` = '0' AND `enabled` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`id` = '1' AND `gadget`.`hidden` = '0' AND `gadget`.`enabled` = '1' LIMIT 1";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 1);
@@ -168,7 +168,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $gadget->widgets;
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `widget` WHERE `gadget_id` = '1' AND `enabled` = '1' AND `hidden` = '0'";
+        $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`gadget_id` = '1' AND `widget`.`enabled` = '1' AND `widget`.`hidden` = '0'";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 1);
@@ -183,7 +183,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $gadget->named_widgets;
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `widget` WHERE `gadget_id` = '1' AND `enabled` = '1' AND `hidden` = '0' AND `name` = 'Widget1'";
+        $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`gadget_id` = '1' AND `widget`.`enabled` = '1' AND `widget`.`hidden` = '0' AND `widget`.`name` = 'Widget1'";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 1);
@@ -198,7 +198,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $gadget->featured;
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `widget` WHERE `gadget_id` = '1' AND `enabled` = '1' AND `hidden` = '0' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`gadget_id` = '1' AND `widget`.`enabled` = '1' AND `widget`.`hidden` = '0' LIMIT 1";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 1);
@@ -214,7 +214,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 
         $expectedSql   = [];
         $expectedSql[] = 'SELECT `kit`.* FROM `kit` JOIN `kit_widget` ON `kit`.`id` = `kit_widget`.`kit_id`'
-            . " WHERE `kit_widget`.`widget_id` = '1' AND `enabled` = '1' AND `hidden` = '0'";
+            . " WHERE `kit_widget`.`widget_id` = '1' AND `kit`.`enabled` = '1' AND `kit`.`hidden` = '0'";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 1);
@@ -229,7 +229,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $gadget = $widget->gadget()->find_one();
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `gadget` WHERE `id` = '1' AND `gadget`.`hidden` = '0' AND `enabled` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`id` = '1' AND `gadget`.`hidden` = '0' AND `gadget`.`enabled` = '1' LIMIT 1";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 1);
@@ -256,7 +256,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
             ->find_many();
 
         $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `widget` WHERE `gadget_id` = '1' AND `enabled` = '1' AND `hidden` = '0' AND `name` = 'Widget1'";
+        $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`gadget_id` = '1' AND `widget`.`enabled` = '1' AND `widget`.`hidden` = '0' AND `widget`.`name` = 'Widget1'";
 
         $fullQueryLog = ORM::get_query_log();
         $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 1);

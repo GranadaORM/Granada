@@ -40,8 +40,8 @@ class ExistenceFilterTest extends \PHPUnit\Framework\TestCase
         $query = Gadget::q()->where_has('widgets');
 
         $this->assertSame(
-            'SELECT * FROM `gadget` WHERE `gadget`.`hidden` = \'0\' AND `enabled` = \'1\''
-            . ' AND EXISTS ( SELECT 1 FROM `widget` WHERE `enabled` = \'1\' AND `hidden` = \'0\''
+            'SELECT * FROM `gadget` WHERE `gadget`.`hidden` = \'0\' AND `gadget`.`enabled` = \'1\''
+            . ' AND EXISTS ( SELECT 1 FROM `widget` WHERE `widget`.`enabled` = \'1\' AND `widget`.`hidden` = \'0\''
             . ' AND `widget`.`gadget_id` = `gadget`.`id` )',
             $query->get_select_query()
         );
@@ -99,8 +99,8 @@ class ExistenceFilterTest extends \PHPUnit\Framework\TestCase
         $query = Gadget::q()->where_has('widgets', null, 2);
 
         $this->assertSame(
-            'SELECT * FROM `gadget` WHERE `gadget`.`hidden` = \'0\' AND `enabled` = \'1\''
-            . ' AND ( SELECT COUNT(*) FROM `widget` WHERE `enabled` = \'1\' AND `hidden` = \'0\''
+            'SELECT * FROM `gadget` WHERE `gadget`.`hidden` = \'0\' AND `gadget`.`enabled` = \'1\''
+            . ' AND ( SELECT COUNT(*) FROM `widget` WHERE `widget`.`enabled` = \'1\' AND `widget`.`hidden` = \'0\''
             . ' AND `widget`.`gadget_id` = `gadget`.`id` ) >= 2',
             $query->get_select_query()
         );
@@ -122,8 +122,8 @@ class ExistenceFilterTest extends \PHPUnit\Framework\TestCase
         $query = Gadget::q()->where_has('picked_widgets', null, 2);
 
         $this->assertSame(
-            'SELECT * FROM `gadget` WHERE `gadget`.`hidden` = \'0\' AND `enabled` = \'1\''
-            . ' AND ( SELECT COUNT(*) FROM `widget` WHERE `enabled` = \'1\' AND `hidden` = \'0\''
+            'SELECT * FROM `gadget` WHERE `gadget`.`hidden` = \'0\' AND `gadget`.`enabled` = \'1\''
+            . ' AND ( SELECT COUNT(*) FROM `widget` WHERE `widget`.`enabled` = \'1\' AND `widget`.`hidden` = \'0\''
             . ' AND `widget`.`gadget_id` = `gadget`.`id` ) >= 2',
             $query->get_select_query()
         );
@@ -153,8 +153,8 @@ class ExistenceFilterTest extends \PHPUnit\Framework\TestCase
 
         $this->assertSame(
             'SELECT * FROM `car` WHERE `car`.`is_deleted` = \'0\''
-            . ' AND EXISTS ( SELECT 1 FROM `manufactor` WHERE `enabled` = \'1\''
-            . ' AND `manufactor`.`id` = `car`.`manufactor_id` AND `name` = \'Manufactor2\' )',
+            . ' AND EXISTS ( SELECT 1 FROM `manufactor` WHERE `manufactor`.`enabled` = \'1\''
+            . ' AND `manufactor`.`id` = `car`.`manufactor_id` AND `manufactor`.`name` = \'Manufactor2\' )',
             $query->get_select_query()
         );
 

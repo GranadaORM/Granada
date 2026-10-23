@@ -42,9 +42,9 @@ class RelatedCountTest extends \PHPUnit\Framework\TestCase
         $query = Gadget::q()->with_count('widgets');
 
         $this->assertSame(
-            'SELECT *, ( SELECT COUNT(*) FROM `widget` WHERE `enabled` = \'1\' AND `hidden` = \'0\''
+            'SELECT *, ( SELECT COUNT(*) FROM `widget` WHERE `widget`.`enabled` = \'1\' AND `widget`.`hidden` = \'0\''
             . ' AND `widget`.`gadget_id` = `gadget`.`id` ) AS `widgets_count`'
-            . ' FROM `gadget` WHERE `gadget`.`hidden` = \'0\' AND `enabled` = \'1\'',
+            . ' FROM `gadget` WHERE `gadget`.`hidden` = \'0\' AND `gadget`.`enabled` = \'1\'',
             $query->get_select_query()
         );
     }
@@ -127,7 +127,7 @@ class RelatedCountTest extends \PHPUnit\Framework\TestCase
 
         $this->assertSame(
             'SELECT *, ( SELECT COUNT(*) FROM `car` WHERE `car`.`is_deleted` = \'0\''
-            . ' AND `enabled` = \'1\' AND `car`.`manufactor_id` = `manufactor`.`id` ) AS `cars_count`'
+            . ' AND `car`.`enabled` = \'1\' AND `car`.`manufactor_id` = `manufactor`.`id` ) AS `cars_count`'
             . ' FROM `manufactor`',
             $query->get_select_query()
         );
@@ -173,9 +173,9 @@ class RelatedCountTest extends \PHPUnit\Framework\TestCase
         $query = Gadget::q()->with_exists('widgets');
 
         $this->assertSame(
-            'SELECT *, EXISTS ( SELECT 1 FROM `widget` WHERE `enabled` = \'1\' AND `hidden` = \'0\''
+            'SELECT *, EXISTS ( SELECT 1 FROM `widget` WHERE `widget`.`enabled` = \'1\' AND `widget`.`hidden` = \'0\''
             . ' AND `widget`.`gadget_id` = `gadget`.`id` ) AS `widgets_exists`'
-            . ' FROM `gadget` WHERE `gadget`.`hidden` = \'0\' AND `enabled` = \'1\'',
+            . ' FROM `gadget` WHERE `gadget`.`hidden` = \'0\' AND `gadget`.`enabled` = \'1\'',
             $query->get_select_query()
         );
     }
@@ -217,9 +217,9 @@ class RelatedCountTest extends \PHPUnit\Framework\TestCase
         $query = Gadget::q()->with_count('picked_widgets');
 
         $this->assertSame(
-            'SELECT *, ( SELECT COUNT(*) FROM `widget` WHERE `enabled` = \'1\' AND `hidden` = \'0\''
+            'SELECT *, ( SELECT COUNT(*) FROM `widget` WHERE `widget`.`enabled` = \'1\' AND `widget`.`hidden` = \'0\''
             . ' AND `widget`.`gadget_id` = `gadget`.`id` ) AS `picked_widgets_count`'
-            . ' FROM `gadget` WHERE `gadget`.`hidden` = \'0\' AND `enabled` = \'1\'',
+            . ' FROM `gadget` WHERE `gadget`.`hidden` = \'0\' AND `gadget`.`enabled` = \'1\'',
             $query->get_select_query()
         );
 

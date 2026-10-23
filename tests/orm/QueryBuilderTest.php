@@ -38,7 +38,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
     public function testFindOneWithPrimaryKeyFilter()
     {
         Granada::for_table('widget')->find_one(5);
-        $expected = "SELECT * FROM `widget` WHERE `id` = '5' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`id` = '5' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -47,7 +47,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where_id_is(5)
             ->find_one();
-        $expected = "SELECT * FROM `widget` WHERE `id` = '5' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`id` = '5' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -56,7 +56,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where('name', 'Fred')
             ->find_one();
-        $expected = "SELECT * FROM `widget` WHERE `name` = 'Fred' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` = 'Fred' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -67,7 +67,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             ->clear_where()
             ->where('name', 'Joe')
             ->find_one();
-        $expected = "SELECT * FROM `widget` WHERE `name` = 'Joe' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` = 'Joe' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -78,7 +78,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             ->clear_where()
             ->where('age', 10)
             ->find_one();
-        $expected = "SELECT * FROM `widget` WHERE `age` = '10' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`age` = '10' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -87,7 +87,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where('name', '')
             ->find_one();
-        $expected = "SELECT * FROM `widget` WHERE `name` = '' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` = '' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -96,7 +96,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where('name', null)
             ->find_one();
-        $expected = 'SELECT * FROM `widget` WHERE `name` IS NULL LIMIT 1';
+        $expected = 'SELECT * FROM `widget` WHERE `widget`.`name` IS NULL LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -105,7 +105,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where_equal('name', null)
             ->find_one();
-        $expected = 'SELECT * FROM `widget` WHERE `name` IS NULL LIMIT 1';
+        $expected = 'SELECT * FROM `widget` WHERE `widget`.`name` IS NULL LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -114,7 +114,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where_not_equal('name', null)
             ->find_one();
-        $expected = 'SELECT * FROM `widget` WHERE `name` IS NOT NULL LIMIT 1';
+        $expected = 'SELECT * FROM `widget` WHERE `widget`.`name` IS NOT NULL LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -124,7 +124,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             ->where('name', null)
             ->where('age', null)
             ->find_one();
-        $expected = 'SELECT * FROM `widget` WHERE `name` IS NULL AND `age` IS NULL LIMIT 1';
+        $expected = 'SELECT * FROM `widget` WHERE `widget`.`name` IS NULL AND `widget`.`age` IS NULL LIMIT 1';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -134,7 +134,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             ->where('name', 'Fred')
             ->where('age', null)
             ->find_one();
-        $expected = "SELECT * FROM `widget` WHERE `name` = 'Fred' AND `age` IS NULL LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` = 'Fred' AND `widget`.`age` IS NULL LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -144,7 +144,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             ->where('name', 'Fred')
             ->where('age', 10)
             ->find_one();
-        $expected = "SELECT * FROM `widget` WHERE `name` = 'Fred' AND `age` = '10' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` = 'Fred' AND `widget`.`age` = '10' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -155,7 +155,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             ->where('age', 10)
             ->remove_where('name')
             ->find_one();
-        $expected = "SELECT * FROM `widget` WHERE `age` = '10' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`age` = '10' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -167,7 +167,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             })
             ->where('age', 10)
             ->find_one();
-        $expected = "SELECT * FROM `widget` WHERE `name` = 'Fred' AND `age` = '10' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` = 'Fred' AND `widget`.`age` = '10' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -179,7 +179,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             })
             ->where('age', 10)
             ->find_one();
-        $expected = "SELECT * FROM `widget` WHERE `age` = '10' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`age` = '10' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -192,7 +192,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             })
             ->where('age', 10)
             ->find_one();
-        $expected = "SELECT * FROM `widget` WHERE `name` = 'Fred' AND `age` = '10' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` = 'Fred' AND `widget`.`age` = '10' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -204,7 +204,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
                 return $q->where_gte('age', $min_age);
             })
             ->find_one();
-        $expected = "SELECT * FROM `widget` WHERE `age` >= '10' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`age` >= '10' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -273,7 +273,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where_not_equal('name', 'Fred')
             ->find_many();
-        $expected = "SELECT * FROM `widget` WHERE `name` != 'Fred'";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` != 'Fred'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -282,7 +282,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where_like('name', '%Fred%')
             ->find_one();
-        $expected = "SELECT * FROM `widget` WHERE `name` LIKE '%Fred%' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` LIKE '%Fred%' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -291,7 +291,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where_not_like('name', '%Fred%')
             ->find_one();
-        $expected = "SELECT * FROM `widget` WHERE `name` NOT LIKE '%Fred%' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` NOT LIKE '%Fred%' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -300,7 +300,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where_in('name', ['Fred', 'Joe'])
             ->find_many();
-        $expected = "SELECT * FROM `widget` WHERE `name` IN ('Fred', 'Joe')";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` IN ('Fred', 'Joe')";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -327,7 +327,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where_not_in('name', ['Fred', 'Joe'])
             ->find_many();
-        $expected = "SELECT * FROM `widget` WHERE `name` NOT IN ('Fred', 'Joe')";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` NOT IN ('Fred', 'Joe')";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -336,7 +336,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where_not_in_or_null('name', ['Fred', 'Joe'])
             ->find_many();
-        $expected = "SELECT * FROM `widget` WHERE ( `name` NOT IN ('Fred', 'Joe') OR `name` IS NULL )";
+        $expected = "SELECT * FROM `widget` WHERE ( `widget`.`name` NOT IN ('Fred', 'Joe') OR `widget`.`name` IS NULL )";
         $this->assertEquals($expected, ORM::get_last_query());
 
         Granada::for_table('widget')
@@ -361,7 +361,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where_lt_or_null('age', '20')
             ->find_many();
-        $expected = "SELECT * FROM `widget` WHERE ( `age` < '20' OR `age` IS NULL )";
+        $expected = "SELECT * FROM `widget` WHERE ( `widget`.`age` < '20' OR `widget`.`age` IS NULL )";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -370,7 +370,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where_lte_or_null('age', '20')
             ->find_many();
-        $expected = "SELECT * FROM `widget` WHERE ( `age` <= '20' OR `age` IS NULL )";
+        $expected = "SELECT * FROM `widget` WHERE ( `widget`.`age` <= '20' OR `widget`.`age` IS NULL )";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -379,7 +379,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where_gt_or_null('age', '20')
             ->find_many();
-        $expected = "SELECT * FROM `widget` WHERE ( `age` > '20' OR `age` IS NULL )";
+        $expected = "SELECT * FROM `widget` WHERE ( `widget`.`age` > '20' OR `widget`.`age` IS NULL )";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -388,7 +388,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where_gte_or_null('age', '20')
             ->find_many();
-        $expected = "SELECT * FROM `widget` WHERE ( `age` >= '20' OR `age` IS NULL )";
+        $expected = "SELECT * FROM `widget` WHERE ( `widget`.`age` >= '20' OR `widget`.`age` IS NULL )";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -825,7 +825,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             ->offset(5)
             ->order_by_asc('name')
             ->find_many();
-        $expected = "SELECT * FROM `widget` WHERE `name` = 'Fred' ORDER BY `name` ASC LIMIT 5 OFFSET 5";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` = 'Fred' ORDER BY `name` ASC LIMIT 5 OFFSET 5";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -835,7 +835,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             ->where_lt('age', 10)
             ->where_gt('age', 5)
             ->find_many();
-        $expected = "SELECT * FROM `widget` WHERE `age` < '10' AND `age` > '5'";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`age` < '10' AND `widget`.`age` > '5'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -845,7 +845,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             ->where_lte('age', 10)
             ->where_gte('age', 5)
             ->find_many();
-        $expected = "SELECT * FROM `widget` WHERE `age` <= '10' AND `age` >= '5'";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`age` <= '10' AND `widget`.`age` >= '5'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -854,7 +854,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where_null('name')
             ->find_many();
-        $expected = 'SELECT * FROM `widget` WHERE `name` IS NULL';
+        $expected = 'SELECT * FROM `widget` WHERE `widget`.`name` IS NULL';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -863,7 +863,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where_not_null('name')
             ->find_many();
-        $expected = 'SELECT * FROM `widget` WHERE `name` IS NOT NULL';
+        $expected = 'SELECT * FROM `widget` WHERE `widget`.`name` IS NOT NULL';
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -901,7 +901,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             ->where_raw('(`name` = ? OR `name` = ?)', ['Fred', 'Bob'])
             ->where('size', 'large')
             ->find_many();
-        $expected = "SELECT * FROM `widget` WHERE `age` = '18' AND (`name` = 'Fred' OR `name` = 'Bob') AND `size` = 'large'";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`age` = '18' AND (`name` = 'Fred' OR `name` = 'Bob') AND `widget`.`size` = 'large'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -1211,7 +1211,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         $widget->name = 'Fred'; // Does not change so does not write to database
         $widget->age  = 10; // Does not change so does not write to database
         $widget->save();
-        $expected = "SELECT * FROM `widget` WHERE `id` = '1' LIMIT 1"; // No update command sent, we only see the select above
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`id` = '1' LIMIT 1"; // No update command sent, we only see the select above
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -1307,7 +1307,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where_equal('age', 10)
             ->delete_many();
-        $expected = "DELETE FROM `widget` WHERE `age` = '10'";
+        $expected = "DELETE FROM `widget` WHERE `widget`.`age` = '10'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -1407,31 +1407,31 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
     public function testGetSelectQuery()
     {
         $this->assertSame('SELECT * FROM `widget`', Granada::for_table('widget')->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE `name` != 'Fred'", Granada::for_table('widget')
+        $this->assertSame("SELECT * FROM `widget` WHERE `widget`.`name` != 'Fred'", Granada::for_table('widget')
             ->where_not_equal('name', 'Fred')
             ->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE `name` IN ('Fred', 'Joe')", Granada::for_table('widget')
+        $this->assertSame("SELECT * FROM `widget` WHERE `widget`.`name` IN ('Fred', 'Joe')", Granada::for_table('widget')
             ->where_in('name', ['Fred', 'Joe'])
             ->get_select_query());
         $this->assertSame('SELECT * FROM `widget` WHERE 0', Granada::for_table('widget')
             ->where_in('name', [])
             ->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE `name` NOT IN ('Fred', 'Joe')", Granada::for_table('widget')
+        $this->assertSame("SELECT * FROM `widget` WHERE `widget`.`name` NOT IN ('Fred', 'Joe')", Granada::for_table('widget')
             ->where_not_in('name', ['Fred', 'Joe'])
             ->get_select_query());
         $this->assertSame('SELECT * FROM `widget`', Granada::for_table('widget')
             ->where_not_in('name', [])
             ->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE ( `age` < '20' OR `age` IS NULL )", Granada::for_table('widget')
+        $this->assertSame("SELECT * FROM `widget` WHERE ( `widget`.`age` < '20' OR `widget`.`age` IS NULL )", Granada::for_table('widget')
             ->where_lt_or_null('age', '20')
             ->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE ( `age` <= '20' OR `age` IS NULL )", Granada::for_table('widget')
+        $this->assertSame("SELECT * FROM `widget` WHERE ( `widget`.`age` <= '20' OR `widget`.`age` IS NULL )", Granada::for_table('widget')
             ->where_lte_or_null('age', '20')
             ->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE ( `age` > '20' OR `age` IS NULL )", Granada::for_table('widget')
+        $this->assertSame("SELECT * FROM `widget` WHERE ( `widget`.`age` > '20' OR `widget`.`age` IS NULL )", Granada::for_table('widget')
             ->where_gt_or_null('age', '20')
             ->get_select_query());
-        $this->assertSame("SELECT * FROM `widget` WHERE ( `age` >= '20' OR `age` IS NULL )", Granada::for_table('widget')
+        $this->assertSame("SELECT * FROM `widget` WHERE ( `widget`.`age` >= '20' OR `widget`.`age` IS NULL )", Granada::for_table('widget')
             ->where_gte_or_null('age', '20')
             ->get_select_query());
         $this->assertSame("SELECT * FROM `widget` WHERE (( `name` = 'Joe' ) OR ( `name` = 'Fred' ))", Granada::for_table('widget')
@@ -1483,7 +1483,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             });
 
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE `name` = 'Fred' AND ( `age` = '18' AND `role` = 'admin' )",
+            "SELECT * FROM `widget` WHERE `widget`.`name` = 'Fred' AND ( `widget`.`age` = '18' AND `widget`.`role` = 'admin' )",
             $query->get_select_query()
         );
     }
@@ -1497,7 +1497,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             });
 
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE `name` = 'Fred' OR ( `age` = '18' AND `role` = 'admin' )",
+            "SELECT * FROM `widget` WHERE `widget`.`name` = 'Fred' OR ( `widget`.`age` = '18' AND `widget`.`role` = 'admin' )",
             $query->get_select_query()
         );
     }
@@ -1513,7 +1513,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             });
 
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE ( `role` = 'admin' OR ( `age` > '18' AND `age` < '65' ) )",
+            "SELECT * FROM `widget` WHERE ( `widget`.`role` = 'admin' OR ( `widget`.`age` > '18' AND `widget`.`age` < '65' ) )",
             $query->get_select_query()
         );
     }
@@ -1525,7 +1525,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         });
 
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE ( `age` = '18' AND `name` = 'Fred' )",
+            "SELECT * FROM `widget` WHERE ( `widget`.`age` = '18' AND `widget`.`name` = 'Fred' )",
             $query->get_select_query()
         );
     }
@@ -1537,7 +1537,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             ->where(function ($q): void {});
 
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE `name` = 'Fred'",
+            "SELECT * FROM `widget` WHERE `widget`.`name` = 'Fred'",
             $query->get_select_query()
         );
     }
@@ -1549,7 +1549,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         });
 
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE ( `age` = '18' AND `role` = 'admin' )",
+            "SELECT * FROM `widget` WHERE ( `widget`.`age` = '18' AND `widget`.`role` = 'admin' )",
             $query->get_select_query()
         );
     }
@@ -1561,7 +1561,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         });
 
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE ( `age` = '18' )",
+            "SELECT * FROM `widget` WHERE ( `widget`.`age` = '18' )",
             $query->get_select_query()
         );
     }
@@ -1576,6 +1576,110 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             "SELECT * FROM `user` WHERE ( `user`.`last_login` > '2020-01-01' OR `user`.`role` = 'admin' )",
             $query->get_select_query()
         );
+    }
+
+    public function testSuffixWhereAndNamedWhereAgreeOnAPlainQuery()
+    {
+        $named = Granada::for_table('widget')
+            ->where_gt('age', 10)
+            ->get_select_query();
+        $suffix = Granada::for_table('widget')
+            ->where_age_gt(10)
+            ->get_select_query();
+
+        $this->assertSame($named, $suffix);
+    }
+
+    public function testSuffixWhereAndNamedWhereAgreeUnderAJoin()
+    {
+        $suffix = Granada::for_table('widget')
+            ->join('gadget', ['gadget.id', '=', 'widget.gadget_id'])
+            ->where_age_gt(10);
+
+        $named = Granada::for_table('widget')
+            ->join('gadget', ['gadget.id', '=', 'widget.gadget_id'])
+            ->where_gt('age', 10);
+
+        $this->assertSame(
+            "SELECT * FROM `widget` JOIN `gadget` ON `gadget`.`id` = `widget`.`gadget_id` WHERE `widget`.`age` > '10'",
+            $suffix->get_select_query()
+        );
+        $this->assertSame($named->get_select_query(), $suffix->get_select_query());
+    }
+
+    public function testSuffixWhereUsesTheTableAliasUnderAJoin()
+    {
+        $suffix = Granada::for_table('widget')
+            ->table_alias('w')
+            ->join('gadget', ['gadget.id', '=', 'w.gadget_id'])
+            ->where_age_gt(10);
+
+        $named = Granada::for_table('widget')
+            ->table_alias('w')
+            ->join('gadget', ['gadget.id', '=', 'w.gadget_id'])
+            ->where_gt('age', 10);
+
+        $this->assertSame(
+            "SELECT * FROM `widget` `w` JOIN `gadget` ON `gadget`.`id` = `w`.`gadget_id` WHERE `w`.`age` > '10'",
+            $suffix->get_select_query()
+        );
+        $this->assertSame($named->get_select_query(), $suffix->get_select_query());
+    }
+
+    public function testSuffixWhereAndNamedWhereAgreeForEverySuffix()
+    {
+        $aliased = fn(): \Granada\Query => Granada::for_table('widget')
+            ->table_alias('w')
+            ->join('gadget', ['gadget.id', '=', 'w.gadget_id']);
+
+        $pairs = [
+            'where_age_not_equal'      => ['where_not_equal', 10],
+            'where_age_like'           => ['where_like', '%1%'],
+            'where_age_not_like'       => ['where_not_like', '%1%'],
+            'where_age_lt'             => ['where_lt', 10],
+            'where_age_lte'            => ['where_lte', 10],
+            'where_age_gt'             => ['where_gt', 10],
+            'where_age_gte'            => ['where_gte', 10],
+            'where_age_lt_or_null'     => ['where_lt_or_null', 10],
+            'where_age_lte_or_null'    => ['where_lte_or_null', 10],
+            'where_age_gt_or_null'     => ['where_gt_or_null', 10],
+            'where_age_gte_or_null'    => ['where_gte_or_null', 10],
+            'where_age_in'             => ['where_in', [10, 11]],
+            'where_age_not_in'         => ['where_not_in', [10, 11]],
+            'where_age_not_in_or_null' => ['where_not_in_or_null', [10, 11]],
+        ];
+
+        foreach ($pairs as $suffix_method => [$named_method, $argument]) {
+            $suffix = $aliased()->{$suffix_method}($argument);
+            $named  = $aliased()->{$named_method}('age', $argument);
+
+            $this->assertSame($named->get_select_query(), $suffix->get_select_query(), $suffix_method);
+        }
+
+        $null_pairs = [
+            'where_null'     => ['age', 'where_age_null'],
+            'where_not_null' => ['age', 'where_age_not_null'],
+        ];
+
+        foreach ($null_pairs as $named_method => [$column, $suffix_method]) {
+            $suffix = $aliased()->{$suffix_method}();
+            $named  = $aliased()->{$named_method}($column);
+
+            $this->assertSame($named->get_select_query(), $suffix->get_select_query(), $suffix_method);
+        }
+    }
+
+    public function testSuffixWhereAdjustsTheTimezoneAndTheNamedMethodDoesNot()
+    {
+        $suffix = StampedChild::q()
+            ->where_last_login_gt('2020-01-01')
+            ->get_select_query();
+        $named = StampedChild::q()
+            ->where_gt('last_login', '2020-01-01')
+            ->get_select_query();
+
+        $this->assertSame("SELECT * FROM `stamped_child` WHERE `stamped_child`.`last_login` > '2020-01-01@utc'", $suffix);
+        $this->assertSame("SELECT * FROM `stamped_child` WHERE `stamped_child`.`last_login` > '2020-01-01'", $named);
     }
 
     public function testMagicOrderBySuffixOnAModelLessQuery()
@@ -1603,7 +1707,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         $query = Granada::for_table('widget')->where_not('role', 'banned');
 
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE NOT ( `role` = 'banned' )",
+            "SELECT * FROM `widget` WHERE NOT ( `widget`.`role` = 'banned' )",
             $query->get_select_query()
         );
     }
@@ -1615,7 +1719,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         });
 
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE NOT ( `role` = 'banned' AND `active` = '0' )",
+            "SELECT * FROM `widget` WHERE NOT ( `widget`.`role` = 'banned' AND `widget`.`active` = '0' )",
             $query->get_select_query()
         );
     }
@@ -1625,7 +1729,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         $query = Granada::for_table('widget')->where_not('role', null);
 
         $this->assertSame(
-            'SELECT * FROM `widget` WHERE NOT ( `role` IS NULL )',
+            'SELECT * FROM `widget` WHERE NOT ( `widget`.`role` IS NULL )',
             $query->get_select_query()
         );
     }
@@ -1637,7 +1741,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             ->or_where('role', 'owner');
 
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE ( `role` = 'admin' OR `role` = 'owner' )",
+            "SELECT * FROM `widget` WHERE ( `widget`.`role` = 'admin' OR `widget`.`role` = 'owner' )",
             $query->get_select_query()
         );
     }
@@ -1649,7 +1753,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             ->or_where_not('role', 'banned');
 
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE ( `role` = 'admin' OR NOT ( `role` = 'banned' ) )",
+            "SELECT * FROM `widget` WHERE ( `widget`.`role` = 'admin' OR NOT ( `widget`.`role` = 'banned' ) )",
             $query->get_select_query()
         );
     }
@@ -1663,7 +1767,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             });
 
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE `role` = 'admin' OR NOT ( `active` = '0' )",
+            "SELECT * FROM `widget` WHERE `widget`.`role` = 'admin' OR NOT ( `widget`.`active` = '0' )",
             $query->get_select_query()
         );
     }
@@ -1678,7 +1782,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         $query = Granada::for_table('widget')->where_exists($subquery);
 
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE EXISTS ( SELECT `id` FROM `role` WHERE user_id = widget.id AND `name` = 'admin' )",
+            "SELECT * FROM `widget` WHERE EXISTS ( SELECT `id` FROM `role` WHERE user_id = widget.id AND `role`.`name` = 'admin' )",
             $query->get_select_query()
         );
     }
@@ -1704,7 +1808,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         });
 
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE ( `active` = '1' AND EXISTS ( SELECT * FROM `ban` WHERE ban.user_id = widget.id ) )",
+            "SELECT * FROM `widget` WHERE ( `widget`.`active` = '1' AND EXISTS ( SELECT * FROM `ban` WHERE ban.user_id = widget.id ) )",
             $query->get_select_query()
         );
     }
@@ -1721,7 +1825,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
             ->find_many();
 
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE `id` IN (SELECT `widget_id` FROM `other` WHERE `tag` = 'x')",
+            "SELECT * FROM `widget` WHERE `widget`.`id` IN (SELECT `widget_id` FROM `other` WHERE `other`.`tag` = 'x')",
             ORM::get_last_query()
         );
         $this->assertCount($logged + 1, ORM::get_query_log());
@@ -1838,7 +1942,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase
         $query->remove_where('name');
 
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE ( `age` = '10' )",
+            "SELECT * FROM `widget` WHERE ( `widget`.`age` = '10' )",
             $query->get_select_query()
         );
     }

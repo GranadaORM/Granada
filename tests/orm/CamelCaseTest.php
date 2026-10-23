@@ -40,7 +40,7 @@ class CamelCaseTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->whereIdIs(5)
             ->findOne();
-        $expected = "SELECT * FROM `widget` WHERE `id` = '5' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`id` = '5' LIMIT 1";
         $this->assertEquals($expected, ORM::getLastQuery());
     }
 
@@ -49,7 +49,7 @@ class CamelCaseTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where('name', 'Fred')
             ->findOne();
-        $expected = "SELECT * FROM `widget` WHERE `name` = 'Fred' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` = 'Fred' LIMIT 1";
         $this->assertEquals($expected, ORM::getLastQuery());
     }
 
@@ -60,7 +60,7 @@ class CamelCaseTest extends \PHPUnit\Framework\TestCase
             ->clearWhere()
             ->where('name', 'Joe')
             ->findOne();
-        $expected = "SELECT * FROM `widget` WHERE `name` = 'Joe' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` = 'Joe' LIMIT 1";
         $this->assertEquals($expected, ORM::getLastQuery());
     }
 
@@ -85,7 +85,7 @@ class CamelCaseTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->whereNotEqual('name', 'Fred')
             ->findMany();
-        $expected = "SELECT * FROM `widget` WHERE `name` != 'Fred'";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` != 'Fred'";
         $this->assertEquals($expected, ORM::getLastQuery());
     }
 
@@ -94,7 +94,7 @@ class CamelCaseTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->whereLike('name', '%Fred%')
             ->findOne();
-        $expected = "SELECT * FROM `widget` WHERE `name` LIKE '%Fred%' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` LIKE '%Fred%' LIMIT 1";
         $this->assertEquals($expected, ORM::getLastQuery());
     }
 
@@ -103,7 +103,7 @@ class CamelCaseTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->whereNotLike('name', '%Fred%')
             ->findOne();
-        $expected = "SELECT * FROM `widget` WHERE `name` NOT LIKE '%Fred%' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` NOT LIKE '%Fred%' LIMIT 1";
         $this->assertEquals($expected, ORM::getLastQuery());
     }
 
@@ -112,7 +112,7 @@ class CamelCaseTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->whereIn('name', ['Fred', 'Joe'])
             ->findMany();
-        $expected = "SELECT * FROM `widget` WHERE `name` IN ('Fred', 'Joe')";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` IN ('Fred', 'Joe')";
         $this->assertEquals($expected, ORM::getLastQuery());
     }
 
@@ -121,7 +121,7 @@ class CamelCaseTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->whereNotIn('name', ['Fred', 'Joe'])
             ->findMany();
-        $expected = "SELECT * FROM `widget` WHERE `name` NOT IN ('Fred', 'Joe')";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` NOT IN ('Fred', 'Joe')";
         $this->assertEquals($expected, ORM::getLastQuery());
     }
 
@@ -302,7 +302,7 @@ class CamelCaseTest extends \PHPUnit\Framework\TestCase
             ->whereLt('age', 10)
             ->whereGt('age', 5)
             ->findMany();
-        $expected = "SELECT * FROM `widget` WHERE `age` < '10' AND `age` > '5'";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`age` < '10' AND `widget`.`age` > '5'";
         $this->assertEquals($expected, ORM::getLastQuery());
     }
 
@@ -312,7 +312,7 @@ class CamelCaseTest extends \PHPUnit\Framework\TestCase
             ->whereLte('age', 10)
             ->whereGte('age', 5)
             ->findMany();
-        $expected = "SELECT * FROM `widget` WHERE `age` <= '10' AND `age` >= '5'";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`age` <= '10' AND `widget`.`age` >= '5'";
         $this->assertEquals($expected, ORM::getLastQuery());
     }
 
@@ -321,7 +321,7 @@ class CamelCaseTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->whereNull('name')
             ->findMany();
-        $expected = 'SELECT * FROM `widget` WHERE `name` IS NULL';
+        $expected = 'SELECT * FROM `widget` WHERE `widget`.`name` IS NULL';
         $this->assertEquals($expected, ORM::getLastQuery());
     }
 
@@ -330,7 +330,7 @@ class CamelCaseTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->whereNotNull('name')
             ->findMany();
-        $expected = 'SELECT * FROM `widget` WHERE `name` IS NOT NULL';
+        $expected = 'SELECT * FROM `widget` WHERE `widget`.`name` IS NOT NULL';
         $this->assertEquals($expected, ORM::getLastQuery());
     }
 
@@ -429,7 +429,7 @@ class CamelCaseTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->whereEqual('age', 10)
             ->deleteMany();
-        $expected = "DELETE FROM `widget` WHERE `age` = '10'";
+        $expected = "DELETE FROM `widget` WHERE `widget`.`age` = '10'";
         $this->assertEquals($expected, ORM::getLastQuery());
     }
 }
