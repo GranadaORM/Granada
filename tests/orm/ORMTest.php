@@ -274,7 +274,7 @@ class ORMTest extends \PHPUnit\Framework\TestCase
             ->where('name', 'ABC')
             ->get_select_query();
 
-        $this->assertSame("SELECT * FROM `car` WHERE `name` = 'ABC'", $cars_query);
+        $this->assertSame("SELECT * FROM `car` WHERE `car`.`name` = 'ABC'", $cars_query);
     }
 
     public function testDuplicateSelect()

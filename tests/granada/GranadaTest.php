@@ -45,7 +45,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
     public function testCustomIDColumn()
     {
         ModelWithCustomTableAndCustomIdColumn::q()->find_one(5);
-        $expected = "SELECT * FROM `custom_table` WHERE `custom_id_column` = '5' LIMIT 1";
+        $expected = "SELECT * FROM `custom_table` WHERE `custom_table`.`custom_id_column` = '5' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -69,7 +69,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
     public function testFindOneCamelCaseWithId()
     {
         $widget   = Simple::q()->findOne(1);
-        $expected = "SELECT * FROM `simple` WHERE `id` = '1' LIMIT 1";
+        $expected = "SELECT * FROM `simple` WHERE `simple`.`id` = '1' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -99,7 +99,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
         $widget->name = 'Fred';
         $widget->age  = 10;
         $widget->save();
-        $expected = "SELECT * FROM `simple` WHERE `id` = '1' LIMIT 1"; // Nothing changed, do not update database
+        $expected = "SELECT * FROM `simple` WHERE `simple`.`id` = '1' LIMIT 1"; // Nothing changed, do not update database
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -158,7 +158,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
         $widget_ids = $gadget->widgets()->select('id');
 
         $this->assertSame(
-            "SELECT `id` FROM `widget` WHERE `gadget_id` = '1' AND `enabled` = '1' AND `hidden` = '0'",
+            "SELECT `id` FROM `widget` WHERE `widget`.`gadget_id` = '1' AND `widget`.`enabled` = '1' AND `widget`.`hidden` = '0'",
             $widget_ids->get_select_query()
         );
 
@@ -166,7 +166,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
             ->where_id_in($widget_ids)
             ->find_many();
         $this->assertSame(
-            "SELECT * FROM `widget` WHERE `enabled` = '1' AND `hidden` = '0' AND `id` IN (SELECT `id` FROM `widget` WHERE `gadget_id` = '1' AND `enabled` = '1' AND `hidden` = '0')",
+            "SELECT * FROM `widget` WHERE `widget`.`enabled` = '1' AND `widget`.`hidden` = '0' AND `widget`.`id` IN (SELECT `id` FROM `widget` WHERE `widget`.`gadget_id` = '1' AND `widget`.`enabled` = '1' AND `widget`.`hidden` = '0')",
             ORM::get_last_query()
         );
     }
@@ -175,7 +175,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
     {
         $user     = User::q()->find_one(1);
         $profile  = $user->profile()->find_one();
-        $expected = "SELECT * FROM `profile` WHERE `user_id` = '1' LIMIT 1";
+        $expected = "SELECT * FROM `profile` WHERE `profile`.`user_id` = '1' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -183,7 +183,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
     {
         $user2    = UserTwo::q()->find_one(1);
         $profile  = $user2->profile()->find_one();
-        $expected = "SELECT * FROM `profile` WHERE `my_custom_fk_column` = '1' LIMIT 1";
+        $expected = "SELECT * FROM `profile` WHERE `profile`.`my_custom_fk_column` = '1' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -193,7 +193,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
         $profile          = $user2->profile()->find_one();
         $profile->user_id = 1;
         $user3            = $profile->user()->find_one();
-        $expected         = "SELECT * FROM `user` WHERE `id` = '1' LIMIT 1";
+        $expected         = "SELECT * FROM `user` WHERE `user`.`id` = '1' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -202,7 +202,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
         $profile2                        = ProfileTwo::q()->find_one(1);
         $profile2->custom_user_fk_column = 5;
         $user4                           = $profile2->user()->find_one();
-        $expected                        = "SELECT * FROM `user` WHERE `id` = '5' LIMIT 1";
+        $expected                        = "SELECT * FROM `user` WHERE `user`.`id` = '5' LIMIT 1";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -210,7 +210,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
     {
         $user4    = UserThree::q()->find_one(1);
         $posts    = $user4->posts()->find_many();
-        $expected = "SELECT * FROM `post` WHERE `user_three_id` = '1'";
+        $expected = "SELECT * FROM `post` WHERE `post`.`user_three_id` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -218,7 +218,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
     {
         $user5    = UserFour::q()->find_one(1);
         $posts    = $user5->posts()->find_many();
-        $expected = "SELECT * FROM `post` WHERE `my_custom_fk_column` = '1'";
+        $expected = "SELECT * FROM `post` WHERE `post`.`my_custom_fk_column` = '1'";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 

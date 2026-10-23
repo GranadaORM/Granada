@@ -398,7 +398,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
         $statement = Renderer::select($orm->_select_spec());
 
         $this->assertSame(
-            'SELECT `name` FROM `person` WHERE `age` = ? LIMIT 5',
+            'SELECT `name` FROM `person` WHERE `person`.`age` = ? LIMIT 5',
             $statement->query
         );
         $this->assertSame([17], $statement->values);

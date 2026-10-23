@@ -575,7 +575,6 @@ class QueryCar extends \Granada\Query
 
 Every query for that model starts with the conditions in the default filter.
 Soft-deleted rows are hidden before `defaultFilter()` runs, so the filter adds only its own conditions.
-It's recommended to include the table name in the conditions as it will be needed for any joins.
 
 Don't forget to create an index on columns that have a default filter!
 

@@ -1025,7 +1025,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     public function testFilterInsideClosure()
     {
         $this->assertSame(
-            "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND ( `name` = 'Car1' )",
+            "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND ( `car`.`name` = 'Car1' )",
             Car::q()
                 ->where(function ($q) {
                 return $q->byName('Car1');
@@ -1143,7 +1143,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     public function testCamelCaseAliasInsideClosure()
     {
         $this->assertSame(
-            "SELECT * FROM `part` WHERE ( `price` > '10' AND `part`.`name` = 'Part1' )",
+            "SELECT * FROM `part` WHERE ( `part`.`price` > '10' AND `part`.`name` = 'Part1' )",
             Part::q()
                 ->where(function ($q): void {
                 $q->whereGt('price', 10)->where_name('Part1');
@@ -1188,7 +1188,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     public function testDefaultFilterContainingOrStaysGrouped()
     {
         $this->assertSame(
-            "SELECT * FROM `gadget` WHERE ( `enabled` = '1' OR `hidden` = '1' ) AND `gadget`.`name` = 'Gadget1'",
+            "SELECT * FROM `gadget` WHERE ( `gadget`.`enabled` = '1' OR `gadget`.`hidden` = '1' ) AND `gadget`.`name` = 'Gadget1'",
             OrDefaultFilterGadget::q()
                 ->where_name('Gadget1')
                 ->get_select_query()
@@ -1285,6 +1285,35 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
             )->find_many();
 
         $this->assertSame("SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`manufactor_id` IN (SELECT `id` FROM `manufactor` WHERE `manufactor`.`name` = 'Manufactor2')", ORM::get_last_query());
+    }
+
+    public function testSubSelectColumnIsQualifiedSoTheSplicedQueryCannotCorrelate()
+    {
+        // car_part has no name column, so an unqualified name would read
+        // part.name once this is spliced under a part query.
+        $inner = Granada::for_table('car_part')
+            ->where_name_gt('Part1')
+            ->select('part_id');
+
+        $this->assertSame(
+            "SELECT `part_id` FROM `car_part` WHERE `car_part`.`name` > 'Part1'",
+            $inner->get_select_query()
+        );
+    }
+
+    public function testSubSelectRunsAfterBeingSplicedIntoAnotherQuery()
+    {
+        $inner = Granada::for_table('car_part')
+            ->where_name_gt('Part1')
+            ->select('part_id');
+
+        $outer = Granada::for_table('part')->where_id_in($inner);
+
+        // car_part has no name column, so this must fail rather than read
+        // the outer part.name.
+        $this->expectException(\PDOException::class);
+        $this->expectExceptionMessage('no such column: car_part.name');
+        $outer->find_many();
     }
 
     public function testSubSelectNotIn()
@@ -1628,7 +1657,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         Car::q()
             ->where_id_in([1, 3])
             ->find_many();
-        $expected = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` IN ('1', '3')";
+        $expected = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`id` IN ('1', '3')";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 
@@ -1637,11 +1666,11 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         Car::q()
             ->where_id_in(
                 CarPart::q()
-                    ->where('name', 'Door')
+                    ->where('part_id', 1)
                     ->select('car_id')
             )
             ->find_many();
-        $expected = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `id` IN (SELECT `car_id` FROM `car_part` WHERE `name` = 'Door')";
+        $expected = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`id` IN (SELECT `car_id` FROM `car_part` WHERE `car_part`.`part_id` = '1')";
         $this->assertEquals($expected, ORM::get_last_query());
     }
 

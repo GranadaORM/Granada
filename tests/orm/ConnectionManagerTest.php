@@ -165,7 +165,7 @@ class ConnectionManagerTest extends \PHPUnit\Framework\TestCase
         $manager->set_db(new MockDifferentPDO('sqlite::memory:'), self::ALTERNATE);
         ORM::set_connection_manager($manager);
 
-        $expected = "SELECT * FROM `widget` WHERE `name` = 'Fred' LIMIT 1";
+        $expected = "SELECT * FROM `widget` WHERE `widget`.`name` = 'Fred' LIMIT 1";
         Granada::for_table('widget')
             ->where('name', 'Fred')
             ->find_one();
