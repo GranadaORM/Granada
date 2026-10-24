@@ -899,21 +899,19 @@ class Query extends Orm\Db
     }
 
     /**
-     * Flag every matching row instead of deleting it, on a model that
-     * names $_soft_delete_column. `$target` names the table or alias the
-     * hard delete removes from in the join form.
+     * Remove every row the query matches, or flag them instead on a model
+     * that names $_soft_delete_column. True when the statement runs, false
+     * when the write fails. A query with a join throws InvalidArgumentException.
      */
-    public function delete_many(string $target = ''): ?bool
+    public function delete_many(): ?bool
     {
+        $this->_refuse_joined_query('delete_many');
+
         $flag = $this->_write_rules->soft_delete_column;
         if ($flag === null) {
-            $statement = Renderer::delete_many($this->_bulk_delete_spec($target));
+            $statement = Renderer::delete_many($this->_bulk_delete_spec());
 
             return self::_execute_write($statement->query, $statement->values, $this->_connection_name);
-        }
-
-        if ($this->_join_sources !== []) {
-            throw new \InvalidArgumentException('delete_many() on a soft-delete model does not support joined queries');
         }
 
         $set = [$flag => 1];
@@ -937,9 +935,7 @@ class Query extends Orm\Db
      */
     public function update_many(array $values): bool
     {
-        if ($this->_join_sources !== []) {
-            throw new \InvalidArgumentException('update_many() does not support joined queries');
-        }
+        $this->_refuse_joined_query('update_many');
 
         if ($values === []) {
             return true;
@@ -961,17 +957,19 @@ class Query extends Orm\Db
         return (bool) self::_execute_write($statement->query, $statement->values, $this->_connection_name);
     }
 
-    /**
-     * Snapshot the state a bulk delete needs into a BulkDeleteSpec for the Renderer.
-     */
-    protected function _bulk_delete_spec(string $target = ''): Orm\BulkDeleteSpec
+    protected function _refuse_joined_query(string $method): void
+    {
+        if ($this->_join_sources !== []) {
+            throw new \InvalidArgumentException("{$method}() does not support joined queries");
+        }
+    }
+
+    protected function _bulk_delete_spec(): Orm\BulkDeleteSpec
     {
         return new Orm\BulkDeleteSpec(
             table_name: $this->_table_name,
-            target: $target,
             dialect: self::_dialect($this->_connection_name),
             where_conditions: $this->_where_conditions,
-            join_sources: $this->_join_sources,
         );
     }
 
