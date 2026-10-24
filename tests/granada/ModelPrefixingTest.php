@@ -1,32 +1,28 @@
 <?php
 
-use Granada\ORM;
 use Granada\Model;
+use Granada\ORM;
 
 class ModelPrefixingTest extends \PHPUnit\Framework\TestCase
 {
     protected function setUp(): void
     {
-        // Set up the dummy database connection
-        ORM::set_db(new MockPDO('sqlite::memory:'));
-
-        // Enable logging
-        ORM::configure('logging', true);
+        ORM::reset_db();
 
         Model::$auto_prefix_models = null;
     }
 
     protected function tearDown(): void
     {
-        ORM::configure('logging', false);
-        ORM::set_db(null);
+        ORM::reset_config();
+        ORM::reset_db();
 
         Model::$auto_prefix_models = null;
     }
 
     public function testStaticPropertyExists()
     {
-        $this->assertTrue(property_exists(\Granada\Model::class, 'auto_prefix_models'));
+        $this->assertTrue(property_exists(Model::class, 'auto_prefix_models'));
         $this->assertSame(null, Model::$auto_prefix_models);
     }
 
@@ -43,24 +39,27 @@ class ModelPrefixingTest extends \PHPUnit\Framework\TestCase
     public function testNoPrefixOnAutoTableName()
     {
         Model::$auto_prefix_models = null;
-        Simple::q()->find_many();
-        $expected = 'SELECT * FROM `simple`';
-        $this->assertEquals($expected, ORM::get_last_query());
+
+        $statement = Simple::q()->to_statement();
+
+        $this->assertSame('SELECT * FROM `simple`', $statement->query);
     }
 
     public function testPrefixOnAutoTableName()
     {
         Model::$auto_prefix_models = 'MockPrefix_';
-        Simple::q()->find_many();
-        $expected = 'SELECT * FROM `mock_prefix_simple`';
-        $this->assertEquals($expected, ORM::get_last_query());
+
+        $statement = Simple::q()->to_statement();
+
+        $this->assertSame('SELECT * FROM `mock_prefix_simple`', $statement->query);
     }
 
     public function testPrefixOnAutoTableNameWithTableSpecified()
     {
         Model::$auto_prefix_models = 'MockPrefix_';
-        TableSpecified::q()->find_many();
-        $expected = 'SELECT * FROM `simple`';
-        $this->assertEquals($expected, ORM::get_last_query());
+
+        $statement = TableSpecified::q()->to_statement();
+
+        $this->assertSame('SELECT * FROM `simple`', $statement->query);
     }
 }

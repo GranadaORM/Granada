@@ -7,12 +7,10 @@ class ORMTest extends \PHPUnit\Framework\TestCase
 {
     protected function setUp(): void
     {
-        // Enable logging
-        ORM::configure('logging', true);
-
-        // Set up the dummy database connection
-        $db = new MockPDO('sqlite::memory:');
-        ORM::set_db($db);
+        ORM::set_db(new PDO('sqlite::memory:'));
+        ORM::get_db()->exec(file_get_contents(
+            __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'models.sql'
+        ));
     }
 
     protected function tearDown(): void
@@ -253,18 +251,23 @@ class ORMTest extends \PHPUnit\Framework\TestCase
             ->where('name', 'Fred')
             ->find_one();
         $statement = ORM::get_last_statement();
-        $this->assertTrue(is_a($statement, 'MockPDOStatement'));
+        $this->assertInstanceOf(PDOStatement::class, $statement);
     }
 
-    public function testSaveInsideLoop()
+    public function testSaveInsideLoopWritesEachRow()
     {
         $cars = Granada::for_table('car')->find_many();
         foreach ($cars as $car) {
             $car->name = 'ABC';
             $car->save();
-            $expected = "UPDATE `car` SET `name` = 'ABC' WHERE `id` = '" . $car->id . "'";
-            $this->assertEquals($expected, ORM::get_last_query());
         }
+
+        $names = [];
+        foreach (Granada::for_table('car')->find_many() as $car) {
+            $names[] = $car->name;
+        }
+
+        $this->assertSame(array_fill(0, count($cars), 'ABC'), $names);
     }
 
     public function testDuplicateFilters()

@@ -1,18 +1,16 @@
 <?php
 
-use Granada\ORM;
 use Granada\Granada;
+use Granada\ORM;
 
 class QueryBuilderMssqlTest extends \PHPUnit\Framework\TestCase
 {
     protected function setUp(): void
     {
-        // Enable logging
-        ORM::configure('logging', true);
-
-        // Set up the dummy database connection
-        $db = new MockMsSqlPDO('sqlite::memory:');
-        ORM::set_db($db);
+        ORM::reset_db();
+        ORM::configure('driver_name', 'sqlsrv');
+        ORM::configure('identifier_quote_character', '"');
+        ORM::configure('limit_clause_style', ORM::LIMIT_STYLE_TOP_N);
     }
 
     protected function tearDown(): void
@@ -21,22 +19,28 @@ class QueryBuilderMssqlTest extends \PHPUnit\Framework\TestCase
         ORM::reset_db();
     }
 
-    public function testFindOne()
-    {
-        Granada::for_table('widget')->find_one();
-        $expected = 'SELECT TOP 1 * FROM "widget"';
-        $this->assertEquals($expected, ORM::get_last_query());
-    }
-
     public function testLimit()
     {
-        Granada::for_table('widget')
+        $statement = Granada::for_table('widget')
             ->limit(5)
-            ->find_many();
-        $expected = 'SELECT TOP 5 * FROM "widget"';
-        $this->assertSame($expected, Granada::for_table('widget')
-            ->limit(5)
-            ->get_select_query());
-        $this->assertEquals($expected, ORM::get_last_query());
+            ->to_statement();
+
+        $this->assertSame('SELECT TOP 5 * FROM "widget"', $statement->query);
+    }
+
+    public function testLimitOne()
+    {
+        $statement = Granada::for_table('widget')
+            ->limit(1)
+            ->to_statement();
+
+        $this->assertSame('SELECT TOP 1 * FROM "widget"', $statement->query);
+    }
+
+    public function testGetSelectQuery()
+    {
+        $query = Granada::for_table('widget')->limit(5);
+
+        $this->assertSame('SELECT TOP 5 * FROM "widget"', $query->get_select_query());
     }
 }

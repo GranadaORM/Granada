@@ -1,7 +1,7 @@
 <?php
 
-use Granada\ORM;
 use Granada\Granada;
+use Granada\ORM;
 
 class CacheTest extends \PHPUnit\Framework\TestCase
 {
@@ -9,11 +9,16 @@ class CacheTest extends \PHPUnit\Framework\TestCase
 
     protected function setUp(): void
     {
-        // Set up the dummy database connections
-        ORM::set_db(new MockPDO('sqlite::memory:'));
-        ORM::set_db(new MockDifferentPDO('sqlite::memory:'), self::ALTERNATE);
+        ORM::set_db(new PDO('sqlite::memory:'));
+        ORM::get_db()->exec(file_get_contents(
+            __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'models.sql'
+        ));
 
-        // Enable logging
+        ORM::set_db(new PDO('sqlite::memory:'), self::ALTERNATE);
+        ORM::get_db(self::ALTERNATE)->exec(file_get_contents(
+            __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'models.sql'
+        ));
+
         ORM::configure('logging', true);
         ORM::configure('logging', true, self::ALTERNATE);
         ORM::configure('caching', true);
@@ -26,41 +31,45 @@ class CacheTest extends \PHPUnit\Framework\TestCase
         ORM::reset_db();
     }
 
-    // Test caching. This is a bit of a hack.
     public function testQueryGenerationOnlyOccursOnce()
     {
         Granada::for_table('widget')
-            ->where('name', 'Fred')
-            ->where('age', 17)
+            ->where('name', 'Widget1')
+            ->where('gadget_id', 1)
             ->find_one();
         Granada::for_table('widget')
-            ->where('name', 'Bob')
-            ->where('age', 42)
+            ->where('name', 'Widget2')
+            ->where('gadget_id', 1)
             ->find_one();
-        $expected = ORM::get_last_query();
+
+        $statements = count(ORM::get_query_log());
+
         Granada::for_table('widget')
-            ->where('name', 'Fred')
-            ->where('age', 17)
+            ->where('name', 'Widget1')
+            ->where('gadget_id', 1)
             ->find_one(); // this shouldn't run a query!
-        $this->assertEquals($expected, ORM::get_last_query());
+
+        $this->assertCount($statements, ORM::get_query_log());
     }
 
     public function testQueryGenerationOnlyOccursOnceWithMultipleConnections()
     {
-        // Test caching with multiple connections (also a bit of a hack)
         Granada::for_table('widget', self::ALTERNATE)
-            ->where('name', 'Steve')
-            ->where('age', 80)
+            ->where('name', 'Widget3')
+            ->where('gadget_id', 2)
             ->find_one();
         Granada::for_table('widget', self::ALTERNATE)
-            ->where('name', 'Tom')
-            ->where('age', 120)
+            ->where('name', 'Widget4')
+            ->where('gadget_id', 4)
             ->find_one();
-        $expected = ORM::get_last_query();
+
+        $statements = count(ORM::get_query_log(self::ALTERNATE));
+
         Granada::for_table('widget', self::ALTERNATE)
-            ->where('name', 'Steve')
-            ->where('age', 80)
+            ->where('name', 'Widget3')
+            ->where('gadget_id', 2)
             ->find_one(); // this shouldn't run a query!
-        $this->assertEquals($expected, ORM::get_last_query(self::ALTERNATE));
+
+        $this->assertCount($statements, ORM::get_query_log(self::ALTERNATE));
     }
 }
