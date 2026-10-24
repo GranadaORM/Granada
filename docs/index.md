@@ -1084,7 +1084,7 @@ Part::q()->update_many(['price' => 0]);
 // Updates every part
 ```
 
-A query with a join throws.
+A query with a join throws on both `update_many()` and `delete_many()`.
 A soft-delete model's hidden rows stay hidden; `clear_where()` lifts the hiding.
 
 An `Expression` value writes raw SQL, for shifts like `sort_order + 1`.

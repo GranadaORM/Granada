@@ -55,7 +55,6 @@ class RendererTest extends \PHPUnit\Framework\TestCase
     {
         $defaults = [
             'table_name' => 'person',
-            'target'     => '',
             'dialect'    => Dialect::for_driver(null),
         ];
 
@@ -375,21 +374,6 @@ class RendererTest extends \PHPUnit\Framework\TestCase
 
         $this->assertSame('DELETE FROM `person` WHERE `person_id` = ?', $statement->query);
         $this->assertSame([3], $statement->values);
-    }
-
-    public function testDeleteManyUsesWhereConditions()
-    {
-        $statement = Renderer::delete_many($this->bulkDeleteSpec([
-            'where_conditions' => [Condition::raw('`age` > ?', [17])],
-            'join_sources'     => ['INNER JOIN `address` ON 1'],
-            'target'           => '`a`',
-        ]));
-
-        $this->assertSame(
-            'DELETE `a` FROM `person` INNER JOIN `address` ON 1 WHERE `age` > ?',
-            $statement->query
-        );
-        $this->assertSame([17], $statement->values);
     }
 
     public function testDeleteManyWithoutJoinsOmitsJoinClause()

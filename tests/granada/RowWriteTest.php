@@ -235,6 +235,17 @@ class RowWriteTest extends \PHPUnit\Framework\TestCase
         $this->assertSame('Widget3', $this->widget(3)->name);
     }
 
+    public function testDeleteManyThrowsOnAJoinedQuery()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('delete_many() does not support joined queries');
+
+        Widget::q()
+            ->join('gadget', ['gadget.id', '=', 'widget.gadget_id'])
+            ->where_equal('gadget.name', 'Gadget2')
+            ->delete_many();
+    }
+
     public function testFindOneReturnsOneRow()
     {
         $widget = Granada::for_table('widget')->find_one();

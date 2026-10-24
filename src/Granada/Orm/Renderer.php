@@ -437,24 +437,11 @@ class Renderer
     }
 
     /**
-     * DELETE from the accumulated WHERE conditions. With join sources, the
-     * MySQL `DELETE target FROM table JOIN .. WHERE ..` form, where `target`
-     * names the table or alias the delete removes from.
+     * DELETE from the accumulated WHERE conditions.
      */
     public static function delete_many(BulkDeleteSpec $spec): Statement
     {
         $where = self::build_where_condition($spec->where_conditions, $spec->dialect);
-
-        if ($spec->join_sources !== []) {
-            $query = self::join_if_not_empty(' ', [
-                "DELETE {$spec->target} FROM",
-                $spec->dialect->quote_identifier($spec->table_name),
-                self::join_fragments($spec->join_sources, $spec->dialect),
-                $where->fragment,
-            ]);
-
-            return new Statement($query, $where->values);
-        }
 
         $query = self::join_if_not_empty(' ', [
             'DELETE FROM',
