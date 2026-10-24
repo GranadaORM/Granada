@@ -1,29 +1,25 @@
 <?php
 
-use Granada\ORM;
 use Granada\Granada;
+use Granada\ORM;
+use Granada\Orm\ConnectionManager;
 
 /**
  * Tests for lazy finds: find_many_lazy() gives one model at a time.
  */
 class LazyFindTest extends \PHPUnit\Framework\TestCase
 {
-    /** How many queries were logged before this test started. */
-    protected int $log_offset = 0;
-
     protected function setUp(): void
     {
+        ORM::set_connection_manager(new ConnectionManager('sqlite::memory:'));
         ORM::set_db(new PDO('sqlite::memory:'));
-
-        ORM::get_db()->exec(file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'models.sql'));
+        ORM::get_db()->exec(file_get_contents(
+            __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'models.sql'
+        ));
 
         ORM::configure('return_result_sets', false);
         ORM::configure('find_many_primary_id_as_key', true);
         ORM::configure('logging', true);
-
-        // The query log accumulates across tests; remember where this
-        // test's queries start.
-        $this->log_offset = count(ORM::get_query_log());
     }
 
     protected function tearDown(): void
@@ -319,7 +315,7 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
      */
     private function log(): array
     {
-        return array_slice(ORM::get_query_log(), $this->log_offset);
+        return ORM::get_query_log();
     }
 
     /**

@@ -2,6 +2,7 @@
 
 use Granada\Model;
 use Granada\ORM;
+use Granada\Orm\ConnectionManager;
 
 /**
  * Relationships whose associated model has a default filter adding two
@@ -11,6 +12,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
 {
     protected function setUp(): void
     {
+        ORM::set_connection_manager(new ConnectionManager('sqlite::memory:'));
         ORM::set_db(new PDO('sqlite::memory:'));
         ORM::get_db()->exec(file_get_contents(
             __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'models.sql'
@@ -34,10 +36,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`enabled` = '1' AND `widget`.`hidden` = '0' AND `widget`.`id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `gadget`.`enabled` = '1' AND `gadget`.`id` IN ('1')";
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
         $this->assertSame('Gadget1', $widget->gadget->name);
     }
 
@@ -60,10 +59,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `gadget`.`enabled` = '1'";
         $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`enabled` = '1' AND `widget`.`hidden` = '0' AND `widget`.`gadget_id` IN ('1', '4')";
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
         $this->assertCount(2, $gadgets->first()->relationships['widgets']);
         $this->assertCount(1, $gadgets->last()->relationships['widgets']);
     }
@@ -78,10 +74,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `gadget`.`enabled` = '1'";
         $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`enabled` = '1' AND `widget`.`hidden` = '0' AND `widget`.`name` = 'Widget1' AND `widget`.`gadget_id` IN ('1', '4')";
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
         $this->assertCount(1, $gadgets->first()->relationships['named_widgets']);
         $this->assertCount(0, $gadgets->last()->relationships['named_widgets']);
     }
@@ -96,10 +89,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`hidden` = '0' AND `gadget`.`enabled` = '1'";
         $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`enabled` = '1' AND `widget`.`hidden` = '0' AND `widget`.`gadget_id` IN ('1', '4')";
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
         $this->assertSame('Widget1', $gadgets->first()
             ->relationships['featured']
             ->name);
@@ -119,10 +109,7 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = 'SELECT `kit`.*, `kit_widget`.`widget_id` FROM `kit` JOIN `kit_widget` ON `kit`.`id` = `kit_widget`.`kit_id`'
             . " WHERE `kit`.`enabled` = '1' AND `kit`.`hidden` = '0' AND `kit_widget`.`widget_id` IN ('1', '2', '3', '4', '5')";
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
         $this->assertCount(1, $widgets->first()->relationships['kits']);
         $this->assertSame('Kit1', $widgets->first()
             ->relationships['kits'][0]
@@ -138,13 +125,12 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $widget = Widget::q()->find_one(1);
         $widget->gadget;
 
-        $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`id` = '1' AND `gadget`.`hidden` = '0' AND `gadget`.`enabled` = '1' LIMIT 1";
+        $statement = $widget->gadget()
+            ->limit(1)
+            ->to_statement();
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 1);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertSame('SELECT * FROM `gadget` WHERE `gadget`.`id` = ? AND `gadget`.`hidden` = ? AND `gadget`.`enabled` = ? LIMIT 1', $statement->query);
+        $this->assertSame([1, 0, 1], $statement->values);
         $this->assertSame('Gadget1', $widget->gadget->name);
     }
 
@@ -167,13 +153,10 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $gadget = Gadget::q()->find_one(1);
         $gadget->widgets;
 
-        $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`gadget_id` = '1' AND `widget`.`enabled` = '1' AND `widget`.`hidden` = '0'";
+        $statement = $gadget->widgets()->to_statement();
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 1);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertSame('SELECT * FROM `widget` WHERE `widget`.`gadget_id` = ? AND `widget`.`enabled` = ? AND `widget`.`hidden` = ?', $statement->query);
+        $this->assertSame([1, 1, 0], $statement->values);
         $this->assertCount(2, $gadget->widgets);
     }
 
@@ -182,13 +165,10 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $gadget = Gadget::q()->find_one(1);
         $gadget->named_widgets;
 
-        $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`gadget_id` = '1' AND `widget`.`enabled` = '1' AND `widget`.`hidden` = '0' AND `widget`.`name` = 'Widget1'";
+        $statement = $gadget->named_widgets()->to_statement();
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 1);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertSame('SELECT * FROM `widget` WHERE `widget`.`gadget_id` = ? AND `widget`.`enabled` = ? AND `widget`.`hidden` = ? AND `widget`.`name` = ?', $statement->query);
+        $this->assertSame([1, 1, 0, 'Widget1'], $statement->values);
         $this->assertCount(1, $gadget->named_widgets);
     }
 
@@ -197,13 +177,12 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $gadget = Gadget::q()->find_one(1);
         $gadget->featured;
 
-        $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`gadget_id` = '1' AND `widget`.`enabled` = '1' AND `widget`.`hidden` = '0' LIMIT 1";
+        $statement = $gadget->featured()
+            ->limit(1)
+            ->to_statement();
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 1);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertSame('SELECT * FROM `widget` WHERE `widget`.`gadget_id` = ? AND `widget`.`enabled` = ? AND `widget`.`hidden` = ? LIMIT 1', $statement->query);
+        $this->assertSame([1, 1, 0], $statement->values);
         $this->assertSame('Widget1', $gadget->featured->name);
     }
 
@@ -212,14 +191,10 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $widget = Widget::q()->find_one(1);
         $widget->kits;
 
-        $expectedSql   = [];
-        $expectedSql[] = 'SELECT `kit`.* FROM `kit` JOIN `kit_widget` ON `kit`.`id` = `kit_widget`.`kit_id`'
-            . " WHERE `kit_widget`.`widget_id` = '1' AND `kit`.`enabled` = '1' AND `kit`.`hidden` = '0'";
+        $statement = $widget->kits()->to_statement();
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 1);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertSame('SELECT `kit`.* FROM `kit` JOIN `kit_widget` ON `kit`.`id` = `kit_widget`.`kit_id` WHERE `kit_widget`.`widget_id` = ? AND `kit`.`enabled` = ? AND `kit`.`hidden` = ?', $statement->query);
+        $this->assertSame([1, 1, 0], $statement->values);
         $this->assertCount(1, $widget->kits);
     }
 
@@ -228,13 +203,12 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
         $widget = Widget::q()->find_one(1);
         $gadget = $widget->gadget()->find_one();
 
-        $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `gadget` WHERE `gadget`.`id` = '1' AND `gadget`.`hidden` = '0' AND `gadget`.`enabled` = '1' LIMIT 1";
+        $statement = $widget->gadget()
+            ->limit(1)
+            ->to_statement();
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 1);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertSame('SELECT * FROM `gadget` WHERE `gadget`.`id` = ? AND `gadget`.`hidden` = ? AND `gadget`.`enabled` = ? LIMIT 1', $statement->query);
+        $this->assertSame([1, 0, 1], $statement->values);
         $this->assertInstanceOf(Gadget::class, $gadget);
         $this->assertSame('Gadget1', $gadget->name);
     }
@@ -255,13 +229,12 @@ class RelationshipFilterTest extends \PHPUnit\Framework\TestCase
             ->where('name', 'Widget1')
             ->find_many();
 
-        $expectedSql   = [];
-        $expectedSql[] = "SELECT * FROM `widget` WHERE `widget`.`gadget_id` = '1' AND `widget`.`enabled` = '1' AND `widget`.`hidden` = '0' AND `widget`.`name` = 'Widget1'";
+        $statement = $gadget->widgets()
+            ->where('name', 'Widget1')
+            ->to_statement();
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 1);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertSame('SELECT * FROM `widget` WHERE `widget`.`gadget_id` = ? AND `widget`.`enabled` = ? AND `widget`.`hidden` = ? AND `widget`.`name` = ?', $statement->query);
+        $this->assertSame([1, 1, 0, 'Widget1'], $statement->values);
         $this->assertCount(1, $widgets);
     }
 

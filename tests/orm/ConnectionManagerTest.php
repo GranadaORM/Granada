@@ -117,7 +117,7 @@ class ConnectionManagerTest extends \PHPUnit\Framework\TestCase
     public function testSetDbNullDropsHandleAndDerivesFactsOnReconnect()
     {
         $manager = new ConnectionManager('sqlite::memory:');
-        $dropped = new MockPDO('sqlite::memory:');
+        $dropped = new PDO('sqlite::memory:');
         $manager->set_db($dropped);
 
         $manager->set_db(null);
@@ -139,10 +139,10 @@ class ConnectionManagerTest extends \PHPUnit\Framework\TestCase
         $this->assertNotSame($one->get_db(), $two->get_db());
 
         $one->configure('logging', true);
-        $one->set_db(new MockPDO('sqlite::memory:'));
-        $one->execute('SELECT * FROM `widget`');
+        $one->set_db(new PDO('sqlite::memory:'));
+        $one->execute('SELECT 1');
 
-        $this->assertSame('SELECT * FROM `widget`', $one->get_last_query());
+        $this->assertSame('SELECT 1', $one->get_last_query());
         $this->assertNull($two->get_last_query());
         $this->assertSame([], $two->get_query_log());
 
@@ -154,6 +154,16 @@ class ConnectionManagerTest extends \PHPUnit\Framework\TestCase
         $this->assertNull($two->get_last_statement());
     }
 
+    private function seeded_connection(): PDO
+    {
+        $connection = new PDO('sqlite::memory:');
+        $connection->exec(file_get_contents(
+            __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'models.sql'
+        ));
+
+        return $connection;
+    }
+
     public function testQueryCacheStaysPerConnection()
     {
         $manager = new ConnectionManager();
@@ -161,8 +171,8 @@ class ConnectionManagerTest extends \PHPUnit\Framework\TestCase
         $manager->configure('caching', true);
         $manager->configure('logging', true, self::ALTERNATE);
         $manager->configure('caching', true, self::ALTERNATE);
-        $manager->set_db(new MockPDO('sqlite::memory:'));
-        $manager->set_db(new MockDifferentPDO('sqlite::memory:'), self::ALTERNATE);
+        $manager->set_db($this->seeded_connection());
+        $manager->set_db($this->seeded_connection(), self::ALTERNATE);
         ORM::set_connection_manager($manager);
 
         $expected = "SELECT * FROM `widget` WHERE `widget`.`name` = 'Fred' LIMIT 1";

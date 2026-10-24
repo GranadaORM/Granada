@@ -487,6 +487,19 @@ class Query extends Orm\Db
     }
 
     /**
+     * Build the SELECT statement without running it.
+     * Returns the SQL text with placeholders and the values they bind.
+     */
+    public function to_statement(): Orm\Statement
+    {
+        if ($this->_is_raw_query) {
+            return new Orm\Statement($this->_raw_query, $this->_raw_parameters);
+        }
+
+        return Orm\Renderer::select($this->_select_spec());
+    }
+
+    /**
      * Instead of running the query, get the query that would be run for a find_many() call.
      * @param string $connection_name
      * @return string
@@ -2382,13 +2395,7 @@ class Query extends Orm\Db
      */
     protected function _build_select(): string
     {
-        if ($this->_is_raw_query) {
-            $this->_values = $this->_raw_parameters;
-
-            return $this->_raw_query;
-        }
-
-        $statement     = Orm\Renderer::select($this->_select_spec());
+        $statement     = $this->to_statement();
         $this->_values = $statement->values;
 
         return $statement->query;

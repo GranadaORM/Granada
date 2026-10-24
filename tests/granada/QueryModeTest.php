@@ -58,6 +58,16 @@ class QueryModeTest extends \PHPUnit\Framework\TestCase
         );
     }
 
+    public function testSetClassNameHydratesIntoThatClass()
+    {
+        $row = Granada::for_table('car')
+            ->set_class_name(Car::class)
+            ->find_one(1);
+
+        $this->assertInstanceOf(Car::class, $row);
+        $this->assertSame('Car1', $row->name);
+    }
+
     public function testQueryClassResolvesQueryThenBaseQueryThenQuery()
     {
         $this->assertSame(QueryResolutionBoth::class, ResolutionBoth::q()::class);

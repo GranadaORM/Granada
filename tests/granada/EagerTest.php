@@ -1,6 +1,7 @@
 <?php
 
 use Granada\ORM;
+use Granada\Orm\ConnectionManager;
 use Granada\Model;
 use Granada\ResultSet;
 
@@ -17,12 +18,13 @@ class EagerTest extends \PHPUnit\Framework\TestCase
 {
     protected function setUp(): void
     {
-        // The tests for eager loading requires a real database.
-        // Set up SQLite in memory
+        // A fresh manager per test, so each test's statements are the
+        // only entries in the query log.
+        ORM::set_connection_manager(new ConnectionManager('sqlite::memory:'));
         ORM::set_db(new PDO('sqlite::memory:'));
-
-        // Create schemas and populate with data
-        ORM::get_db()->exec(file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'models.sql'));
+        ORM::get_db()->exec(file_get_contents(
+            __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'models.sql'
+        ));
 
         // Restore the default config so a test that turns a setting off
         // does not leak it into the next test
@@ -48,12 +50,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1')";
 
-        $fullQueryLog = ORM::get_query_log();
-
-        // Return last two queries
-        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testFindOneWith2BelongsTo()
@@ -67,12 +64,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `owner` WHERE `owner`.`id` IN ('1')";
         $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1')";
 
-        $fullQueryLog = ORM::get_query_log();
-
-        // Return last three queries
-        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 3);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testFindOneWith1HasOne()
@@ -85,12 +77,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `owner` WHERE `owner`.`id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`owner_id` IN ('1')";
 
-        $fullQueryLog = ORM::get_query_log();
-
-        // Return last two queries
-        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testFindOneWith1HasMany()
@@ -102,12 +89,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`enabled` = '1' AND `car`.`manufactor_id` IN ('1')";
-        $fullQueryLog  = ORM::get_query_log();
-
-        // Return last two queries
-        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testFindOneWithHasManyThrough()
@@ -141,12 +123,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             'price' => 5.01,
         ];
 
-        $fullQueryLog = ORM::get_query_log();
-
-        // Return last three queries
-        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
         $this->assertEquals($expectedParts, $actualParts);
     }
 
@@ -161,12 +138,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `owner` WHERE `owner`.`id` IN ('1', '2', '3', '4')";
         $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1', '2')";
 
-        $fullQueryLog = ORM::get_query_log();
-
-        // Return last three queries
-        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 3);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testFindManyWith1HasOne()
@@ -179,12 +151,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = 'SELECT * FROM `owner`';
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`owner_id` IN ('1', '2', '3', '4')";
 
-        $fullQueryLog = ORM::get_query_log();
-
-        // Return last two queries
-        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testFindManyWith1HasMany()
@@ -197,12 +164,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = 'SELECT * FROM `manufactor`';
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`enabled` = '1' AND `car`.`manufactor_id` IN ('1', '2')";
 
-        $fullQueryLog = ORM::get_query_log();
-
-        // Return last two queries
-        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testFindManyWithHasManyThrough()
@@ -352,12 +314,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = 'SELECT * FROM `part`';
         $expectedSql[] = "SELECT `car`.*, `car_part`.`part_id` FROM `car` JOIN `car_part` ON `car`.`id` = `car_part`.`car_id` WHERE `car`.`is_deleted` = '0' AND `car_part`.`part_id` IN ('1', '2', '3', '4', '5')";
 
-        $fullQueryLog = ORM::get_query_log();
-
-        // Return last two queries
-        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
         $this->assertEquals($expectedParts, $actualParts);
     }
 
@@ -366,16 +323,12 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $owner = Owner::q()
             ->with(['car' => ['with' => 'manufactor']])
             ->find_one(1);
-        $fullQueryLog = ORM::get_query_log();
-        // Return last three queries
-        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 3);
-
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `owner` WHERE `owner`.`id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`owner_id` IN ('1')";
         $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1')";
 
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testDotNotationEagerLoading()
@@ -392,15 +345,12 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             ->manufactor
             ->name);
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 3);
-
         $expectedSql   = [];
         $expectedSql[] = "SELECT * FROM `owner` WHERE `owner`.`id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`owner_id` IN ('1')";
         $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1')";
 
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testDotNotationEagerLoadingFindMany()
@@ -417,15 +367,12 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             }
         }
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 3);
-
         $expectedSql   = [];
         $expectedSql[] = 'SELECT * FROM `owner`';
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`owner_id` IN ('1', '2', '3', '4')";
         $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1', '2')";
 
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testChainedAdterHas_Many_Through()
@@ -535,10 +482,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT `id`, `name` FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1')";
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
         $this->assertEquals('Manufactor1', $car->manufactor->name);
     }
 
@@ -554,10 +498,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0'";
         $expectedSql[] = "SELECT `id`, `name` FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1', '2') ORDER BY `name` DESC";
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testWithMagicBelongsToAutoIncludeId()
@@ -571,10 +512,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT `name`, `id` FROM `owner` WHERE `owner`.`id` IN ('1')";
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
         $this->assertEquals('Owner1', $car->owner->name);
     }
 
@@ -589,10 +527,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT `id`, `name`, `manufactor_id` FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`enabled` = '1' AND `car`.`manufactor_id` IN ('1')";
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testWithMagicHasOneSelect()
@@ -606,10 +541,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `owner` WHERE `owner`.`id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT `id`, `name`, `owner_id` FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`owner_id` IN ('1')";
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testWithMagicHasManyThroughSelect()
@@ -623,10 +555,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT `part`.`id`, `part`.`name`, `car_part`.`car_id` FROM `part` JOIN `car_part` ON `part`.`id` = `car_part`.`part_id` WHERE `car_part`.`car_id` IN ('1')";
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testWithMagicNoCallback()
@@ -639,10 +568,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`id` = '1' LIMIT 1";
         $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1')";
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testWithMagicMixedWithExistingWith()
@@ -657,10 +583,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT `name`, `id` FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1')";
         $expectedSql[] = "SELECT * FROM `owner` WHERE `owner`.`id` IN ('1')";
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 3);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testWithMagicNestedWithCallback()
@@ -684,10 +607,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             ->manufactor
             ->name);
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 3);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
     public function testWithMagicFindManySelect()
@@ -701,10 +621,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0'";
         $expectedSql[] = "SELECT `id`, `name` FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`id` IN ('1', '2')";
 
-        $fullQueryLog = ORM::get_query_log();
-        $actualSql    = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
 
         foreach ($cars as $car) {
             $this->assertNotNull($car->manufactor);

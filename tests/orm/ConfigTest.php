@@ -1,7 +1,7 @@
 <?php
 
-use Granada\ORM;
 use Granada\Granada;
+use Granada\ORM;
 use Granada\Orm\ConnectionManager;
 
 class ConfigTest extends \PHPUnit\Framework\TestCase
@@ -9,24 +9,28 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
     protected function setUp(): void
     {
         $manager = new ConnectionManager('sqlite::memory:');
-
-        // Enable logging
+        $manager->set_db(new PDO('sqlite::memory:'));
         $manager->configure('logging', true);
-
-        // Set up the dummy database connection
-        $db = new MockPDO('sqlite::memory:');
-        $manager->set_db($db);
-
         $manager->configure('id_column', 'primary_key');
 
         ORM::set_connection_manager($manager);
     }
 
+    protected function tearDown(): void
+    {
+        ORM::reset_config();
+        ORM::reset_db();
+    }
+
     public function testSettingIdColumn()
     {
-        Granada::for_table('widget')->find_one(5);
-        $expected = "SELECT * FROM `widget` WHERE `widget`.`primary_key` = '5' LIMIT 1";
-        $this->assertEquals($expected, ORM::get_last_query());
+        $statement = Granada::for_table('widget')
+            ->where_id_is(5)
+            ->limit(1)
+            ->to_statement();
+
+        $this->assertSame('SELECT * FROM `widget` WHERE `widget`.`primary_key` = ? LIMIT 1', $statement->query);
+        $this->assertSame([5], $statement->values);
     }
 
     public function testSettingIdColumnOverridesOne()
@@ -35,9 +39,12 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
             'widget' => 'widget_id',
         ]);
 
-        Granada::for_table('widget')->find_one(5);
-        $expected = "SELECT * FROM `widget` WHERE `widget`.`widget_id` = '5' LIMIT 1";
-        $this->assertEquals($expected, ORM::get_last_query());
+        $statement = Granada::for_table('widget')
+            ->where_id_is(5)
+            ->limit(1)
+            ->to_statement();
+
+        $this->assertSame('SELECT * FROM `widget` WHERE `widget`.`widget_id` = ? LIMIT 1', $statement->query);
     }
 
     public function testSettingIdColumnOverridesTwo()
@@ -46,9 +53,15 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
             'widget_handle' => 'widget_handle_id',
         ]);
 
-        Granada::for_table('widget_handle')->find_one(5);
-        $expected = "SELECT * FROM `widget_handle` WHERE `widget_handle`.`widget_handle_id` = '5' LIMIT 1";
-        $this->assertEquals($expected, ORM::get_last_query());
+        $statement = Granada::for_table('widget_handle')
+            ->where_id_is(5)
+            ->limit(1)
+            ->to_statement();
+
+        $this->assertSame(
+            'SELECT * FROM `widget_handle` WHERE `widget_handle`.`widget_handle_id` = ? LIMIT 1',
+            $statement->query
+        );
     }
 
     public function testSettingIdColumnOverridesThree()
@@ -58,18 +71,26 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
             'widget_handle' => 'widget_handle_id',
         ]);
 
-        Granada::for_table('widget_nozzle')->find_one(5);
-        $expected = "SELECT * FROM `widget_nozzle` WHERE `widget_nozzle`.`primary_key` = '5' LIMIT 1";
-        $this->assertEquals($expected, ORM::get_last_query());
+        $statement = Granada::for_table('widget_nozzle')
+            ->where_id_is(5)
+            ->limit(1)
+            ->to_statement();
+
+        $this->assertSame(
+            'SELECT * FROM `widget_nozzle` WHERE `widget_nozzle`.`primary_key` = ? LIMIT 1',
+            $statement->query
+        );
     }
 
     public function testInstanceIdColumnOne()
     {
-        Granada::for_table('widget')
+        $statement = Granada::for_table('widget')
             ->use_id_column('new_id')
-            ->find_one(5);
-        $expected = "SELECT * FROM `widget` WHERE `widget`.`new_id` = '5' LIMIT 1";
-        $this->assertEquals($expected, ORM::get_last_query());
+            ->where_id_is(5)
+            ->limit(1)
+            ->to_statement();
+
+        $this->assertSame('SELECT * FROM `widget` WHERE `widget`.`new_id` = ? LIMIT 1', $statement->query);
     }
 
     public function testInstanceIdColumnTwo()
@@ -78,20 +99,30 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
             'widget_handle' => 'widget_handle_id',
         ]);
 
-        Granada::for_table('widget_handle')
+        $statement = Granada::for_table('widget_handle')
             ->use_id_column('new_id')
-            ->find_one(5);
-        $expected = "SELECT * FROM `widget_handle` WHERE `widget_handle`.`new_id` = '5' LIMIT 1";
-        $this->assertEquals($expected, ORM::get_last_query());
+            ->where_id_is(5)
+            ->limit(1)
+            ->to_statement();
+
+        $this->assertSame(
+            'SELECT * FROM `widget_handle` WHERE `widget_handle`.`new_id` = ? LIMIT 1',
+            $statement->query
+        );
     }
 
     public function testInstanceIdColumnThree()
     {
-        Granada::for_table('widget_nozzle')
+        $statement = Granada::for_table('widget_nozzle')
             ->use_id_column('new_id')
-            ->find_one(5);
-        $expected = "SELECT * FROM `widget_nozzle` WHERE `widget_nozzle`.`new_id` = '5' LIMIT 1";
-        $this->assertEquals($expected, ORM::get_last_query());
+            ->where_id_is(5)
+            ->limit(1)
+            ->to_statement();
+
+        $this->assertSame(
+            'SELECT * FROM `widget_nozzle` WHERE `widget_nozzle`.`new_id` = ? LIMIT 1',
+            $statement->query
+        );
     }
 
     public function testGetConfig()

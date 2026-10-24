@@ -175,6 +175,22 @@ CREATE TABLE stamped_soft_ignored (
     updated_at TEXT
 );
 
+CREATE TABLE simple (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT
+);
+
+CREATE TABLE model_with_custom_connection (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT
+);
+
+CREATE TABLE test (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    test TEXT,
+    age INTEGER
+);
+
 CREATE TABLE unstamped (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
@@ -258,3 +274,13 @@ INSERT INTO keyed_row_custom(custom_id,name) VALUES (7, 'seven');
 
 INSERT INTO crate(id,name) VALUES (1, 'Crate1');
 INSERT INTO crate(id,name) VALUES (2, 'Crate2');
+
+INSERT INTO test(test,age) VALUES ('a', 1);
+INSERT INTO test(test,age) VALUES ('b', 2);
+INSERT INTO test(test,age) VALUES ('c', 3);
+INSERT INTO test(test,age) VALUES ('d', 4);
+INSERT INTO test(test,age) VALUES ('e', 5);
+
+INSERT INTO simple(id,name) VALUES (1, 'Simple1');
+
+INSERT INTO model_with_custom_connection(id,name) VALUES (1, 'Custom1');

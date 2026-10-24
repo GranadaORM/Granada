@@ -1,8 +1,8 @@
 <?php
 
-use Granada\ORM;
 use Granada\Granada;
 use Granada\Orm\ConnectionManager;
+use Granada\ORM;
 
 class MultipleConnectionTest extends \PHPUnit\Framework\TestCase
 {
@@ -12,47 +12,57 @@ class MultipleConnectionTest extends \PHPUnit\Framework\TestCase
     {
         $manager = new ConnectionManager('sqlite::memory:');
 
-        // Set up the dummy database connections
-        $manager->set_db(new MockPDO('sqlite::memory:'));
-        $manager->set_db(new MockDifferentPDO('sqlite::memory:'), self::ALTERNATE);
+        // Two real databases with the same schema. Every widget in the
+        // alternate is renamed, so a result says which one ran the query.
+        $default   = $this->seeded_connection();
+        $alternate = $this->seeded_connection();
+        $alternate->exec("UPDATE widget SET name = 'Alternate1'");
 
-        // Enable logging
-        $manager->configure('logging', true);
-        $manager->configure('logging', true, self::ALTERNATE);
+        $manager->set_db($default);
+        $manager->set_db($alternate, self::ALTERNATE);
 
         ORM::set_connection_manager($manager);
     }
 
-    public function testMultiplePdoConnections()
+    /**
+     * A handle holding the shared schema and its rows.
+     */
+    private function seeded_connection(): PDO
     {
-        $this->assertInstanceOf('MockPDO', ORM::get_db());
-        $this->assertInstanceOf('MockPDO', ORM::get_db(ORM::DEFAULT_CONNECTION));
-        $this->assertInstanceOf('MockDifferentPDO', ORM::get_db(self::ALTERNATE));
+        $connection = new PDO('sqlite::memory:');
+        $connection->exec(file_get_contents(
+            __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'models.sql'
+        ));
+
+        return $connection;
     }
 
-    public function testRawExecuteOverAlternateConnection()
+    protected function tearDown(): void
     {
-        $expected = 'SELECT * FROM `foo`';
-        ORM::raw_execute('SELECT * FROM `foo`', [], self::ALTERNATE);
-
-        $this->assertEquals($expected, ORM::get_last_query(self::ALTERNATE));
+        ORM::reset_config();
+        ORM::reset_db();
     }
 
-    public function testFindOneOverDifferentConnections()
+    public function testEachConnectionKeepsItsOwnHandle()
     {
-        Granada::for_table('widget')->find_one();
-        $statementOne = ORM::get_last_statement();
-        $this->assertInstanceOf('MockPDOStatement', $statementOne);
+        $this->assertNotSame(ORM::get_db(), ORM::get_db(self::ALTERNATE));
+        $this->assertSame(ORM::get_db(), ORM::get_db(ORM::DEFAULT_CONNECTION));
+    }
 
-        Granada::for_table('person', self::ALTERNATE)->find_one();
-        $statementOne = ORM::get_last_statement(); // get_statement is *not* per connection
-        $this->assertInstanceOf('MockDifferentPDOStatement', $statementOne);
+    public function testARowComesFromTheConnectionTheQueryNames()
+    {
+        $this->assertSame('Widget1', Granada::for_table('widget')
+            ->find_one(1)
+            ->name);
+        $this->assertSame('Alternate1', Granada::for_table('widget', self::ALTERNATE)
+            ->find_one(1)
+            ->name);
+    }
 
-        $expected = 'SELECT * FROM `widget` LIMIT 1';
-        $this->assertNotEquals($expected, ORM::get_last_query()); // Because get_last_query() is across *all* connections
-        $this->assertEquals($expected, ORM::get_last_query(ORM::DEFAULT_CONNECTION));
+    public function testGetLastStatementIsTheStatementThatJustRan()
+    {
+        Granada::for_table('widget')->find_one(1);
 
-        $expectedToo = 'SELECT * FROM `person` LIMIT 1';
-        $this->assertEquals($expectedToo, ORM::get_last_query(self::ALTERNATE));
+        $this->assertInstanceOf(PDOStatement::class, ORM::get_last_statement());
     }
 }

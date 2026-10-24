@@ -1,7 +1,8 @@
 <?php
 
-use Granada\ORM;
 use Granada\Granada;
+use Granada\ORM;
+use Granada\Orm\ConnectionManager;
 
 /**
  * Testing eager loading
@@ -16,12 +17,11 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 {
     protected function setUp(): void
     {
-        // The tests for eager loading requires a real database.
-        // Set up SQLite in memory
+        ORM::set_connection_manager(new ConnectionManager('sqlite::memory:'));
         ORM::set_db(new PDO('sqlite::memory:'));
-
-        // Create schemas and populate with data
-        ORM::get_db()->exec(file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'models.sql'));
+        ORM::get_db()->exec(file_get_contents(
+            __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'models.sql'
+        ));
 
         // Enable logging
         ORM::configure('logging', true);
@@ -1379,17 +1379,11 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
                 'is_deleted'    => 0,
             ],
         ]);
-        $count         = Car::q()->count();
-        $expectedSql   = [];
-        $expectedSql[] = "INSERT INTO `car` (`id`, `name`, `manufactor_id`, `owner_id`, `is_deleted`) VALUES ('20', 'test', '1', '1', '0')";
-        $expectedSql[] = "SELECT COUNT(*) AS `count` FROM `car` WHERE `car`.`is_deleted` = '0' LIMIT 1";
-
-        $fullQueryLog = ORM::get_query_log();
-
-        // Return last two queries
-        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $count = Car::q()->count();
+        $this->assertSame([
+            "INSERT INTO `car` (`id`, `name`, `manufactor_id`, `owner_id`, `is_deleted`) VALUES ('20', 'test', '1', '1', '0')",
+            "SELECT COUNT(*) AS `count` FROM `car` WHERE `car`.`is_deleted` = '0' LIMIT 1",
+        ], ORM::get_query_log());
         $this->assertEquals(6, $count, 'Car must be Inserted');
     }
 
@@ -1404,32 +1398,20 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
                 'is_deleted'    => 1,
             ],
         ]);
-        $count         = Car::q()->count();
-        $expectedSql   = [];
-        $expectedSql[] = "INSERT INTO `car` (`id`, `name`, `manufactor_id`, `owner_id`, `is_deleted`) VALUES ('20', 'test', '1', '1', '1')";
-        $expectedSql[] = "SELECT COUNT(*) AS `count` FROM `car` WHERE `car`.`is_deleted` = '0' LIMIT 1";
-
-        $fullQueryLog = ORM::get_query_log();
-
-        // Return last two queries
-        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 2);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $count = Car::q()->count();
+        $this->assertSame([
+            "INSERT INTO `car` (`id`, `name`, `manufactor_id`, `owner_id`, `is_deleted`) VALUES ('20', 'test', '1', '1', '1')",
+            "SELECT COUNT(*) AS `count` FROM `car` WHERE `car`.`is_deleted` = '0' LIMIT 1",
+        ], ORM::get_query_log());
         $this->assertEquals(5, $count);
     }
 
     public function testCountAll()
     {
-        $count         = Car::q()->count();
-        $expectedSql   = [];
-        $expectedSql[] = "SELECT COUNT(*) AS `count` FROM `car` WHERE `car`.`is_deleted` = '0' LIMIT 1";
-
-        $fullQueryLog = ORM::get_query_log();
-
-        // Return last two queries
-        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 1);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $count = Car::q()->count();
+        $this->assertSame([
+            "SELECT COUNT(*) AS `count` FROM `car` WHERE `car`.`is_deleted` = '0' LIMIT 1",
+        ], ORM::get_query_log());
         $this->assertEquals(5, $count);
     }
 
@@ -1438,15 +1420,9 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $count = Car::q()
             ->clear_where()
             ->count();
-        $expectedSql   = [];
-        $expectedSql[] = 'SELECT COUNT(*) AS `count` FROM `car` LIMIT 1';
-
-        $fullQueryLog = ORM::get_query_log();
-
-        // Return last two queries
-        $actualSql = array_slice($fullQueryLog, count($fullQueryLog) - 1);
-
-        $this->assertEquals($expectedSql, $actualSql);
+        $this->assertSame([
+            'SELECT COUNT(*) AS `count` FROM `car` LIMIT 1',
+        ], ORM::get_query_log());
         $this->assertEquals(6, $count);
     }
 

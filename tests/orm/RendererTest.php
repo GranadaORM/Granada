@@ -273,6 +273,29 @@ class RendererTest extends \PHPUnit\Framework\TestCase
         $this->assertSame([1, 'news', 'fred'], $statement->values);
     }
 
+    public function testSelectRendersAnAggregatePerFunction()
+    {
+        foreach (['COUNT', 'MAX', 'MIN', 'AVG', 'SUM'] as $function) {
+            $statement = Renderer::select($this->selectSpec([
+                'result_columns' => [new Aggregate($function, 'age', strtolower($function))],
+            ]));
+
+            $this->assertSame(
+                "SELECT {$function}(`age`) AS `" . strtolower($function) . '` FROM `person`',
+                $statement->query
+            );
+        }
+    }
+
+    public function testSelectRendersCountOfEveryColumn()
+    {
+        $statement = Renderer::select($this->selectSpec([
+            'result_columns' => [new Aggregate('COUNT', '*', 'count')],
+        ]));
+
+        $this->assertSame('SELECT COUNT(*) AS `count` FROM `person`', $statement->query);
+    }
+
     public function testDoubleQuoteIdentifiersWhenConfigured()
     {
         $statement = Renderer::select($this->selectSpec([
@@ -510,7 +533,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
 
     public function testGetSelectQueryThrowsOnUnbalancedQuotes()
     {
-        ORM::set_db(new MockPDO('sqlite::memory:'));
+        ORM::set_db(new PDO('sqlite::memory:'));
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('unbalanced quotes');
         Granada::for_table('person')
