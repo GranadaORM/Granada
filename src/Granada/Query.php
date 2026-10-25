@@ -30,9 +30,88 @@ class Query extends Orm\Db
 
     /**
      * The relationship this query was built from,
-     * when a relationship method built it.
+     * or null when no relationship method built it.
      */
-    public ?Relationship $_relationship = null;
+    private ?Relationship $_relationship = null;
+
+    /**
+     * The relationship whose relation method returned this query,
+     * or null when no relation method did.
+     *
+     * @internal
+     */
+    public function _relationship(): ?Relationship
+    {
+        return $this->_relationship;
+    }
+
+    /**
+     * @internal
+     */
+    public function _set_relationship(Relationship $relationship): void
+    {
+        $this->_relationship = $relationship;
+    }
+
+    /**
+     * Whether the select list is still the default star, so a
+     * caller can tell whether the chain set its own select list.
+     *
+     * @internal
+     */
+    public function _select_is_default(): bool
+    {
+        return $this->_using_default_result_columns;
+    }
+
+    /**
+     * Remove every condition equal to the given one from the WHERE
+     * list, including inside a group.
+     * Equality compares type, column, operator and values.
+     *
+     * @internal
+     */
+    public function _remove_condition(Orm\Condition $condition): static
+    {
+        $this->_where_conditions = self::without_condition($this->_where_conditions, $condition);
+
+        return $this;
+    }
+
+    /**
+     * @param Orm\Condition[] $conditions
+     * @return Orm\Condition[]
+     */
+    private static function without_condition(array $conditions, Orm\Condition $condition): array
+    {
+        $kept = [];
+        foreach ($conditions as $existing) {
+            // Found the condition to remove.
+            if (
+                $existing->type === $condition->type
+                && $existing->column === $condition->column
+                && $existing->operator === $condition->operator
+                && $existing->values === $condition->values
+            ) {
+                continue;
+            }
+
+            // The condition can also sit inside a group, so the
+            // group's contents are searched.
+            if ($existing->type === Orm\Condition::GROUP) {
+                $pruned = self::without_condition($existing->conditions, $condition);
+                $kept[] = $pruned === $existing->conditions
+                    ? $existing
+                    : Orm\Condition::group($pruned, $existing->connected_by, $existing->negate);
+
+                continue;
+            }
+
+            $kept[] = $existing;
+        }
+
+        return $kept;
+    }
 
     /**
      * The relationships marked for eager loading, as with() received them.
@@ -2038,7 +2117,7 @@ class Query extends Orm\Db
      */
     private function _correlated_relationship_query(Relationship $relationship, null|array|Closure $conditions): Query
     {
-        $related = Granada::_related_query($relationship);
+        $related = $relationship->query();
         // A scalar subquery needs no ordering, and a relation's own
         // order_by would make SQL Server reject it.
         $related->order_by_clear();

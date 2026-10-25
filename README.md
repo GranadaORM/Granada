@@ -274,7 +274,7 @@ ModelName::q()->aname($argument1, $argument2)->...
 - insert : To create and save multiple elements from an array
 - pluck : returns a single column from the result.
 - find_pairs : Return array of key=>value as result
-- delete_many (accept join clauses)
+- delete_many : removes every row the query matches
 - update_many : writes the same values to every row the query matches
 
 ### Overload SET

@@ -185,6 +185,13 @@ CREATE TABLE model_with_custom_connection (
     name TEXT
 );
 
+CREATE TABLE resolution_base_only (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    gadget_id INTEGER,
+    FOREIGN KEY (gadget_id) REFERENCES gadget (id)
+);
+
 CREATE TABLE test (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     test TEXT,
@@ -284,3 +291,7 @@ INSERT INTO test(test,age) VALUES ('e', 5);
 INSERT INTO simple(id,name) VALUES (1, 'Simple1');
 
 INSERT INTO model_with_custom_connection(id,name) VALUES (1, 'Custom1');
+
+INSERT INTO resolution_base_only(id,name,gadget_id) VALUES (1, 'Res1', 1);
+INSERT INTO resolution_base_only(id,name,gadget_id) VALUES (2, 'Res2', 1);
+INSERT INTO resolution_base_only(id,name,gadget_id) VALUES (3, 'Res3', 4);
