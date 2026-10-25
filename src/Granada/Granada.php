@@ -439,7 +439,7 @@ class Granada implements ArrayAccess
      */
     public function __get(string $property): mixed
     {
-        return $this->resolve_property($property);
+        return $this->_resolve_property($property);
     }
 
     /**
@@ -452,7 +452,7 @@ class Granada implements ArrayAccess
      *      4. missingonce_{property_name} method (computed once, then kept)
      *      5. Lazy-loaded relationship if a method matching the property name exists
      */
-    protected function resolve_property(string $property): mixed
+    protected function _resolve_property(string $property): mixed
     {
         $class  = static::class;
         $result = $this->orm->get($property);
@@ -762,7 +762,7 @@ class Granada implements ArrayAccess
     public function delete(): ?bool
     {
         // If the model has no soft delete, we force delete
-        return $this->_write_soft_delete_flag(true) ?? $this->delete_forced();
+        return $this->write_soft_delete_flag(true) ?? $this->delete_forced();
     }
 
     /**
@@ -778,7 +778,7 @@ class Granada implements ArrayAccess
      */
     public function restore(): ?bool
     {
-        return $this->_write_soft_delete_flag(false) ?? false;
+        return $this->write_soft_delete_flag(false) ?? false;
     }
 
     /**
@@ -786,7 +786,7 @@ class Granada implements ArrayAccess
      * Returns null when the model has no soft deletes, so delete() can
      * fall through to a real delete.
      */
-    private function _write_soft_delete_flag(bool $deleted): ?bool
+    private function write_soft_delete_flag(bool $deleted): ?bool
     {
         $column = $this->orm
             ->_write_rules

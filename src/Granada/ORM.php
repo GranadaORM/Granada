@@ -463,7 +463,7 @@ class ORM extends Orm\Db implements ArrayAccess
      */
     public function increment(string $column, float|int $amount = 1): mixed
     {
-        return $this->_adjust_counter($column, $amount);
+        return $this->adjust_counter($column, $amount);
     }
 
     /**
@@ -472,10 +472,10 @@ class ORM extends Orm\Db implements ArrayAccess
      */
     public function decrement(string $column, float|int $amount = 1): mixed
     {
-        return $this->_adjust_counter($column, -$amount);
+        return $this->adjust_counter($column, -$amount);
     }
 
-    private function _adjust_counter(string $column, float|int $amount): mixed
+    private function adjust_counter(string $column, float|int $amount): mixed
     {
         if ($this->is_new() || $this->id() === null) {
             $this->$column = ($this->$column ?? 0) + $amount;
