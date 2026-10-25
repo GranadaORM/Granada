@@ -295,121 +295,6 @@ class Granada implements ArrayAccess
     }
 
     /**
-     * Build the query that loads a relationship for this model. Set
-     * $hide_soft_deleted false to keep rows the soft-delete flag would
-     * hide, as sync does so it can match a flagged child.
-     */
-    public function _relationship_query(Relationship $relationship, bool $hide_soft_deleted = true): Query
-    {
-        $query = Query::_for_model($relationship->class, $relationship->connection, apply_model_filter: false);
-
-        $where_value = $relationship->local_key ? $this->{$relationship->local_key} : $this->id();
-
-        switch ($relationship->kind) {
-            case 'has_one':
-            case 'has_many':
-                $query->where($relationship->key, $where_value);
-                break;
-
-            case 'belongs_to':
-                $query->where($relationship->related_key, $this->{$relationship->key});
-                break;
-
-            case 'has_many_through':
-                $query->where("{$relationship->table}.{$relationship->key}", $where_value);
-                break;
-        }
-
-        $query = self::_finish_relationship_query($query, $relationship, $hide_soft_deleted);
-
-        if ($relationship->table) {
-            $query->non_associative();
-        }
-
-        $query->_relationship = $relationship;
-
-        return $query;
-    }
-
-    /**
-     * The related model's query with its soft-delete hiding, its
-     * default filter, and the relationship's own filters, without a
-     * condition on the parent. Eager loading and existence filters both
-     * start from it and add their own parent condition.
-     */
-    public static function _related_query(Relationship $relationship): Query
-    {
-        return self::_finish_relationship_query(
-            Query::_for_model($relationship->class, $relationship->connection, apply_model_filter: false),
-            $relationship
-        );
-    }
-
-    /**
-     * The model's hiding and defaultFilter() go on before the join:
-     * with a join present, where() prefixes bare column names with
-     * the table.
-     */
-    private static function _finish_relationship_query(Query $query, Relationship $relationship, bool $hide_soft_deleted = true): Query
-    {
-        if ($hide_soft_deleted && $query->_write_rules->soft_delete_column !== null) {
-            $query->where(self::_get_table_name($relationship->class) . '.' . $query->_write_rules->soft_delete_column, 0);
-        }
-        $query->defaultFilter();
-
-        if ($relationship->table) {
-            $associated_table_name = self::_get_table_name($relationship->class);
-            $query->select("{$associated_table_name}.*")
-                ->join($relationship->table, ["{$associated_table_name}.{$relationship->related_key}", '=', "{$relationship->table}.{$relationship->other_key}"]);
-        }
-
-        // The order column lives on the link table for a has_many_through,
-        // and on the associated table for a has_many.
-        if ($relationship->order_column() !== null) {
-            $order_table = $relationship->table ?? self::_get_table_name($relationship->class);
-            $query->order_by_asc($order_table . '.' . $relationship->order_column());
-        }
-
-        foreach ($relationship->filters() as [$method, $args]) {
-            $query->$method(...$args);
-        }
-
-        return $query;
-    }
-
-    /**
-     * Load the related models for this instance. Uses the query built by
-     * chained calls when there is one; otherwise builds it.
-     */
-    private function _load_relationship(Relationship $relationship, ?Query $query = null): mixed
-    {
-        $query ??= $this->_relationship_query($relationship);
-
-        if (in_array($relationship->kind, ['has_one', 'belongs_to'])) {
-            $related_id = $relationship->kind === 'belongs_to'
-                ? $this->orm
-                    ->get($relationship->key)
-                : $this->id();
-
-            if ($related_id === null) {
-                return null;
-            }
-
-            $related_item = LazyItemCache::get($relationship->class, $related_id);
-            if ($related_item === null) {
-                $related_item = $query->find_one();
-                if ($related_item) {
-                    LazyItemCache::set($relationship->class, $related_id, $related_item);
-                }
-            }
-
-            return $related_item;
-        }
-
-        return $query->find_many();
-    }
-
-    /**
      * Helper method to manage one-to-one relations where the foreign
      * key is on the associated table.
      * @param string $associated_class_name
@@ -602,24 +487,28 @@ class Granada implements ArrayAccess
         $method = $property;
         if ($_has_method[$class][$method] ??= method_exists($this, $method)) {
             if ($property !== self::_get_id_column_name($class)) {
-                $relationship = $this->$property();
+                $result = $this->$method();
 
-                if ($relationship instanceof Relationship) {
+                if ($result instanceof Relationship) {
                     return $this
                         ->value_stash()
-                        ->set_computed_value($property, $this->_load_relationship($relationship));
+                        ->set_computed_value($property, $result->load_one());
                 }
 
-                if ($relationship instanceof Query && $relationship->_relationship) {
-                    return $this
-                        ->value_stash()
-                        ->set_computed_value($property, $this->_load_relationship($relationship->_relationship, $relationship));
+                if ($result instanceof Query) {
+                    $relationship = $result->_relationship();
+
+                    if ($relationship) {
+                        return $this
+                            ->value_stash()
+                            ->set_computed_value($property, $relationship->load_one());
+                    }
                 }
 
                 // A method returning a plain query is loaded as a many relation
                 return $this
                     ->value_stash()
-                    ->set_computed_value($property, $relationship->find_many());
+                    ->set_computed_value($property, $result->find_many());
             }
         }
 
@@ -994,7 +883,7 @@ class Granada implements ArrayAccess
 
         $result = $this->$relation();
         if ($result instanceof Query) {
-            $result = $result->_relationship;
+            $result = $result->_relationship();
         }
 
         return $result instanceof Relationship ? $result : null;

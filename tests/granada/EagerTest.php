@@ -864,4 +864,237 @@ class EagerTest extends \PHPUnit\Framework\TestCase
             2 => 'Widget2',
         ], array_map(fn($widget) => $widget->name, $full->as_array()));
     }
+
+    /**
+     * The gadget_by_name relation matches on the declared related key
+     * column, gadget.name, so the eager load must find the row the
+     * lazy load finds, not the row whose id is in the foreign key.
+     * When two gadgets share the name, both paths take the first.
+     */
+    public function testEagerBelongsToDeclaredRelatedKeyMatchesLazyLoading()
+    {
+        Gadget::create([
+            'id'      => 7,
+            'name'    => '1',
+            'enabled' => 1,
+            'hidden'  => 0,
+        ])->save();
+        Gadget::create([
+            'id'      => 8,
+            'name'    => '1',
+            'enabled' => 1,
+            'hidden'  => 0,
+        ])->save();
+        Widget::create([
+            'id'        => 6,
+            'name'      => 'Widget6',
+            'gadget_id' => '1',
+            'enabled'   => 1,
+            'hidden'    => 0,
+        ])->save();
+
+        $lazy = Widget::q()
+            ->find_one(6)
+            ->gadget_by_name;
+        $eager = Widget::q()
+            ->with('gadget_by_name')
+            ->find_one(6)
+            ->gadget_by_name;
+
+        $this->assertNotNull($lazy);
+        $this->assertSame($lazy->id, $eager->id);
+        $this->assertSame('1', $eager->name);
+
+        // Gadget2's own filter hides it, so both paths find no row
+        Widget::create([
+            'id'        => 7,
+            'name'      => 'Widget7',
+            'gadget_id' => 'Gadget2',
+            'enabled'   => 1,
+            'hidden'    => 0,
+        ])->save();
+
+        $lazyHidden = Widget::q()
+            ->find_one(7)
+            ->gadget_by_name;
+        $eagerHidden = Widget::q()
+            ->with('gadget_by_name')
+            ->find_one(7)
+            ->gadget_by_name;
+
+        $this->assertNull($lazyHidden);
+        $this->assertNull($eagerHidden);
+    }
+
+    /**
+     * The bolt_codes_by_name relation matches machines by their name
+     * column, so the eager load must restrict and match on the
+     * declared key column, not on the id.
+     */
+    public function testEagerHasManyThroughDeclaredLocalKeyMatchesLazyLoading()
+    {
+        MachineBoltCode::create([
+            'id'         => 1,
+            'machine_id' => 'Machine1',
+            'bolt_code'  => 'AAA',
+        ])->save();
+        MachineBoltCode::create([
+            'id'         => 2,
+            'machine_id' => 'Machine1',
+            'bolt_code'  => 'BBB',
+        ])->save();
+        MachineBoltCode::create([
+            'id'         => 3,
+            'machine_id' => 'Machine2',
+            'bolt_code'  => 'CCC',
+        ])->save();
+
+        $lazy  = $this->boltCodeNames(Machine::q()->find_one(1));
+        $eager = $this->boltCodeNames(Machine::q()
+            ->with('bolt_codes_by_name')
+            ->find_one(1));
+
+        $this->assertSame(['Bolt1', 'Bolt2'], $lazy);
+        $this->assertSame($lazy, $eager);
+    }
+
+    /**
+     * The bolt names a machine holds through its name-keyed links.
+     */
+    private function boltCodeNames(Model $machine): array
+    {
+        return array_map(
+            fn($bolt) => $bolt->name,
+            $machine->bolt_codes_by_name->as_array()
+        );
+    }
+
+    /**
+     * The car_by_name relation matches on the declared local key
+     * column, owner.name, so the eager load must find the row the
+     * lazy load finds, not the row whose name is the owner's id.
+     */
+    public function testEagerHasOneDeclaredLocalKeyMatchesLazyLoading()
+    {
+        // set_expr() writes the name clean: the model's set_name hook
+        // turns any name value into 'test'.
+        Car::create([
+            'id'               => 7,
+            'manufactor_id'    => 1,
+            'owner_id'         => 2,
+            'manufacture_date' => '2026-01-01',
+            'enabled'          => 1,
+            'is_deleted'       => 0,
+        ])
+            ->set_expr('name', "'Owner2'")
+            ->save();
+
+        $lazy = Owner::q()
+            ->find_one(2)
+            ->car_by_name;
+        $eager = Owner::q()
+            ->with('car_by_name')
+            ->find_one(2)
+            ->car_by_name;
+
+        $this->assertNotNull($lazy);
+        $this->assertSame($lazy->id, $eager->id);
+        $this->assertSame('Owner2', $eager->name);
+    }
+
+    /**
+     * The cars_by_name relation matches on the declared local key
+     * column, owner.name, so the eager load must find the rows the
+     * lazy load finds, not the rows whose name is the owner's id.
+     */
+    public function testEagerHasManyDeclaredLocalKeyMatchesLazyLoading()
+    {
+        Car::create([
+            'id'               => 7,
+            'manufactor_id'    => 1,
+            'owner_id'         => 2,
+            'manufacture_date' => '2026-01-01',
+            'enabled'          => 1,
+            'is_deleted'       => 0,
+        ])
+            ->set_expr('name', "'Owner2'")
+            ->save();
+        Car::create([
+            'id'               => 8,
+            'manufactor_id'    => 1,
+            'owner_id'         => 3,
+            'manufacture_date' => '2026-01-02',
+            'enabled'          => 1,
+            'is_deleted'       => 0,
+        ])
+            ->set_expr('name', "'Owner2'")
+            ->save();
+
+        $lazy = Owner::q()
+            ->find_one(2)
+            ->cars_by_name;
+        $eager = Owner::q()
+            ->with('cars_by_name')
+            ->find_one(2)
+            ->cars_by_name;
+
+        $this->assertCount(2, $lazy);
+        $this->assertSame(
+            array_map(fn($car) => $car->id, $lazy->as_array()),
+            array_map(fn($car) => $car->id, $eager->as_array())
+        );
+    }
+
+    /**
+     * A relation chaining a where, a select, an order_by and an
+     * ordered_by returns the same rows lazily and eagerly.
+     */
+    public function testChainedWhereSelectOrderByAndOrderedByLoadTheSameLazilyAndEagerly()
+    {
+        Crate::create([
+            'id'   => 5,
+            'name' => 'Crate5',
+        ])->save();
+        CrateItem::create([
+            'id'         => 31,
+            'crate_id'   => 5,
+            'name'       => 'Item1',
+            'qty'        => 1,
+            'sort_order' => 2,
+        ])->save();
+        CrateItem::create([
+            'id'         => 32,
+            'crate_id'   => 5,
+            'name'       => 'Item1',
+            'qty'        => 1,
+            'sort_order' => 1,
+        ])->save();
+        CrateItem::create([
+            'id'         => 33,
+            'crate_id'   => 5,
+            'name'       => 'Item2',
+            'qty'        => 9,
+            'sort_order' => 3,
+        ])->save();
+
+        $lazy  = $this->titledItemIds(Crate::q()->find_one(5));
+        $eager = $this->titledItemIds(Crate::q()
+            ->with('titled_items')
+            ->find_one(5));
+
+        $this->assertSame([32, 31], $lazy);
+        $this->assertSame($lazy, $eager);
+    }
+
+    /**
+     * The titled_items relation keeps only qty 1, selects the id
+     * column, and orders by sort position.
+     */
+    private function titledItemIds(Model $crate): array
+    {
+        return array_values(array_map(
+            fn($item) => $item->id,
+            $crate->titled_items->as_array()
+        ));
+    }
 }

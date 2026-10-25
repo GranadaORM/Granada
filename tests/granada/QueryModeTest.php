@@ -79,21 +79,21 @@ class QueryModeTest extends \PHPUnit\Framework\TestCase
     {
         $gadget = Gadget::q()->find_one(1);
 
-        $lazy_query = $gadget->_relationship_query(new \Granada\Relationship(
-            $gadget,
-            'has_many',
-            ResolutionBaseOnly::class,
-            'gadget_id',
-        ));
-        $this->assertSame(BaseQueryResolutionBaseOnly::class, $lazy_query::class);
+        // A chained relation method resolves the query class, and the
+        // eager load hydrates its rows into that model.
+        $query = $gadget->base_resolutions()
+            ->where('name', 'Res1');
+        $this->assertSame(BaseQueryResolutionBaseOnly::class, $query::class);
 
-        $eager_query = Granada::_related_query(new \Granada\Relationship(
-            $gadget,
-            'has_many',
-            ResolutionBaseOnly::class,
-            'gadget_id',
-        ));
-        $this->assertSame(BaseQueryResolutionBaseOnly::class, $eager_query::class);
+        $loaded = Gadget::q()
+            ->with('base_resolutions')
+            ->find_one(1)
+            ->base_resolutions;
+        $this->assertInstanceOf(ResolutionBaseOnly::class, $loaded->first());
+        $this->assertSame(['Res1', 'Res2'], array_values(array_map(
+            fn($row) => $row->name,
+            $loaded->as_array()
+        )));
     }
 
     public function testDefaultFilterAppliesAtConstruction()

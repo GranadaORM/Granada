@@ -22,6 +22,29 @@ class Owner extends Model
     {
         return $this->has_one('Car');
     }
+
+    public function made_car()
+    {
+        return $this->has_one('Car', 'manufactor_id');
+    }
+
+    /**
+     * The car matched by this model's name column rather than its id,
+     * so eager loading must use the declared key columns.
+     */
+    public function car_by_name()
+    {
+        return $this->has_one('Car', 'name', 'name');
+    }
+
+    /**
+     * The cars matched by this model's name column rather than its id,
+     * so eager loading must use the declared key columns.
+     */
+    public function cars_by_name()
+    {
+        return $this->has_many('Car', 'name', 'name');
+    }
 }
 
 class Part extends Model
@@ -131,7 +154,13 @@ class QueryCar extends \Granada\Query
     }
 }
 
-class CarPart extends Model {}
+class CarPart extends Model
+{
+    public function car()
+    {
+        return $this->belongs_to('Car', 'car_id');
+    }
+}
 
 /**
  * Models for use during testing
@@ -278,6 +307,15 @@ class Gadget extends Model
     {
         return $this->has_many('Widget')->select('widget.id');
     }
+
+    /**
+     * A relation into a model whose query resolves past the base,
+     * for asserting query-class resolution through a relation method.
+     */
+    public function base_resolutions()
+    {
+        return $this->has_many('ResolutionBaseOnly', 'gadget_id');
+    }
 }
 
 class QueryGadget extends \Granada\Query
@@ -293,6 +331,11 @@ class Widget extends Model
     public function gadget()
     {
         return $this->belongs_to('Gadget');
+    }
+
+    public function gadget_by_name()
+    {
+        return $this->belongs_to('Gadget', 'gadget_id', 'name');
     }
 
     public function kits()
@@ -415,6 +458,22 @@ class Machine extends Model
     {
         return $this->has_many_through('Bolt', 'MachineBoltCode', 'machine_id', 'bolt_code', other_table_key: 'code');
     }
+
+    /**
+     * The same links matched by this model's name column rather than
+     * its id, so eager loading must use the declared key columns.
+     */
+    public function bolt_codes_by_name()
+    {
+        return $this->has_many_through(
+            'Bolt',
+            'MachineBoltCode',
+            'machine_id',
+            'bolt_code',
+            this_table_key: 'name',
+            other_table_key: 'code'
+        );
+    }
 }
 
 class Bolt extends Model
@@ -448,6 +507,19 @@ class Crate extends Model
     public function extras()
     {
         return $this->has_many('CrateExtra', 'crate_id');
+    }
+
+    /**
+     * A relation chaining a where, a select, an order_by and an
+     * ordered_by, so eager and lazy loading must agree on its rows.
+     */
+    public function titled_items()
+    {
+        return $this->has_many('CrateItem', 'crate_id')
+            ->ordered_by('sort_order')
+            ->where('qty', 1)
+            ->select('id')
+            ->order_by_asc('sort_order');
     }
 
     /**

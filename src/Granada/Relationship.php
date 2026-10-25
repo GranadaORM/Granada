@@ -7,20 +7,28 @@ namespace Granada;
  * the key columns, and for has_many_through the link table.
  *
  * A relationship method attaches it to the query it returns, and loading
- * reads it to fetch the related models. A has_many_through relationship
- * also writes its link table, through attach(), detach(), and sync().
+ * reads it to fetch the related models. The relationship builds every
+ * query that loading runs: the lazy query for one parent row, the
+ * eager query for many parents, and the query with no parent
+ * condition, which existence filters and related counts correlate to
+ * the outer query. It runs the eager load and writes each parent's
+ * value for the relation. A has_many_through relationship also writes
+ * its link table, through attach(), detach(), and sync().
  *
- * Calls chained on the relationship run on that query. Calls that change
- * the query are remembered, so eager loading can rebuild it without the
- * parent's own condition.
+ * Calls chained on the relationship run on the lazy query. The one
+ * parent condition that query holds is remembered, so the eager query
+ * starts from the same conditions and replaces that condition with
+ * the many-parent restriction.
  *
  * @internal
  */
 class Relationship
 {
-    /** @var array<int, array{string, mixed[]}> */
-    private array $filters = [];
-    private ?Query $query  = null;
+    private ?Query $query = null;
+
+    private ?Orm\Condition $parent_condition = null;
+
+    private ?Orm\Condition $hiding_condition = null;
 
     private ?string $order_column = null;
 
@@ -66,6 +74,176 @@ class Relationship
     public function order_column(): ?string
     {
         return $this->order_column;
+    }
+
+    /**
+     * The column on the associated model this relation matches. The
+     * lazy item cache keys each entry by it.
+     */
+    public function cache_column(): string
+    {
+        return $this->related_key_column();
+    }
+
+    /**
+     * The column on the associated model this relation matches by:
+     * the declared key column for belongs_to, the foreign key
+     * otherwise.
+     */
+    private function related_key_column(): string
+    {
+        return $this->kind === 'belongs_to'
+            ? $this->related_key ?? Granada::_get_id_column_name($this->class)
+            : $this->key;
+    }
+
+    /**
+     * The related query with no parent condition: the related model's
+     * hiding, default filter, link join, and order column, plus every
+     * condition the chain added. With $hide_soft_deleted false, the
+     * soft-delete hiding is left off. Existence filters and related
+     * counts correlate it to the outer query.
+     */
+    public function query(bool $hide_soft_deleted = true): Query
+    {
+        if ($this->query !== null) {
+            $query = clone $this->query;
+            if ($this->parent_condition !== null) {
+                $query->_remove_condition($this->parent_condition);
+            }
+            if (!$hide_soft_deleted && $this->hiding_condition !== null) {
+                $query->_remove_condition($this->hiding_condition);
+            }
+
+            return $query;
+        }
+
+        $query = Query::_for_model($this->class, $this->connection, apply_model_filter: false);
+        $this->finish_query($query, $hide_soft_deleted);
+
+        return $query;
+    }
+
+    /**
+     * The related query restricted to the parents whose key values
+     * are in $keys. Every condition the chain added stays on it: a
+     * query the chain built is cloned, and the clone holds those
+     * conditions.
+     *
+     * @param mixed[] $keys
+     */
+    public function query_for_keys(array $keys, bool $hide_soft_deleted = true): Query
+    {
+        $query = $this->query($hide_soft_deleted);
+
+        if ($this->table === null && !$query->_select_is_default()) {
+            // The children match their parents by this column, and
+            // the chain's select list does not include it, so it is
+            // added here.
+            $query->select($this->cache_column());
+        }
+        if ($this->table !== null) {
+            $query->select($this->table . '.' . $this->key);
+            $query->non_associative();
+        }
+
+        $query->where_in($this->restrict_column(), array_values(array_unique($keys)));
+
+        return $query;
+    }
+
+    /**
+     * Run the with() constraint closure on the relationship's query.
+     * The select list is cleared first, so the closure's own select()
+     * sets the columns, and loading adds the match columns to the
+     * select again.
+     */
+    public function constrain(\Closure $constraint): void
+    {
+        $this->query ??= $this->one_parent_query();
+        $this->query->clear_select();
+        $constraint($this->query);
+    }
+
+    /**
+     * Mark more relationships for eager loading on the relationship's
+     * query, so the loaded children load their own related rows.
+     */
+    public function with(...$args): void
+    {
+        $this->query ??= $this->one_parent_query();
+        $this->query->with(...$args);
+    }
+
+    /**
+     * The related value for this relationship's own parent row: the
+     * related model for a "one" kind, the list for a "many" kind.
+     * Runs the query the chain built when there is one.
+     */
+    public function load_one(): mixed
+    {
+        $this->query ??= $this->one_parent_query();
+
+        if (in_array($this->kind, ['has_one', 'belongs_to'])) {
+            $orm        = $this->model->orm;
+            $related_id = $this->kind === 'belongs_to'
+                ? $orm->get($this->key)
+                : $this->model->id();
+
+            if ($related_id === null) {
+                return null;
+            }
+
+            $cache_column = $this->cache_column();
+
+            $related_item = LazyItemCache::get($this->class, $cache_column, $related_id);
+            if ($related_item === null) {
+                $related_item = $this->query->find_one();
+                if ($related_item) {
+                    LazyItemCache::set($this->class, $cache_column, $related_id, $related_item);
+                }
+            }
+
+            return $related_item;
+        }
+
+        return $this->query->find_many();
+    }
+
+    /**
+     * Eager-load this relationship for every parent row and store each
+     * parent's set value under $name, the property the models read.
+     * With $return_result_sets on, a "many" relationship's set value
+     * is a result set; a "one" relationship's is null until a row
+     * arrives.
+     *
+     * @param Granada[] $parents
+     */
+    public function load(array $parents, string $name, bool $return_result_sets): void
+    {
+        $result_set_class = null;
+        if ($return_result_sets) {
+            $result_set_class = Query::_result_set_class($this->class::$resultSetClass);
+        }
+
+        // Eager and lazy loading must hold the same type. "Many"
+        // relationships start as an empty result set when
+        // return_result_sets is on, an empty array when it is off.
+        // "One" relationships start as null.
+        foreach ($parents as $parent) {
+            $parent->relationships[$name] = $this->empty_value($result_set_class);
+        }
+
+        $children = $this
+            ->query_for_keys($this->parent_keys($parents))
+            ->find_many();
+
+        match ($this->kind) {
+            'has_one'    => $this->load_has_one($this->parents_by_key($parents), $children, $name),
+            'has_many'   => $this->load_has_many($this->parents_by_key($parents), $children, $name),
+            'belongs_to' => $this->load_belongs_to($parents, $children, $name),
+            default      => $this->load_has_many_through($this->parents_by_key($parents), $children, $name),
+        };
     }
 
     /**
@@ -190,7 +368,7 @@ class Relationship
         $this->in_transaction(function () use ($rows, $id_column): void {
             // Soft-delete hiding is off so a flagged child listed again
             // is matched rather than duplicated.
-            $children         = $this->model->_relationship_query($this, hide_soft_deleted: false);
+            $children         = $this->query_including_soft_deleted();
             $soft_delete_flag = $children->_write_rules->soft_delete_column;
 
             $existing = [];
@@ -231,10 +409,292 @@ class Relationship
     }
 
     /**
-     * The members as id => data pairs. An id given with no data maps to
-     * an empty array.
+     * The related query with the one condition on this model's row:
+     * the parent condition first, then the hiding, the default
+     * filter, the link join, and the order column. A has_many_through
+     * read keeps every link row, so repeated rows stay in the list.
+     */
+    private function one_parent_query(): Query
+    {
+        $query = Query::_for_model($this->class, $this->connection, apply_model_filter: false);
+
+        $column                 = $this->restrict_column();
+        $value                  = $this->parent_condition_value();
+        $this->parent_condition = $this->condition_for($column, $value);
+        $query->where($column, $value);
+
+        $this->finish_query($query, true);
+
+        if ($this->table !== null) {
+            $query->non_associative();
+        }
+
+        $query->_set_relationship($this);
+
+        return $query;
+    }
+
+    /**
+     * The one-parent query including soft-deleted rows, so a write
+     * sees the flagged rows too.
+     */
+    private function query_including_soft_deleted(): Query
+    {
+        $this->query ??= $this->one_parent_query();
+        $query = clone $this->query;
+        if ($this->hiding_condition !== null) {
+            $query->_remove_condition($this->hiding_condition);
+        }
+
+        return $query;
+    }
+
+    /**
+     * The hiding, the model's defaultFilter(), the link join, and the
+     * order column. The model's hiding and defaultFilter() go on
+     * before the join: when a join is present, where() prefixes bare
+     * column names with the table.
+     */
+    private function finish_query(Query $query, bool $hide_soft_deleted): void
+    {
+        $this->hiding_condition = null;
+        if ($hide_soft_deleted && $query->_write_rules->soft_delete_column !== null) {
+            $column                 = $this->table_name() . '.' . $query->_write_rules->soft_delete_column;
+            $this->hiding_condition = Orm\Condition::compare($column, '=', 0);
+            $query->where($column, 0);
+        }
+        $query->defaultFilter();
+
+        if ($this->table) {
+            $query->select($this->table_name() . '.*')
+                ->join($this->table, ["{$this->table_name()}.{$this->related_key}", '=', "{$this->table}.{$this->other_key}"]);
+        }
+
+        // The order column lives on the link table for a has_many_through,
+        // and on the associated table for a has_many.
+        if ($this->order_column !== null) {
+            $order_table = $this->table ?? $this->table_name();
+            $query->order_by_asc($order_table . '.' . $this->order_column);
+        }
+    }
+
+    /**
+     * The column on the related side this relation matches by: for
+     * belongs_to, the declared key column on the associated model; the
+     * qualified link column for a has_many_through; the foreign key
+     * otherwise.
+     */
+    private function restrict_column(): string
+    {
+        if ($this->kind === 'has_many_through') {
+            return "{$this->table}.{$this->key}";
+        }
+
+        return $this->related_key_column();
+    }
+
+    /**
+     * The value of the lazy query's parent condition: for belongs_to,
+     * this row's foreign key; the declared local key column's value
+     * when one is set, the id otherwise.
+     */
+    private function parent_condition_value(): mixed
+    {
+        if ($this->kind === 'belongs_to') {
+            return $this->model->{$this->key};
+        }
+
+        return $this->local_key ? $this->model->{$this->local_key} : $this->model->id();
+    }
+
+    /**
+     * The condition where() stores for one column and value. The
+     * eager query drops its twin from the cloned chain.
+     */
+    private function condition_for(string $column, mixed $value): Orm\Condition
+    {
+        if (is_null($value)) {
+            return Orm\Condition::is_null($this->qualified_column($column));
+        }
+
+        return Orm\Condition::compare($this->qualified_column($column), '=', $value);
+    }
+
+    private function qualified_column(string $column): string
+    {
+        if (str_contains($column, '.')) {
+            return $column;
+        }
+
+        return $this->table_name() . '.' . $column;
+    }
+
+    /**
+     * The column each parent is matched by: for belongs_to, this
+     * model's foreign key; the declared local key column when one is
+     * set, the id otherwise.
+     */
+    private function parent_key_column(): string
+    {
+        if ($this->kind === 'belongs_to') {
+            return $this->key;
+        }
+
+        return $this->local_key ?? Granada::_get_id_column_name(get_class($this->model));
+    }
+
+    /**
+     * The parent key values, one per parent.
      *
-     * @param mixed[] $members
+     * @param Granada[] $parents
+     * @return mixed[]
+     */
+    private function parent_keys(array $parents): array
+    {
+        return self::parent_column_values($parents, $this->parent_key_column());
+    }
+
+    /**
+     * The values of one column across every parent, in parent order.
+     * Reads the column off each row, so a keyed map contributes its
+     * rows' values, not its keys.
+     *
+     * @param array<int|string, Granada>|ResultSet $parents
+     * @return mixed[]
+     */
+    public static function parent_column_values(array|ResultSet $parents, string $column): array
+    {
+        $values = [];
+        foreach ($parents as $parent) {
+            $values[] = $parent->{$column};
+        }
+
+        return $values;
+    }
+
+    /**
+     * The parents grouped by the value the children match: a repeated
+     * value lists every parent row with it.
+     *
+     * @param Granada[] $parents
+     * @return array<mixed, non-empty-list<Granada>>
+     */
+    private function parents_by_key(array $parents): array
+    {
+        $column  = $this->parent_key_column();
+        $grouped = [];
+        foreach ($parents as $parent) {
+            $grouped[$parent->{$column}][] = $parent;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * The value a parent starts with, before any child row arrives.
+     */
+    private function empty_value(?string $result_set_class): null|array|ResultSet
+    {
+        if (!in_array($this->kind, ['has_many', 'has_many_through'])) {
+            return null;
+        }
+
+        return $result_set_class === null ? [] : new $result_set_class();
+    }
+
+    /**
+     * The first matching child becomes the parent's value; later
+     * children for the same parent are skipped.
+     *
+     * @param array<mixed, non-empty-list<Granada>> $parents_by_key
+     * @param array<int|string, Granada>|ResultSet $children
+     */
+    private function load_has_one(array $parents_by_key, array|ResultSet $children, string $name): void
+    {
+        foreach ($children as $child) {
+            foreach ($parents_by_key[$child[$this->key]] ?? [] as $parent) {
+                if (isset($parent->relationships[$name])) {
+                    continue;
+                }
+
+                $parent->relationships[$name] = $child;
+            }
+        }
+    }
+
+    /**
+     * The children are stored in each parent's list under the
+     * child's id, so a repeated child id keeps the last row.
+     *
+     * @param array<mixed, non-empty-list<Granada>> $parents_by_key
+     * @param array<int|string, Granada>|ResultSet $children
+     */
+    private function load_has_many(array $parents_by_key, array|ResultSet $children, string $name): void
+    {
+        foreach ($children as $child) {
+            foreach ($parents_by_key[$child[$this->key]] ?? [] as $parent) {
+                $parent->relationships[$name][$child->id] = $child;
+            }
+        }
+    }
+
+    /**
+     * Each child found by its declared key column is matched to the
+     * parents whose foreign key holds that value. The first child
+     * for a value wins, so the eager row is the row the lazy
+     * find_one() takes when several children share the value.
+     *
+     * @param Granada[]                             $parents
+     * @param array<int|string, Granada>|ResultSet $children
+     */
+    private function load_belongs_to(array $parents, array|ResultSet $children, string $name): void
+    {
+        if ($children instanceof ResultSet) {
+            $children = $children->as_array();
+        }
+
+        $children_by_key = [];
+        foreach ($children as $child) {
+            $value = $child[$this->related_key];
+            if (array_key_exists($value, $children_by_key)) {
+                continue;
+            }
+
+            $children_by_key[$value] = $child;
+        }
+
+        foreach ($parents as $parent) {
+            $value = $parent->{$this->key};
+            if (!array_key_exists($value, $children_by_key)) {
+                continue;
+            }
+
+            $parent->relationships[$name] = $children_by_key[$value];
+        }
+    }
+
+    /**
+     * The link column is added to the select so each child matches
+     * back to its parents, and removed from the returned rows: it
+     * does not belong to the related model. Every link row becomes a
+     * list entry, so repeated rows are kept.
+     *
+     * @param array<mixed, non-empty-list<Granada>> $parents_by_key
+     * @param array<int|string, Granada>|ResultSet $children
+     */
+    private function load_has_many_through(array $parents_by_key, array|ResultSet $children, string $name): void
+    {
+        foreach ($children as $child) {
+            $parent_value = $child[$this->key];
+            unset($child[$this->key]);
+
+            foreach ($parents_by_key[$parent_value] ?? [] as $parent) {
+                $parent->relationships[$name][] = $child;
+            }
+        }
+    }
+
+    /**
      * @return array<int|string, array<string, mixed>>
      */
     private function members_by_id(array $members): array
@@ -313,22 +773,20 @@ class Relationship
         ORM::transaction($writes, $this->connection ?? ORM::DEFAULT_CONNECTION);
     }
 
+    private function table_name(): string
+    {
+        return Granada::_get_table_name($this->class);
+    }
+
     public function __call(string $method, array $args): mixed
     {
-        $this->query ??= $this->model->_relationship_query($this);
+        $this->query ??= $this->one_parent_query();
         $result = $this->query->$method(...$args);
 
         if ($result instanceof Query) {
-            $this->filters[]       = [$method, $args];
-            $result->_relationship = $this;
+            $result->_set_relationship($this);
         }
 
         return $result;
-    }
-
-    /** @return array<int, array{string, mixed[]}> */
-    public function filters(): array
-    {
-        return $this->filters;
     }
 }

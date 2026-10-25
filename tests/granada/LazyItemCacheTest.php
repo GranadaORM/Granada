@@ -63,6 +63,68 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
         $this->assertSame($car1, $car2);
     }
 
+    public function testTwoHasOneRelationsIntoTheSameClassReturnTheirOwnRows()
+    {
+        // Owner 2 owns car 2 and is the manufactor of car 3.
+        $owner = Owner::q()->find_one(2);
+        $owned = $owner->car;
+        $made  = $owner->made_car;
+
+        $this->assertSame('Car2', $owned->name);
+        $this->assertSame('Car3', $made->name);
+        $this->assertNotSame($owned, $made);
+    }
+
+    public function testBelongsToKeyedOnNonIdColumnReturnsItsOwnQueryResult()
+    {
+        Gadget::create([
+            'id'      => 6,
+            'name'    => '2',
+            'enabled' => 1,
+            'hidden'  => 0,
+        ])->save();
+
+        // Widget 3 points at gadget 2, which the default filter hides.
+        $widget = Widget::q()->find_one(3);
+
+        $named = $widget->gadget_by_name;
+        $this->assertSame('2', $named->name);
+
+        $this->assertNull($widget->gadget);
+    }
+
+    public function testRowCachedByHasOneIsNotServedToBelongsTo()
+    {
+        Owner::create([
+            'id'   => 7,
+            'name' => 'Owner7',
+        ])->save();
+        Car::create([
+            'id'         => 9,
+            'owner_id'   => 7,
+            'enabled'    => 1,
+            'is_deleted' => 0,
+        ])->save();
+        Car::create([
+            'id'         => 7,
+            'owner_id'   => 1,
+            'enabled'    => 1,
+            'is_deleted' => 0,
+        ])->save();
+        $part = CarPart::create([
+            'car_id'  => 7,
+            'part_id' => 1,
+        ]);
+        $part->save();
+
+        $owned = Owner::q()
+            ->find_one(7)
+            ->car;
+        $this->assertEquals(9, $owned->id);
+
+        $this->assertEquals(7, $part->car->id);
+    }
+
     public function testHasManyRelationNotCachedInLazyItemCache()
     {
         $manufactor = Manufactor::q()->find_one(1);
@@ -113,13 +175,13 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
         $owner   = $owner_1->car;
         $this->assertEquals(2, LazyItemCache::size());
 
-        $mfg_1_evicted = LazyItemCache::get('Manufactor', 1);
+        $mfg_1_evicted = LazyItemCache::get('Manufactor', 'id', 1);
         $this->assertNull($mfg_1_evicted);
 
-        $owner_still_cached = LazyItemCache::get('Car', 1);
+        $owner_still_cached = LazyItemCache::get('Car', 'owner_id', 1);
         $this->assertSame($owner, $owner_still_cached);
 
-        $mfg_2_still_cached = LazyItemCache::get('Manufactor', 2);
+        $mfg_2_still_cached = LazyItemCache::get('Manufactor', 'id', 2);
         $this->assertSame($mfg_2, $mfg_2_still_cached);
     }
 
@@ -136,6 +198,21 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
         $car_3->manufactor;
 
         $this->assertEquals(2, LazyItemCache::size());
+    }
+
+    public function testRemoveDropsTheRowUnderEveryRelationColumn()
+    {
+        $car1       = Car::q()->find_one(1);
+        $manufactor = $car1->manufactor;
+        $owner      = Owner::q()->find_one(1);
+        $owner->car;
+        $this->assertEquals(2, LazyItemCache::size());
+
+        LazyItemCache::remove('Car', 1);
+
+        $this->assertNull(LazyItemCache::get('Car', 'owner_id', 1));
+        $this->assertSame($manufactor, LazyItemCache::get('Manufactor', 'id', 1));
+        $this->assertEquals(1, LazyItemCache::size());
     }
 
     public function testBelongsToWithCustomFkColumnCached()
