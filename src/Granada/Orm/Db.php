@@ -203,7 +203,7 @@ abstract class Db
     {
         self::_setup_db($connection_name);
 
-        if (self::_is_write($query)) {
+        if (self::is_write($query)) {
             return self::_execute_write($query, $parameters, $connection_name);
         }
 
@@ -256,7 +256,7 @@ abstract class Db
      * A raw statement is a single statement, so its leading keyword decides.
      * @param string $query
      */
-    private static function _is_write(string $query): bool
+    private static function is_write(string $query): bool
     {
         $sql = strtoupper(ltrim($query));
 
