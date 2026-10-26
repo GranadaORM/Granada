@@ -929,34 +929,31 @@ class Query extends Orm\Db
     }
 
     /**
-     * Execute an aggregate query on the current connection.
+     * Execute an aggregate query and return its value.
+     * The query is never modified.
      * @param string $sql_function The aggregate function to call eg. MIN, COUNT, etc
      * @param string $column The column to execute the aggregate query against
-     * @return int
      */
     protected function _call_aggregate_db_function(string $sql_function, string $column): float|int|string
     {
-        $alias                 = strtolower($sql_function);
-        $result_columns        = $this->_result_columns;
-        $related_counts        = $this->related_counts;
-        $this->_result_columns = [new Orm\Aggregate(strtoupper($sql_function), $column, $alias)];
-        $this->related_counts  = [];
-        $result                = $this->find_one();
-        $this->_result_columns = $result_columns;
-        $this->related_counts  = $related_counts;
+        $alias     = strtolower($sql_function);
+        $statement = Orm\Renderer::select($this->aggregate_spec($sql_function, $column, $alias));
+        $rows      = $this->fetch_rows($statement);
+        $value     = $rows[0][$alias] ?? null;
 
-        $return_value = 0;
-        if ($result !== null && isset($result->$alias)) {
-            if (!is_numeric($result->$alias)) {
-                $return_value = $result->$alias;
-            } elseif ((int) $result->$alias == (float) $result->$alias) {
-                $return_value = (int) $result->$alias;
-            } else {
-                $return_value = (float) $result->$alias;
-            }
+        if ($value === null) {
+            return 0;
         }
 
-        return $return_value;
+        if (!is_numeric($value)) {
+            return $value;
+        }
+
+        if ((int) $value == (float) $value) {
+            return (int) $value;
+        }
+
+        return (float) $value;
     }
 
     /**
@@ -2502,6 +2499,31 @@ class Query extends Orm\Db
     }
 
     /**
+     * An aggregate returns one value: the spec holds the one
+     * aggregate column, no related counts, a limit of 1.
+     */
+    private function aggregate_spec(string $sql_function, string $column, string $alias): Orm\SelectSpec
+    {
+        $spec = $this->_select_spec();
+
+        return new Orm\SelectSpec(
+            table_name: $spec->table_name,
+            dialect: $spec->dialect,
+            table_alias: $spec->table_alias,
+            result_columns: [new Orm\Aggregate(strtoupper($sql_function), $column, $alias)],
+            join_sources: $spec->join_sources,
+            related_counts: [],
+            distinct: $spec->distinct,
+            where_conditions: $spec->where_conditions,
+            having_conditions: $spec->having_conditions,
+            group_by: $spec->group_by,
+            order_by: $spec->order_by,
+            limit: 1,
+            offset: $spec->offset,
+        );
+    }
+
+    /**
      * Execute the SELECT query that has been built up by chaining methods
      * on this class. Return an array of rows as associative arrays.
      */
@@ -2548,6 +2570,40 @@ class Query extends Orm\Db
         $this->_values                       = [];
         $this->_result_columns               = ['*'];
         $this->_using_default_result_columns = true;
+    }
+
+    /**
+     * Execute a rendered statement and return every row it fetches.
+     * Rows are read from the query cache when the connection
+     * enables caching.
+     */
+    private function fetch_rows(Orm\Statement $statement): array
+    {
+        $caching_enabled = self::get_config('caching', $this->_connection_name);
+
+        $cache_key = '';
+        if ($caching_enabled) {
+            $cache_key     = self::_create_cache_key($statement->query, $statement->values);
+            $cached_result = self::_check_query_cache($cache_key, $this->_connection_name);
+
+            if ($cached_result !== false) {
+                return $cached_result;
+            }
+        }
+
+        self::_execute($statement->query, $statement->values, $this->_connection_name);
+        $result = self::get_last_statement();
+
+        $rows = [];
+        while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
+            $rows[] = $row;
+        }
+
+        if ($caching_enabled) {
+            self::_cache_query_result($cache_key, $rows, $this->_connection_name);
+        }
+
+        return $rows;
     }
 
     // --------------------- //

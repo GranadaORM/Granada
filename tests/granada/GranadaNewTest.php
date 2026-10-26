@@ -1706,4 +1706,61 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertSame('2020-01-01', $min);
         $this->assertSame('2023-10-05', $max);
     }
+
+    public function testCountSkipsQueuedEagerLoads()
+    {
+        $count = Car::q()
+            ->with('manufactor')
+            ->count();
+
+        $this->assertSame(5, $count);
+        $this->assertSame(
+            ["SELECT COUNT(*) AS `count` FROM `car` WHERE `car`.`is_deleted` = '0' LIMIT 1"],
+            ORM::get_query_log()
+        );
+    }
+
+    public function testAggregateSkipsTheAliasGetter()
+    {
+        $this->assertSame(5, Car::q()->count());
+    }
+
+    public function testCountLeavesTheQueryAsBuilt()
+    {
+        $query = Part::q()
+            ->where_price_gte(10)
+            ->limit(2)
+            ->order_by_asc('id');
+        $query->count();
+
+        $names = [];
+        foreach ($query->find_many() as $part) {
+            $names[] = $part->name;
+        }
+
+        $this->assertSame(['Part2', 'Part3'], $names);
+    }
+
+    public function testGroupedCountReturnsTheFirstGroup()
+    {
+        CarPart::create([
+            'car_id'  => 1,
+            'part_id' => 2,
+        ])->save();
+        CarPart::create([
+            'car_id'  => 2,
+            'part_id' => 2,
+        ])->save();
+        CarPart::create([
+            'car_id'  => 3,
+            'part_id' => 3,
+        ])->save();
+
+        $count = Granada::for_table('car_part')
+            ->order_by_asc('part_id')
+            ->group_by('part_id')
+            ->count();
+
+        $this->assertSame(5, $count);
+    }
 }

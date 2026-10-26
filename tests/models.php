@@ -102,6 +102,12 @@ class Car extends Model
         return strtolower($value);
     }
 
+    // testAggregateSkipsTheAliasGetter asserts count() never calls this.
+    public function get_count($value)
+    {
+        return 'getter ran';
+    }
+
     public function get_nonExistentProperty()
     {
         return 'test';

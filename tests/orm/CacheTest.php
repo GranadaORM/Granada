@@ -72,4 +72,14 @@ class CacheTest extends \PHPUnit\Framework\TestCase
 
         $this->assertCount($statements, ORM::get_query_log(self::ALTERNATE));
     }
+
+    public function testCountServesTheSecondCallFromTheCache()
+    {
+        Granada::for_table('widget')->count();
+        $statements = count(ORM::get_query_log());
+
+        Granada::for_table('widget')->count(); // this shouldn't run a query!
+
+        $this->assertCount($statements, ORM::get_query_log());
+    }
 }
