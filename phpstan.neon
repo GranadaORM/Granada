@@ -5,7 +5,7 @@ parameters:
   ignoreErrors:
     # _for_table() is the query factory: @return static is the API
     # contract and new static() is how subclasses get instantiated.
-    # _group_query() builds the group closure's fresh query for the
+    # group_query() builds the group closure's fresh query for the
     # same class for the same reason. Finalising constructors to
     # satisfy this would break subclasses that override them.
     -
