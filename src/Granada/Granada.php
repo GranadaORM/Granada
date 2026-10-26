@@ -144,14 +144,6 @@ class Granada implements ArrayAccess
     }
 
     /**
-     * First and last result flags
-     *
-     * @var boolean
-     */
-    public bool $_isFirstResult = false;
-    public bool $_isLastResult  = false;
-
-    /**
      * Retrieve the value of a static property on a class. If the
      * class or the property does not exist, returns the default
      * value supplied as the third argument (which defaults to null).
@@ -822,7 +814,7 @@ class Granada implements ArrayAccess
      */
     public function isFirstResult(): bool
     {
-        return $this->_isFirstResult;
+        return ResultSet::is_first($this);
     }
 
     /**
@@ -831,7 +823,7 @@ class Granada implements ArrayAccess
      */
     public function isLastResult(): bool
     {
-        return $this->_isLastResult;
+        return ResultSet::is_last($this);
     }
 
     /**

@@ -236,12 +236,6 @@ class ORM extends Orm\Db implements ArrayAccess
             $key = [$key => $value];
         }
         foreach ($key as $field => $value) {
-            if ($field === '_isFirstResult') {
-                continue;
-            }
-            if ($field === '_isLastResult') {
-                continue;
-            }
             if (!array_key_exists($field, $this->_clean_data) && array_key_exists($field, $this->_data)) {
                 // Save the data the first time only
                 $this->_clean_data[$field] = $this->_data[$field];
