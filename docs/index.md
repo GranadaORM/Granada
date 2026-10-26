@@ -690,6 +690,37 @@ class Car extends Model
 }
 ```
 
+## Auto order
+
+Set `$_auto_order_column` on a model to keep its rows in an order.
+When a save writes 0 to the column, Granada stores the next number instead.
+
+```php
+class Car extends Model
+{
+    protected static ?string $_auto_order_column = 'sort_order';
+}
+```
+
+```php
+$car = Car::create(['name' => 'Car1', 'sort_order' => 0]);
+$car->save();   // sort_order is 1
+
+$car->sort_order = 0;
+$car->save();   // sort_order is 2
+```
+
+Any other value saves as given.
+
+```php
+$car->sort_order = 7;
+$car->save();   // sort_order is 7
+```
+
+The assigned number never changes `updated_at`.
+The numbering is for the whole table.
+Two saves at the same moment can store the same number.
+
 ## Junction writes
 
 A `has_many_through` relationship loads its models through a link table. The same declaration gives you `attach()`, `detach()`, and `sync()` to write that table.

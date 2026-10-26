@@ -137,8 +137,21 @@ CREATE TABLE stamped (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
     views INTEGER,
+    position INTEGER,
     created_at TEXT,
     updated_at TEXT
+);
+
+CREATE TABLE ordered (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    position INTEGER
+);
+
+CREATE TABLE ordered_off (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    position INTEGER
 );
 
 CREATE TABLE stamped_child (

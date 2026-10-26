@@ -351,6 +351,9 @@ class ORM extends Orm\Db implements ArrayAccess
         }
 
         $this->_apply_auto_timestamps();
+        // Stamps first: the assigned order number is written after
+        // stamping, so it never counts as a change.
+        $this->apply_auto_order();
 
         // remove any expression fields as they are already baked into the query
         $values              = array_values(array_diff_key($this->_dirty_fields, $this->_expr_fields));
@@ -405,6 +408,23 @@ class ORM extends Orm\Db implements ArrayAccess
     {
         $stamped = $this->_write_rules->stamp($this->_dirty_fields + $this->_expr_fields, $this->_is_new);
         foreach ($stamped as $column => $value) {
+            $this->_dirty_fields[$column] = $value;
+            $this->_data[$column]         = $value;
+        }
+    }
+
+    /**
+     * Write the next order number in place of a written 0, when the
+     * model sets $_auto_order_column.
+     */
+    private function apply_auto_order(): void
+    {
+        $ordered = $this->_write_rules->auto_order(
+            $this->_dirty_fields,
+            fn(): int => (int) Query::_for_table($this->_table_name, $this->_connection_name)->max($this->_write_rules->auto_order_column) + 1,
+        );
+
+        foreach ($ordered as $column => $value) {
             $this->_dirty_fields[$column] = $value;
             $this->_data[$column]         = $value;
         }
