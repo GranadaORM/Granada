@@ -616,6 +616,53 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         }
     }
 
+    public function testTwoFindManyQueriesKeepTheirOwnFirstAndLast()
+    {
+        $cars = Car::q()
+            ->limit(3)
+            ->find_many();
+
+        $few = Car::q()
+            ->where_gt('id', 3)
+            ->order_by_asc('name')
+            ->limit(2)
+            ->find_many();
+
+        $expected = [
+            'Car1' => [
+                'first' => true,
+                'last'  => false,
+            ],
+            'Car2' => [
+                'first' => false,
+                'last'  => false,
+            ],
+            'Car3' => [
+                'first' => false,
+                'last'  => true,
+            ],
+        ];
+        foreach ($cars as $car) {
+            $this->assertSame($expected[$car->name]['first'], $car->isFirstResult());
+            $this->assertSame($expected[$car->name]['last'], $car->isLastResult());
+        }
+
+        $expected = [
+            'Car4' => [
+                'first' => true,
+                'last'  => false,
+            ],
+            'Car6' => [
+                'first' => false,
+                'last'  => true,
+            ],
+        ];
+        foreach ($few as $car) {
+            $this->assertSame($expected[$car->name]['first'], $car->isFirstResult());
+            $this->assertSame($expected[$car->name]['last'], $car->isLastResult());
+        }
+    }
+
     public function testRelatedModelFirstAndLast()
     {
         $cars = Car::q()->find_many();

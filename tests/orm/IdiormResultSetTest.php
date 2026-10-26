@@ -98,25 +98,29 @@ class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
 
     public function testIsFirstAndLast()
     {
+        ORM::get_db()->exec(file_get_contents(__DIR__ . '/../models.sql'));
+
         $result_set = [
-            'item1' => new stdClass(),
-            'item2' => new stdClass(),
-            'item3' => new stdClass(),
+            'item1' => Car::create(['name' => 'Car1']),
+            'item2' => Car::create(['name' => 'Car2']),
+            'item3' => Car::create(['name' => 'Car3']),
         ];
+        foreach ($result_set as $car) {
+            $car->save();
+        }
         $ResultSet = new ResultSet($result_set);
         foreach ($ResultSet as $key => $record) {
-            $return_array[$key] = $record;
             if ($key == 'item1') {
-                $this->assertSame(true, $record->_isFirstResult);
-                $this->assertSame(false, $record->_isLastResult);
+                $this->assertSame(true, $record->isFirstResult());
+                $this->assertSame(false, $record->isLastResult());
             }
             if ($key == 'item2') {
-                $this->assertSame(false, $record->_isFirstResult);
-                $this->assertSame(false, $record->_isLastResult);
+                $this->assertSame(false, $record->isFirstResult());
+                $this->assertSame(false, $record->isLastResult());
             }
             if ($key == 'item3') {
-                $this->assertSame(false, $record->_isFirstResult);
-                $this->assertSame(true, $record->_isLastResult);
+                $this->assertSame(false, $record->isFirstResult());
+                $this->assertSame(true, $record->isLastResult());
             }
         }
     }

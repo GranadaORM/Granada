@@ -6,6 +6,7 @@ use ArrayAccess;
 use Countable;
 use IteratorAggregate;
 use ArrayIterator;
+use WeakMap;
 
 /**
  * A result set class for working with collections of model instances
@@ -19,6 +20,12 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate
      */
     /** @var array<mixed, mixed> */
     protected array $_results = [];
+
+    /** @var WeakMap<object, true>|null */
+    private static ?WeakMap $first_results = null;
+
+    /** @var WeakMap<object, true>|null */
+    private static ?WeakMap $last_results = null;
 
     /**
      * Optionally set the contents of the result set by passing in array
@@ -133,16 +140,32 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate
      */
     public function getIterator(): \ArrayIterator
     {
-        // Set first/last flags
-        $count         = count($this->_results);
-        $result_number = 0;
-        foreach ($this->_results as $idx => $result) {
-            $result_number++;
-            $this->_results[$idx]->_isFirstResult = (1 === $result_number);
-            $this->_results[$idx]->_isLastResult  = ($count === $result_number);
+        if ($this->_results) {
+            self::$first_results ??= new WeakMap();
+            self::$last_results ??= new WeakMap();
+            self::$first_results[reset($this->_results)] = true;
+            self::$last_results[end($this->_results)]    = true;
         }
 
         return new ArrayIterator($this->_results);
+    }
+
+    /**
+     * Was this model the first result the last time a result set holding it was iterated
+     * @return bool
+     */
+    public static function is_first(object $model): bool
+    {
+        return isset(self::$first_results[$model]);
+    }
+
+    /**
+     * Was this model the last result the last time a result set holding it was iterated
+     * @return bool
+     */
+    public static function is_last(object $model): bool
+    {
+        return isset(self::$last_results[$model]);
     }
 
     /**
