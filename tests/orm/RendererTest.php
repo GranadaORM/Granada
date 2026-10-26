@@ -402,7 +402,7 @@ class RendererTest extends \PHPUnit\Framework\TestCase
         // Rendering must not require the connection to still exist
         ORM::reset_db();
 
-        $statement = Renderer::select($orm->_select_spec());
+        $statement = $orm->to_statement();
 
         $this->assertSame(
             'SELECT `name` FROM `person` WHERE `person`.`age` = ? LIMIT 5',

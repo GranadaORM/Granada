@@ -21,7 +21,7 @@ class Query extends Orm\Db
      * The class finds hydrate rows into. Null for a model-less
      * query, whose finds return ORM rows.
      */
-    protected ?string $_class_name = null;
+    private ?string $class_name = null;
 
     /**
      * The write rules of this query's model.
@@ -32,7 +32,7 @@ class Query extends Orm\Db
      * The relationship this query was built from,
      * or null when no relationship method built it.
      */
-    private ?Relationship $_relationship = null;
+    private ?Relationship $relationship = null;
 
     /**
      * The relationship whose relation method returned this query,
@@ -42,7 +42,7 @@ class Query extends Orm\Db
      */
     public function _relationship(): ?Relationship
     {
-        return $this->_relationship;
+        return $this->relationship;
     }
 
     /**
@@ -50,7 +50,7 @@ class Query extends Orm\Db
      */
     public function _set_relationship(Relationship $relationship): void
     {
-        $this->_relationship = $relationship;
+        $this->relationship = $relationship;
     }
 
     /**
@@ -61,7 +61,7 @@ class Query extends Orm\Db
      */
     public function _select_is_default(): bool
     {
-        return $this->_using_default_result_columns;
+        return $this->using_default_result_columns;
     }
 
     /**
@@ -73,7 +73,7 @@ class Query extends Orm\Db
      */
     public function _remove_condition(Orm\Condition $condition): static
     {
-        $this->_where_conditions = self::without_condition($this->_where_conditions, $condition);
+        $this->where_conditions = self::without_condition($this->where_conditions, $condition);
 
         return $this;
     }
@@ -127,63 +127,63 @@ class Query extends Orm\Db
     public array $related_counts = [];
 
     // Alias for the table to be used in SELECT queries
-    protected ?string $_table_alias = null;
+    private ?string $table_alias = null;
 
     // Values to be bound to the query
     /** @var array<int, mixed> */
-    protected array $_values = [];
+    private array $values = [];
 
     // Columns to select in the result
     /** @var array<int, string|Orm\Aggregate> */
-    protected array $_result_columns = ['*'];
+    private array $result_columns = ['*'];
 
     // Are we using the default result column or have these been manually changed?
-    protected bool $_using_default_result_columns = true;
+    private bool $using_default_result_columns = true;
 
     // Join sources
     /** @var array<int, Orm\JoinSource|string> */
-    protected array $_join_sources = [];
+    private array $join_sources = [];
 
     // Should the query include a DISTINCT keyword?
-    protected bool $_distinct = false;
+    private bool $distinct = false;
 
     // Is this a raw query?
-    protected bool $_is_raw_query = false;
+    private bool $is_raw_query = false;
 
     // The raw query
-    protected string $_raw_query = '';
+    private string $raw_query = '';
 
     // The raw query parameters
     /** @var array<int, mixed> */
-    protected array $_raw_parameters = [];
+    private array $raw_parameters = [];
 
     // Array of WHERE clauses
     /** @var array<int, Orm\Condition> */
-    protected array $_where_conditions = [];
+    private array $where_conditions = [];
 
     // LIMIT
-    protected ?int $_limit = null;
+    private ?int $limit = null;
 
     // OFFSET
-    protected ?int $_offset = null;
+    private ?int $offset = null;
 
     // ORDER BY
     /** @var array<int, Orm\Term> */
-    protected array $_order_by = [];
+    private array $order_by = [];
 
     // GROUP BY
     /** @var array<int, Orm\Term> */
-    protected array $_group_by = [];
+    private array $group_by = [];
 
     // HAVING
     /** @var array<int, Orm\Condition> */
-    protected array $_having_conditions = [];
+    private array $having_conditions = [];
 
     // name of the ResultSet Object
     public string $resultSetClass = 'Granada\ResultSet';
 
     // associative results flag
-    protected bool $_associative_results = true;
+    private bool $associative_results = true;
 
     /**
      * @return array<string, array{factory: callable(string, mixed): ?Orm\Condition, timezone: bool}>
@@ -349,7 +349,7 @@ class Query extends Orm\Db
 
         /** @var static $query */
         $query = new (self::model_query_class($model_class))(Granada::_get_table_name($model_class), $connection_name);
-        $query->_setup_model($model_class, $apply_model_filter);
+        $query->setup_model($model_class, $apply_model_filter);
 
         return $query;
     }
@@ -359,9 +359,9 @@ class Query extends Orm\Db
      * the model's defaultFilter(), so the filter adds only its own
      * conditions.
      */
-    protected function _setup_model(string $model_class, bool $apply_model_filter): static
+    private function setup_model(string $model_class, bool $apply_model_filter): static
     {
-        $this->_class_name    = $model_class;
+        $this->class_name     = $model_class;
         $this->resultSetClass = $model_class::$resultSetClass;
         $this->use_id_column(Granada::_get_id_column_name($model_class));
         $this->_write_rules = $model_class::_write_rules();
@@ -415,7 +415,7 @@ class Query extends Orm\Db
         $this->_connection_name = $connection_name;
 
         // Set the flag as config dictates
-        $this->_associative_results = self::get_config('find_many_primary_id_as_key', $this->_connection_name);
+        $this->associative_results = self::get_config('find_many_primary_id_as_key', $this->_connection_name);
     }
 
     /**
@@ -432,7 +432,7 @@ class Query extends Orm\Db
      */
     public function set_class_name(string $class_name): static
     {
-        $this->_class_name = $class_name;
+        $this->class_name = $class_name;
 
         return $this;
     }
@@ -442,7 +442,7 @@ class Query extends Orm\Db
      */
     public function non_associative(): static
     {
-        $this->_associative_results = false;
+        $this->associative_results = false;
 
         return $this;
     }
@@ -452,7 +452,7 @@ class Query extends Orm\Db
      */
     public function associative(): static
     {
-        $this->_associative_results = true;
+        $this->associative_results = true;
 
         return $this;
     }
@@ -462,7 +462,7 @@ class Query extends Orm\Db
      */
     public function reset_associative(): static
     {
-        $this->_associative_results = self::get_config('find_many_primary_id_as_key', $this->_connection_name);
+        $this->associative_results = self::get_config('find_many_primary_id_as_key', $this->_connection_name);
 
         return $this;
     }
@@ -473,12 +473,12 @@ class Query extends Orm\Db
      * model-less query, the model for a model query.
      * @param array<string, mixed> $row
      */
-    protected function _create_instance_from_row(array $row): Granada|ORM
+    private function create_instance_from_row(array $row): Granada|ORM
     {
         $instance = ORM::_new_row($this->_table_name, $this->_connection_name, $this->_instance_id_column);
         $instance->hydrate($row);
 
-        return $this->_create_model_instance($instance);
+        return $this->create_model_instance($instance);
     }
 
     /**
@@ -486,29 +486,29 @@ class Query extends Orm\Db
      * associated with this query and populate
      * it with the supplied row.
      */
-    protected function _create_model_instance(?ORM $orm): mixed
+    private function create_model_instance(?ORM $orm): mixed
     {
         if (is_null($orm)) {
             return null;
         }
 
-        if ($this->_class_name === null) {
+        if ($this->class_name === null) {
             return $orm;
         }
 
-        $model = new $this->_class_name();
+        $model = new $this->class_name();
         $model->set_orm($orm);
 
         return $model;
     }
 
-    protected function _row_hydrator(): RowHydrator
+    private function row_hydrator(): RowHydrator
     {
         return new RowHydrator(
             $this->_connection_name,
             $this->_instance_id_column,
-            $this->_associative_results,
-            fn(array $row): Granada|ORM => $this->_create_instance_from_row($row),
+            $this->associative_results,
+            fn(array $row): Granada|ORM => $this->create_instance_from_row($row),
         );
     }
 
@@ -527,16 +527,16 @@ class Query extends Orm\Db
             $this->where_id_is($id);
         }
 
-        $rows = $this->limit(1)->_run();
+        $rows = $this->limit(1)->run();
 
         if (empty($rows)) {
             return null;
         }
 
-        $instance          = $this->_create_instance_from_row($rows[0]);
+        $instance          = $this->create_instance_from_row($rows[0]);
         $return_result_set = (bool) self::get_config('return_result_sets', $this->_connection_name);
 
-        return $this->_row_hydrator()->one($this, $instance, $return_result_set);
+        return $this->row_hydrator()->one($this, $instance, $return_result_set);
     }
 
     /**
@@ -550,10 +550,10 @@ class Query extends Orm\Db
         $return_result_set = (bool) self::get_config('return_result_sets', $this->_connection_name);
 
         if ($return_result_set) {
-            return $this->_row_hydrator()->many($this, $this->find_result_set(), $return_result_set);
+            return $this->row_hydrator()->many($this, $this->find_result_set(), $return_result_set);
         }
 
-        return $this->_row_hydrator()->many($this, $this->_find_many(), $return_result_set);
+        return $this->row_hydrator()->many($this, $this->find_instances(), $return_result_set);
     }
 
     /**
@@ -571,11 +571,11 @@ class Query extends Orm\Db
      */
     public function to_statement(): Orm\Statement
     {
-        if ($this->_is_raw_query) {
-            return new Orm\Statement($this->_raw_query, $this->_raw_parameters);
+        if ($this->is_raw_query) {
+            return new Orm\Statement($this->raw_query, $this->raw_parameters);
         }
 
-        return Orm\Renderer::select($this->_select_spec());
+        return Orm\Renderer::select($this->select_spec());
     }
 
     /**
@@ -585,8 +585,8 @@ class Query extends Orm\Db
      */
     public function get_select_query(string $connection_name = self::DEFAULT_CONNECTION): string
     {
-        $query  = $this->_build_select();
-        $values = $this->_values;
+        $query  = $this->build_select();
+        $values = $this->values;
 
         if (count($values) === 0) {
             $inlined_query = $query;
@@ -608,17 +608,14 @@ class Query extends Orm\Db
     }
 
     /**
-     * Tell the query that you are expecting multiple results
-     * from your query, and execute it. Will return an array
-     * of instances of the model class, or an empty array if
-     * no rows were returned.
+     * Run the query and return the rows as model instances.
      * @return array<int|string, ORM|Granada>
      */
-    protected function _find_many(bool $associative = true): array
+    private function find_instances(): array
     {
-        $rows = $this->_run();
+        $rows = $this->run();
 
-        return $this->_row_hydrator()->instances($rows);
+        return $this->row_hydrator()->instances($rows);
     }
 
     /**
@@ -643,7 +640,7 @@ class Query extends Orm\Db
     {
         $resultSetClass = self::_result_set_class($this->resultSetClass);
 
-        return new $resultSetClass($this->_find_many());
+        return new $resultSetClass($this->find_instances());
     }
 
     /**
@@ -654,7 +651,7 @@ class Query extends Orm\Db
      */
     public function find_array(): array
     {
-        return $this->_run();
+        return $this->run();
     }
 
     /**
@@ -675,17 +672,17 @@ class Query extends Orm\Db
      */
     public function find_many_lazy(int $chunk_size = 1000): \Generator
     {
-        if ($this->_group_by !== []) {
+        if ($this->group_by !== []) {
             throw new \InvalidArgumentException('find_many_lazy cannot run a grouped query: one row must be one id');
         }
 
-        if ($this->_is_raw_query) {
+        if ($this->is_raw_query) {
             throw new \InvalidArgumentException('find_many_lazy cannot run a raw query: build the query with the chain methods');
         }
 
         // The rows load from the table alone, so a select() naming
         // another table's columns cannot run.
-        if ($this->_join_sources !== [] && !$this->_using_default_result_columns) {
+        if ($this->join_sources !== [] && !$this->using_default_result_columns) {
             throw new \InvalidArgumentException('find_many_lazy cannot run a query with a join and a custom select()');
         }
 
@@ -713,8 +710,8 @@ class Query extends Orm\Db
         $id_query->clear_select();
         $id_query->related_counts = [];
         $id_pass_column           = $id_column;
-        if ($this->_join_sources !== []) {
-            $id_pass_column = ($this->_table_alias ?? $this->_table_name) . '.' . $id_column;
+        if ($this->join_sources !== []) {
+            $id_pass_column = ($this->table_alias ?? $this->_table_name) . '.' . $id_column;
         }
         $id_query->select($id_pass_column);
         $ids = array_column($id_query->find_array(), $id_column);
@@ -722,25 +719,25 @@ class Query extends Orm\Db
         // The id column is fetched for matching and dropped again
         // when the caller's select() did not include it, so the
         // models come back as find_many() would build them.
-        $id_hidden = !$this->_using_default_result_columns
-            && !in_array($this->_quote_identifier($id_column), $this->_result_columns, true);
+        $id_hidden = !$this->using_default_result_columns
+            && !in_array($this->_quote_identifier($id_column), $this->result_columns, true);
 
-        $hydrator    = $this->_row_hydrator();
-        $keyed_by_id = $this->_associative_results && $this->_instance_id_column !== null;
+        $hydrator    = $this->row_hydrator();
+        $keyed_by_id = $this->associative_results && $this->_instance_id_column !== null;
         $chunk_start = 0;
 
         foreach (array_chunk($ids, $chunk_size) as $chunk_ids) {
             // Each chunk's rows load by id from the table alone.
             $query                 = static::_for_table($this->_table_name, $this->_connection_name);
             $query->related_counts = $this->related_counts;
-            if ($this->_table_alias !== null) {
-                $query->table_alias($this->_table_alias);
+            if ($this->table_alias !== null) {
+                $query->table_alias($this->table_alias);
             }
             if ($this->_instance_id_column !== null) {
                 $query->use_id_column($this->_instance_id_column);
             }
-            if (!$this->_using_default_result_columns) {
-                foreach ($this->_result_columns as $column) {
+            if (!$this->using_default_result_columns) {
+                foreach ($this->result_columns as $column) {
                     $query->select_expr($column);
                 }
             }
@@ -818,7 +815,7 @@ class Query extends Orm\Db
     {
         $key   = ($key) ? $key : 'id';
         $value = ($value) ? $value : 'name';
-        if (count($this->_result_columns) === 2) {
+        if (count($this->result_columns) === 2) {
             // The select fields have already been set
             return self::assoc_to_keyval($this->find_array(), $key, $value);
         }
@@ -860,18 +857,18 @@ class Query extends Orm\Db
     }
 
     /** @var array<string, bool> */
-    private static array $_has_timezone_adjustment_cache = [];
+    private static array $has_timezone_adjustment_cache = [];
 
     public function adjustTimezoneForWhere(string $varname, mixed $parameters): mixed
     {
-        if ($this->_class_name === null) {
+        if ($this->class_name === null) {
             return $parameters;
         }
 
-        $classname = $this->_class_name;
-        self::$_has_timezone_adjustment_cache[$classname] ??= method_exists($classname, 'adjustTimezoneForWhere');
+        $classname = $this->class_name;
+        self::$has_timezone_adjustment_cache[$classname] ??= method_exists($classname, 'adjustTimezoneForWhere');
 
-        if (self::$_has_timezone_adjustment_cache[$classname]) {
+        if (self::$has_timezone_adjustment_cache[$classname]) {
             return (new $classname())->adjustTimezoneForWhere($varname, $parameters);
         }
 
@@ -885,7 +882,7 @@ class Query extends Orm\Db
      */
     public function count(string $column = '*'): int
     {
-        return $this->_call_aggregate_db_function(__FUNCTION__, $column);
+        return $this->call_aggregate_db_function(__FUNCTION__, $column);
     }
 
     /**
@@ -895,7 +892,7 @@ class Query extends Orm\Db
      */
     public function max(string $column): float|int|string
     {
-        return $this->_call_aggregate_db_function(__FUNCTION__, $column);
+        return $this->call_aggregate_db_function(__FUNCTION__, $column);
     }
 
     /**
@@ -905,7 +902,7 @@ class Query extends Orm\Db
      */
     public function min(string $column): float|int|string
     {
-        return $this->_call_aggregate_db_function(__FUNCTION__, $column);
+        return $this->call_aggregate_db_function(__FUNCTION__, $column);
     }
 
     /**
@@ -915,7 +912,7 @@ class Query extends Orm\Db
      */
     public function avg(string $column): float|int
     {
-        return $this->_call_aggregate_db_function(__FUNCTION__, $column);
+        return $this->call_aggregate_db_function(__FUNCTION__, $column);
     }
 
     /**
@@ -925,7 +922,7 @@ class Query extends Orm\Db
      */
     public function sum(string $column): float|int
     {
-        return $this->_call_aggregate_db_function(__FUNCTION__, $column);
+        return $this->call_aggregate_db_function(__FUNCTION__, $column);
     }
 
     /**
@@ -934,7 +931,7 @@ class Query extends Orm\Db
      * @param string $sql_function The aggregate function to call eg. MIN, COUNT, etc
      * @param string $column The column to execute the aggregate query against
      */
-    protected function _call_aggregate_db_function(string $sql_function, string $column): float|int|string
+    private function call_aggregate_db_function(string $sql_function, string $column): float|int|string
     {
         $alias     = strtolower($sql_function);
         $statement = Orm\Renderer::select($this->aggregate_spec($sql_function, $column, $alias));
@@ -964,7 +961,7 @@ class Query extends Orm\Db
     /** @param array<int, array<string, mixed>> $rows */
     public function insert(array $rows): false|string
     {
-        $class = $this->_class_name;
+        $class = $this->class_name;
         ORM::transaction(function () use ($rows, $class): void {
             foreach ($rows as $row) {
                 $class::create($row)->save();
@@ -981,11 +978,11 @@ class Query extends Orm\Db
      */
     public function delete_many(): ?bool
     {
-        $this->_refuse_joined_query('delete_many');
+        $this->refuse_joined_query('delete_many');
 
         $flag = $this->_write_rules->soft_delete_column;
         if ($flag === null) {
-            $statement = Renderer::delete_many($this->_bulk_delete_spec());
+            $statement = Renderer::delete_many($this->bulk_delete_spec());
 
             return self::_execute_write($statement->query, $statement->values, $this->_connection_name);
         }
@@ -997,7 +994,7 @@ class Query extends Orm\Db
             table_name: $this->_table_name,
             dialect: self::_dialect($this->_connection_name),
             set: $set,
-            where_conditions: $this->_where_conditions,
+            where_conditions: $this->where_conditions,
         ));
 
         return self::_execute_write($statement->query, $statement->values, $this->_connection_name);
@@ -1011,14 +1008,14 @@ class Query extends Orm\Db
      */
     public function update_many(array $values): bool
     {
-        $this->_refuse_joined_query('update_many');
+        $this->refuse_joined_query('update_many');
 
         if ($values === []) {
             return true;
         }
 
-        if ($this->_class_name !== null) {
-            $values = (new $this->_class_name())->_convert_update_values($values);
+        if ($this->class_name !== null) {
+            $values = (new $this->class_name())->_convert_update_values($values);
         }
 
         $values += $this->_write_rules->stamp($values, false);
@@ -1027,25 +1024,25 @@ class Query extends Orm\Db
             table_name: $this->_table_name,
             dialect: self::_dialect($this->_connection_name),
             set: $values,
-            where_conditions: $this->_where_conditions,
+            where_conditions: $this->where_conditions,
         ));
 
         return (bool) self::_execute_write($statement->query, $statement->values, $this->_connection_name);
     }
 
-    protected function _refuse_joined_query(string $method): void
+    private function refuse_joined_query(string $method): void
     {
-        if ($this->_join_sources !== []) {
+        if ($this->join_sources !== []) {
             throw new \InvalidArgumentException("{$method}() does not support joined queries");
         }
     }
 
-    protected function _bulk_delete_spec(): Orm\BulkDeleteSpec
+    private function bulk_delete_spec(): Orm\BulkDeleteSpec
     {
         return new Orm\BulkDeleteSpec(
             table_name: $this->_table_name,
             dialect: self::_dialect($this->_connection_name),
-            where_conditions: $this->_where_conditions,
+            where_conditions: $this->where_conditions,
         );
     }
 
@@ -1084,9 +1081,9 @@ class Query extends Orm\Db
      */
     public function raw_query(string $query, array $parameters = []): static
     {
-        $this->_is_raw_query   = true;
-        $this->_raw_query      = $query;
-        $this->_raw_parameters = $parameters;
+        $this->is_raw_query   = true;
+        $this->raw_query      = $query;
+        $this->raw_parameters = $parameters;
 
         return $this;
     }
@@ -1097,7 +1094,7 @@ class Query extends Orm\Db
      */
     public function table_alias(string $alias): static
     {
-        $this->_table_alias = $alias;
+        $this->table_alias = $alias;
 
         return $this;
     }
@@ -1115,18 +1112,18 @@ class Query extends Orm\Db
      * of columns returned by the SELECT query. The second optional
      * argument is the alias to return the expression as.
      */
-    protected function _add_result_column(string $expr, ?string $alias = null): static
+    private function add_result_column(string $expr, ?string $alias = null): static
     {
         if (!is_null($alias)) {
             $expr .= ' AS ' . $this->_quote_identifier($alias);
         }
 
-        if ($this->_using_default_result_columns) {
-            $this->_result_columns               = [$expr];
-            $this->_using_default_result_columns = false;
+        if ($this->using_default_result_columns) {
+            $this->result_columns               = [$expr];
+            $this->using_default_result_columns = false;
         } else {
-            if (!in_array($expr, $this->_result_columns)) {
-                $this->_result_columns[] = $expr;
+            if (!in_array($expr, $this->result_columns)) {
+                $this->result_columns[] = $expr;
             }
         }
 
@@ -1144,16 +1141,16 @@ class Query extends Orm\Db
         $columns = array_map('trim', explode(',', $column_list));
         foreach ($columns as $column) {
             if ($column === '*') {
-                if (!$this->_using_default_result_columns) {
+                if (!$this->using_default_result_columns) {
                     // Check if we are already selecting '*'
-                    if (($this->_result_columns[\array_key_first($this->_result_columns)] ?? '') !== '*') {
+                    if (($this->result_columns[\array_key_first($this->result_columns)] ?? '') !== '*') {
                         // Put the * to the front of the list
-                        $this->_result_columns = array_merge(['*'], $this->_result_columns);
+                        $this->result_columns = array_merge(['*'], $this->result_columns);
                     }
                 }
             } else {
                 $column = $this->_quote_identifier($column);
-                $this->_add_result_column($column, $alias);
+                $this->add_result_column($column, $alias);
             }
         }
 
@@ -1165,8 +1162,8 @@ class Query extends Orm\Db
      */
     public function clear_select(): static
     {
-        $this->_result_columns               = ['*'];
-        $this->_using_default_result_columns = true;
+        $this->result_columns               = ['*'];
+        $this->using_default_result_columns = true;
 
         return $this;
     }
@@ -1178,7 +1175,7 @@ class Query extends Orm\Db
      */
     public function select_expr(string $expr, ?string $alias = null): static
     {
-        return $this->_add_result_column($expr, $alias);
+        return $this->add_result_column($expr, $alias);
     }
 
     /**
@@ -1201,7 +1198,7 @@ class Query extends Orm\Db
             return $this;
         }
 
-        $columns = $this->_normalise_select_many_columns($columns);
+        $columns = $this->normalise_select_many_columns($columns);
         foreach ($columns as $alias => $column) {
             if (is_numeric($alias)) {
                 $alias = null;
@@ -1232,7 +1229,7 @@ class Query extends Orm\Db
             return $this;
         }
 
-        $columns = $this->_normalise_select_many_columns($columns);
+        $columns = $this->normalise_select_many_columns($columns);
         foreach ($columns as $alias => $column) {
             if (is_numeric($alias)) {
                 $alias = null;
@@ -1255,7 +1252,7 @@ class Query extends Orm\Db
      * @return array
      */
     /** @return array<string|int, string> */
-    protected function _normalise_select_many_columns(array $columns): array
+    private function normalise_select_many_columns(array $columns): array
     {
         $return = [];
         foreach ($columns as $column) {
@@ -1280,7 +1277,7 @@ class Query extends Orm\Db
      */
     public function distinct(): static
     {
-        $this->_distinct = true;
+        $this->distinct = true;
 
         return $this;
     }
@@ -1290,7 +1287,7 @@ class Query extends Orm\Db
      */
     public function raw_join(string $join): static
     {
-        $this->_join_sources[] = $join;
+        $this->join_sources[] = $join;
 
         return $this;
     }
@@ -1318,9 +1315,9 @@ class Query extends Orm\Db
      * The final (optional) argument specifies an alias for the joined table.
      * @param string $join_operator
      */
-    protected function _add_join_source(string $join_operator, string $table, array|string $constraint, ?string $table_alias = null): static
+    private function add_join_source(string $join_operator, string $table, array|string $constraint, ?string $table_alias = null): static
     {
-        $this->_join_sources[] = new Orm\JoinSource($join_operator, $table, $table_alias, $constraint);
+        $this->join_sources[] = new Orm\JoinSource($join_operator, $table, $table_alias, $constraint);
 
         return $this;
     }
@@ -1331,7 +1328,7 @@ class Query extends Orm\Db
      */
     public function join(string $table, array|string $constraint, ?string $table_alias = null): static
     {
-        return $this->_add_join_source('', $table, $constraint, $table_alias);
+        return $this->add_join_source('', $table, $constraint, $table_alias);
     }
 
     /**
@@ -1341,7 +1338,7 @@ class Query extends Orm\Db
      */
     public function inner_join(string $table, array|string $constraint, ?string $table_alias = null): static
     {
-        return $this->_add_join_source('INNER', $table, $constraint, $table_alias);
+        return $this->add_join_source('INNER', $table, $constraint, $table_alias);
     }
 
     /**
@@ -1351,7 +1348,7 @@ class Query extends Orm\Db
      */
     public function left_outer_join(string $table, array|string $constraint, ?string $table_alias = null): static
     {
-        return $this->_add_join_source('LEFT OUTER', $table, $constraint, $table_alias);
+        return $this->add_join_source('LEFT OUTER', $table, $constraint, $table_alias);
     }
 
     /**
@@ -1361,7 +1358,7 @@ class Query extends Orm\Db
      */
     public function right_outer_join(string $table, array|string $constraint, ?string $table_alias = null): static
     {
-        return $this->_add_join_source('RIGHT OUTER', $table, $constraint, $table_alias);
+        return $this->add_join_source('RIGHT OUTER', $table, $constraint, $table_alias);
     }
 
     /**
@@ -1371,25 +1368,17 @@ class Query extends Orm\Db
      */
     public function full_outer_join(string $table, array|string $constraint, ?string $table_alias = null): static
     {
-        return $this->_add_join_source('FULL OUTER', $table, $constraint, $table_alias);
+        return $this->add_join_source('FULL OUTER', $table, $constraint, $table_alias);
     }
 
     /**
      * The having-side builder behind the having_* comparison methods.
      */
-    protected function _add_simple_having(string $column_name, string $separator, mixed $value): static
+    private function add_simple_having(string $column_name, string $separator, mixed $value): static
     {
         // A HAVING column is usually an aggregate's alias, which a table
         // prefix would break.
-        return $this->_add_having_condition(Orm\Condition::compare($column_name, $separator, $value));
-    }
-
-    /**
-     * The where-side twin of _add_simple_having.
-     */
-    protected function _add_simple_where(string $column_name, string $separator, mixed $value): static
-    {
-        return $this->_add_where_condition($this->simple_condition($column_name, $separator, $value));
+        return $this->add_having_condition(Orm\Condition::compare($column_name, $separator, $value));
     }
 
     /**
@@ -1425,22 +1414,22 @@ class Query extends Orm\Db
         $pile[] = Orm\Condition::group([$previous, $condition], $previous->connected_by);
     }
 
-    protected function _add_where_condition(Orm\Condition $condition): static
+    private function add_where_condition(Orm\Condition $condition): static
     {
-        if (in_array($condition, $this->_where_conditions)) {
+        if (in_array($condition, $this->where_conditions)) {
             return $this; // already present, do not duplicate
         }
-        $this->append_connected_by($this->_where_conditions, $condition);
+        $this->append_connected_by($this->where_conditions, $condition);
 
         return $this;
     }
 
-    protected function _add_having_condition(Orm\Condition $condition): static
+    private function add_having_condition(Orm\Condition $condition): static
     {
-        if (in_array($condition, $this->_having_conditions)) {
+        if (in_array($condition, $this->having_conditions)) {
             return $this; // already present, do not duplicate
         }
-        $this->append_connected_by($this->_having_conditions, $condition);
+        $this->append_connected_by($this->having_conditions, $condition);
 
         return $this;
     }
@@ -1452,8 +1441,8 @@ class Query extends Orm\Db
      */
     public function remove_where(string $column): static
     {
-        $this->_where_conditions = array_values(array_filter(
-            $this->_where_conditions,
+        $this->where_conditions = array_values(array_filter(
+            $this->where_conditions,
             fn(Orm\Condition $condition) => !self::condition_references_column($condition, $column),
         ));
 
@@ -1506,7 +1495,7 @@ class Query extends Orm\Db
      */
     public function clear_where(): static
     {
-        $this->_where_conditions = [];
+        $this->where_conditions = [];
 
         return $this;
     }
@@ -1517,19 +1506,9 @@ class Query extends Orm\Db
      */
     public function clear_having(): static
     {
-        $this->_having_conditions = [];
+        $this->having_conditions = [];
 
         return $this;
-    }
-
-    /**
-     * A WHERE COLUMN SEPARATOR VALUE condition. Adds the table name so a
-     * subquery cannot read the outer table; quoting is left to the
-     * Renderer.
-     */
-    private function simple_condition(string $column_name, string $separator, mixed $value): Orm\Condition
-    {
-        return Orm\Condition::compare($this->qualified_column($column_name), $separator, $value);
     }
 
     /**
@@ -1542,7 +1521,7 @@ class Query extends Orm\Db
             return $column_name;
         }
 
-        return ($this->_table_alias ?? $this->_table_name) . '.' . $column_name;
+        return ($this->table_alias ?? $this->_table_name) . '.' . $column_name;
     }
 
     /**
@@ -1557,7 +1536,7 @@ class Query extends Orm\Db
     public function where(Closure|string $column_name, mixed $value = null): static
     {
         if ($column_name instanceof Closure) {
-            return $this->_add_group($column_name, Orm\ConnectedBy::And, false, $this->_add_where_condition(...));
+            return $this->add_group($column_name, Orm\ConnectedBy::And, false, $this->add_where_condition(...));
         }
 
         if (is_null($value)) {
@@ -1574,10 +1553,10 @@ class Query extends Orm\Db
      * negate renders it with NOT.
      * @param callable(Orm\Condition): static $add_condition
      */
-    protected function _add_composed_condition(Closure|string $column_name, mixed $value, Orm\ConnectedBy $connected_by, bool $negate, callable $add_condition, string $list = 'where'): static
+    private function add_composed_condition(Closure|string $column_name, mixed $value, Orm\ConnectedBy $connected_by, bool $negate, callable $add_condition, string $list = 'where'): static
     {
         if ($column_name instanceof Closure) {
-            return $this->_add_group($column_name, $connected_by, $negate, $add_condition, $list);
+            return $this->add_group($column_name, $connected_by, $negate, $add_condition, $list);
         }
 
         if ($list === 'where') {
@@ -1597,14 +1576,14 @@ class Query extends Orm\Db
      * that builds no conditions adds no group.
      * @param callable(Orm\Condition): static $add_condition
      */
-    protected function _add_group(Closure $closure, Orm\ConnectedBy $connected_by, bool $negate, callable $add_condition, string $list = 'where'): static
+    private function add_group(Closure $closure, Orm\ConnectedBy $connected_by, bool $negate, callable $add_condition, string $list = 'where'): static
     {
-        $group_query = $this->_group_query();
+        $group_query = $this->group_query();
         $closure($group_query);
 
         $conditions = $list === 'having'
-            ? $group_query->_having_conditions
-            : $group_query->_where_conditions;
+            ? $group_query->having_conditions
+            : $group_query->where_conditions;
         if ($conditions === []) {
             return $this;
         }
@@ -1617,13 +1596,13 @@ class Query extends Orm\Db
      * one group closure. The alias and joins are kept, so column
      * qualification matches the outer query.
      */
-    protected function _group_query(): static
+    private function group_query(): static
     {
         $query                      = new static($this->_table_name, $this->_connection_name);
-        $query->_table_alias        = $this->_table_alias;
-        $query->_join_sources       = $this->_join_sources;
+        $query->table_alias         = $this->table_alias;
+        $query->join_sources        = $this->join_sources;
         $query->_instance_id_column = $this->_instance_id_column;
-        $query->_class_name         = $this->_class_name;
+        $query->class_name          = $this->class_name;
 
         return $query;
     }
@@ -1699,7 +1678,7 @@ class Query extends Orm\Db
             $groups[] = $group;
         }
 
-        return $this->_add_where_condition(Orm\Condition::any_is($groups));
+        return $this->add_where_condition(Orm\Condition::any_is($groups));
     }
 
     /**
@@ -1836,11 +1815,11 @@ class Query extends Orm\Db
         }
 
         if ($values instanceof self) {
-            $query = $values->_build_select();
+            $query = $values->build_select();
 
             return $negate
-                ? Orm\Condition::not_in_subquery($column_name, $query, $values->_values)
-                : Orm\Condition::in_subquery($column_name, $query, $values->_values);
+                ? Orm\Condition::not_in_subquery($column_name, $query, $values->values)
+                : Orm\Condition::in_subquery($column_name, $query, $values->values);
         }
 
         return $negate
@@ -1910,7 +1889,7 @@ class Query extends Orm\Db
             return $this;
         }
 
-        return $this->_add_where_condition($condition->joined_by($connected_by));
+        return $this->add_where_condition($condition->joined_by($connected_by));
     }
 
     /**
@@ -1921,7 +1900,7 @@ class Query extends Orm\Db
      */
     public function where_raw(string $clause, mixed $parameters = []): static
     {
-        return $this->_add_where_condition(Orm\Condition::raw($clause, is_array($parameters) ? $parameters : [$parameters]));
+        return $this->add_where_condition(Orm\Condition::raw($clause, is_array($parameters) ? $parameters : [$parameters]));
     }
 
     /**
@@ -1930,7 +1909,7 @@ class Query extends Orm\Db
      */
     public function or_where(Closure|string $column_name, mixed $value = null): static
     {
-        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::Or, false, $this->_add_where_condition(...));
+        return $this->add_composed_condition($column_name, $value, Orm\ConnectedBy::Or, false, $this->add_where_condition(...));
     }
 
     /**
@@ -1939,7 +1918,7 @@ class Query extends Orm\Db
      */
     public function where_not(Closure|string $column_name, mixed $value = null): static
     {
-        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::And, true, $this->_add_where_condition(...));
+        return $this->add_composed_condition($column_name, $value, Orm\ConnectedBy::And, true, $this->add_where_condition(...));
     }
 
     /**
@@ -1947,7 +1926,7 @@ class Query extends Orm\Db
      */
     public function or_where_not(Closure|string $column_name, mixed $value = null): static
     {
-        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::Or, true, $this->_add_where_condition(...));
+        return $this->add_composed_condition($column_name, $value, Orm\ConnectedBy::Or, true, $this->add_where_condition(...));
     }
 
     /**
@@ -1957,7 +1936,7 @@ class Query extends Orm\Db
      */
     public function where_exists(self $subquery): static
     {
-        return $this->_add_subquery_exists($subquery, false, $this->_add_where_condition(...));
+        return $this->add_subquery_exists($subquery, false, $this->add_where_condition(...));
     }
 
     /**
@@ -1965,17 +1944,17 @@ class Query extends Orm\Db
      */
     public function where_not_exists(self $subquery): static
     {
-        return $this->_add_subquery_exists($subquery, true, $this->_add_where_condition(...));
+        return $this->add_subquery_exists($subquery, true, $this->add_where_condition(...));
     }
 
     /**
      * @param callable(Orm\Condition): static $add_condition
      */
-    protected function _add_subquery_exists(self $subquery, bool $negate, callable $add_condition): static
+    private function add_subquery_exists(self $subquery, bool $negate, callable $add_condition): static
     {
-        $query = $subquery->_build_select();
+        $query = $subquery->build_select();
 
-        return $add_condition(Orm\Condition::exists($query, $subquery->_values, $negate));
+        return $add_condition(Orm\Condition::exists($query, $subquery->values, $negate));
     }
 
     /**
@@ -2002,14 +1981,14 @@ class Query extends Orm\Db
         if ($count === null) {
             [$sql, $values] = $this->subquery_statement($subquery, '1');
 
-            return $this->_add_where_condition(Orm\Condition::exists($sql, $values));
+            return $this->add_where_condition(Orm\Condition::exists($sql, $values));
         }
 
         [$sql, $values] = $this->subquery_statement($subquery, 'COUNT(*)');
 
         // The threshold is a caller-supplied int, inlined so the
         // comparison is numeric on every dialect.
-        return $this->_add_where_condition(Orm\Condition::raw('( ' . $sql . ' ) >= ' . $count, $values));
+        return $this->add_where_condition(Orm\Condition::raw('( ' . $sql . ' ) >= ' . $count, $values));
     }
 
     /**
@@ -2024,7 +2003,7 @@ class Query extends Orm\Db
         $subquery       = $this->correlated_relationship_query($relationship, $conditions);
         [$sql, $values] = $this->subquery_statement($subquery, '1');
 
-        return $this->_add_where_condition(Orm\Condition::exists($sql, $values, negate: true));
+        return $this->add_where_condition(Orm\Condition::exists($sql, $values, negate: true));
     }
 
     /**
@@ -2078,9 +2057,9 @@ class Query extends Orm\Db
     {
         $subquery->clear_select();
         $subquery->select_expr($select);
-        $sql = $subquery->_build_select();
+        $sql = $subquery->build_select();
 
-        return [$sql, $subquery->_values];
+        return [$sql, $subquery->values];
     }
 
     /**
@@ -2089,14 +2068,14 @@ class Query extends Orm\Db
      */
     private function existence_relationship(string $relation, string $method): Relationship
     {
-        if ($this->_class_name === null) {
+        if ($this->class_name === null) {
             throw new \LogicException("Cannot {$method}(): the query has no model to read the {$relation} relationship from");
         }
 
-        $model        = Granada::_new_model_row($this->_class_name);
+        $model        = Granada::_new_model_row($this->class_name);
         $relationship = $model->_relationship($relation);
         if ($relationship === null) {
-            throw new \LogicException("Cannot {$method}(): {$this->_class_name} has no {$relation} relationship");
+            throw new \LogicException("Cannot {$method}(): {$this->class_name} has no {$relation} relationship");
         }
         if ($relationship->kind === 'has_many_through') {
             throw new \LogicException("Cannot {$method}(): the {$relation} relationship is a has_many_through; existence filters and related counts do not support it");
@@ -2125,7 +2104,7 @@ class Query extends Orm\Db
         };
 
         $related_table = Granada::_get_table_name($relationship->class);
-        $outer_table   = $this->_table_alias ?? $this->_table_name;
+        $outer_table   = $this->table_alias ?? $this->_table_name;
 
         $related->where_raw(
             $this->_quote_identifier($related_table . '.' . $related_column)
@@ -2155,7 +2134,7 @@ class Query extends Orm\Db
      */
     public function limit(?int $limit): static
     {
-        $this->_limit = $limit;
+        $this->limit = $limit;
 
         return $this;
     }
@@ -2165,23 +2144,14 @@ class Query extends Orm\Db
      */
     public function offset(?int $offset): static
     {
-        $this->_offset = $offset;
+        $this->offset = $offset;
 
         return $this;
     }
 
-    /**
-     * Add an ORDER BY clause to the query
-     * @param string $ordering
-     */
-    protected function _add_order_by(string $column_name, string $ordering): static
-    {
-        return $this->add_order_term(Orm\Term::column($column_name, $ordering));
-    }
-
     private function add_order_term(Term $term): static
     {
-        $this->_order_by[] = $term;
+        $this->order_by[] = $term;
 
         return $this;
     }
@@ -2191,7 +2161,7 @@ class Query extends Orm\Db
      */
     public function order_by_clear(): static
     {
-        $this->_order_by = [];
+        $this->order_by = [];
 
         return $this;
     }
@@ -2220,7 +2190,7 @@ class Query extends Orm\Db
      */
     public function order_by_expr(string $clause): static
     {
-        $this->_order_by[] = Orm\Term::expression($clause);
+        $this->order_by[] = Orm\Term::expression($clause);
 
         return $this;
     }
@@ -2230,7 +2200,7 @@ class Query extends Orm\Db
      */
     public function group_by_raw(string $expr): static
     {
-        $this->_group_by[] = Term::expression($expr);
+        $this->group_by[] = Term::expression($expr);
 
         return $this;
     }
@@ -2240,7 +2210,7 @@ class Query extends Orm\Db
      */
     public function order_by_raw(string $clause): static
     {
-        $this->_order_by[] = Term::expression($clause);
+        $this->order_by[] = Term::expression($clause);
 
         return $this;
     }
@@ -2251,7 +2221,7 @@ class Query extends Orm\Db
      */
     public function group_by(string $column_name): static
     {
-        $this->_group_by[] = Orm\Term::column($column_name);
+        $this->group_by[] = Orm\Term::column($column_name);
 
         return $this;
     }
@@ -2262,7 +2232,7 @@ class Query extends Orm\Db
      */
     public function group_by_expr(string $expr): static
     {
-        $this->_group_by[] = Orm\Term::expression($expr);
+        $this->group_by[] = Orm\Term::expression($expr);
 
         return $this;
     }
@@ -2279,7 +2249,7 @@ class Query extends Orm\Db
     public function having(Closure|string $column_name, mixed $value = null): static
     {
         if ($column_name instanceof Closure) {
-            return $this->_add_group($column_name, Orm\ConnectedBy::And, false, $this->_add_having_condition(...), 'having');
+            return $this->add_group($column_name, Orm\ConnectedBy::And, false, $this->add_having_condition(...), 'having');
         }
 
         return $this->having_equal($column_name, $value);
@@ -2291,7 +2261,7 @@ class Query extends Orm\Db
      */
     public function having_equal(string $column_name, mixed $value): static
     {
-        return $this->_add_simple_having($column_name, '=', $value);
+        return $this->add_simple_having($column_name, '=', $value);
     }
 
     /**
@@ -2301,7 +2271,7 @@ class Query extends Orm\Db
      */
     public function having_not_equal(string $column_name, mixed $value): static
     {
-        return $this->_add_simple_having($column_name, '!=', $value);
+        return $this->add_simple_having($column_name, '!=', $value);
     }
 
     /**
@@ -2319,7 +2289,7 @@ class Query extends Orm\Db
      */
     public function having_like(string $column_name, mixed $value): static
     {
-        return $this->_add_simple_having($column_name, 'LIKE', $value);
+        return $this->add_simple_having($column_name, 'LIKE', $value);
     }
 
     /**
@@ -2329,7 +2299,7 @@ class Query extends Orm\Db
      */
     public function having_not_like(string $column_name, mixed $value): static
     {
-        return $this->_add_simple_having($column_name, 'NOT LIKE', $value);
+        return $this->add_simple_having($column_name, 'NOT LIKE', $value);
     }
 
     /**
@@ -2339,7 +2309,7 @@ class Query extends Orm\Db
      */
     public function having_gt(string $column_name, mixed $value): static
     {
-        return $this->_add_simple_having($column_name, '>', $value);
+        return $this->add_simple_having($column_name, '>', $value);
     }
 
     /**
@@ -2349,7 +2319,7 @@ class Query extends Orm\Db
      */
     public function having_lt(string $column_name, mixed $value): static
     {
-        return $this->_add_simple_having($column_name, '<', $value);
+        return $this->add_simple_having($column_name, '<', $value);
     }
 
     /**
@@ -2359,7 +2329,7 @@ class Query extends Orm\Db
      */
     public function having_gte(string $column_name, mixed $value): static
     {
-        return $this->_add_simple_having($column_name, '>=', $value);
+        return $this->add_simple_having($column_name, '>=', $value);
     }
 
     /**
@@ -2369,7 +2339,7 @@ class Query extends Orm\Db
      */
     public function having_lte(string $column_name, mixed $value): static
     {
-        return $this->_add_simple_having($column_name, '<=', $value);
+        return $this->add_simple_having($column_name, '<=', $value);
     }
 
     /**
@@ -2379,7 +2349,7 @@ class Query extends Orm\Db
      */
     public function having_in(string $column_name, array $values): static
     {
-        return $this->_add_having_condition(Orm\Condition::in($column_name, $values));
+        return $this->add_having_condition(Orm\Condition::in($column_name, $values));
     }
 
     /**
@@ -2389,7 +2359,7 @@ class Query extends Orm\Db
      */
     public function having_not_in(string $column_name, array $values): static
     {
-        return $this->_add_having_condition(Orm\Condition::not_in($column_name, $values));
+        return $this->add_having_condition(Orm\Condition::not_in($column_name, $values));
     }
 
     /**
@@ -2398,7 +2368,7 @@ class Query extends Orm\Db
      */
     public function having_null(string $column_name): static
     {
-        return $this->_add_having_condition(Orm\Condition::is_null($column_name));
+        return $this->add_having_condition(Orm\Condition::is_null($column_name));
     }
 
     /**
@@ -2407,7 +2377,7 @@ class Query extends Orm\Db
      */
     public function having_not_null(string $column_name): static
     {
-        return $this->_add_having_condition(Orm\Condition::is_not_null($column_name));
+        return $this->add_having_condition(Orm\Condition::is_not_null($column_name));
     }
 
     /**
@@ -2418,7 +2388,7 @@ class Query extends Orm\Db
      */
     public function having_raw(string $clause, array $parameters = []): static
     {
-        return $this->_add_having_condition(Orm\Condition::raw($clause, $parameters));
+        return $this->add_having_condition(Orm\Condition::raw($clause, $parameters));
     }
 
     /**
@@ -2427,7 +2397,7 @@ class Query extends Orm\Db
      */
     public function or_having(Closure|string $column_name, mixed $value = null): static
     {
-        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::Or, false, $this->_add_having_condition(...), 'having');
+        return $this->add_composed_condition($column_name, $value, Orm\ConnectedBy::Or, false, $this->add_having_condition(...), 'having');
     }
 
     /**
@@ -2436,7 +2406,7 @@ class Query extends Orm\Db
      */
     public function having_not(Closure|string $column_name, mixed $value = null): static
     {
-        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::And, true, $this->_add_having_condition(...), 'having');
+        return $this->add_composed_condition($column_name, $value, Orm\ConnectedBy::And, true, $this->add_having_condition(...), 'having');
     }
 
     /**
@@ -2444,7 +2414,7 @@ class Query extends Orm\Db
      */
     public function or_having_not(Closure|string $column_name, mixed $value = null): static
     {
-        return $this->_add_composed_condition($column_name, $value, Orm\ConnectedBy::Or, true, $this->_add_having_condition(...), 'having');
+        return $this->add_composed_condition($column_name, $value, Orm\ConnectedBy::Or, true, $this->add_having_condition(...), 'having');
     }
 
     /**
@@ -2452,7 +2422,7 @@ class Query extends Orm\Db
      */
     public function having_exists(self $subquery): static
     {
-        return $this->_add_subquery_exists($subquery, false, $this->_add_having_condition(...));
+        return $this->add_subquery_exists($subquery, false, $this->add_having_condition(...));
     }
 
     /**
@@ -2460,17 +2430,16 @@ class Query extends Orm\Db
      */
     public function having_not_exists(self $subquery): static
     {
-        return $this->_add_subquery_exists($subquery, true, $this->_add_having_condition(...));
+        return $this->add_subquery_exists($subquery, true, $this->add_having_condition(...));
     }
 
     /**
-     * Build a SELECT statement based on the clauses that have
-     * been passed to this instance by chaining method calls.
+     * Build the SELECT statement from the query's clauses.
      */
-    protected function _build_select(): string
+    private function build_select(): string
     {
-        $statement     = $this->to_statement();
-        $this->_values = $statement->values;
+        $statement    = $this->to_statement();
+        $this->values = $statement->values;
 
         return $statement->query;
     }
@@ -2479,22 +2448,22 @@ class Query extends Orm\Db
      * Snapshot the builder's read state into a SelectSpec for the
      * Renderer, so statements render without a database connection.
      */
-    protected function _select_spec(): Orm\SelectSpec
+    private function select_spec(): Orm\SelectSpec
     {
         return new Orm\SelectSpec(
             table_name: $this->_table_name,
             dialect: self::_dialect($this->_connection_name),
-            table_alias: $this->_table_alias,
-            result_columns: $this->_result_columns,
-            join_sources: $this->_join_sources,
+            table_alias: $this->table_alias,
+            result_columns: $this->result_columns,
+            join_sources: $this->join_sources,
             related_counts: array_values($this->related_counts),
-            distinct: $this->_distinct,
-            where_conditions: $this->_where_conditions,
-            having_conditions: $this->_having_conditions,
-            group_by: $this->_group_by,
-            order_by: $this->_order_by,
-            limit: $this->_limit,
-            offset: $this->_offset,
+            distinct: $this->distinct,
+            where_conditions: $this->where_conditions,
+            having_conditions: $this->having_conditions,
+            group_by: $this->group_by,
+            order_by: $this->order_by,
+            limit: $this->limit,
+            offset: $this->offset,
         );
     }
 
@@ -2504,7 +2473,7 @@ class Query extends Orm\Db
      */
     private function aggregate_spec(string $sql_function, string $column, string $alias): Orm\SelectSpec
     {
-        $spec = $this->_select_spec();
+        $spec = $this->select_spec();
 
         return new Orm\SelectSpec(
             table_name: $spec->table_name,
@@ -2524,27 +2493,27 @@ class Query extends Orm\Db
     }
 
     /**
-     * Execute the SELECT query that has been built up by chaining methods
-     * on this class. Return an array of rows as associative arrays.
+     * Execute the built SELECT query and return the rows as
+     * associative arrays.
      */
-    protected function _run(): array
+    private function run(): array
     {
-        $query           = $this->_build_select();
+        $query           = $this->build_select();
         $caching_enabled = self::get_config('caching', $this->_connection_name);
 
         $cache_key = '';
         if ($caching_enabled) {
-            $cache_key     = self::_create_cache_key($query, $this->_values);
+            $cache_key     = self::_create_cache_key($query, $this->values);
             $cached_result = self::_check_query_cache($cache_key, $this->_connection_name);
 
             if ($cached_result !== false) {
-                $this->_reset();
+                $this->reset();
 
                 return $cached_result;
             }
         }
 
-        self::_execute($query, $this->_values, $this->_connection_name);
+        self::_execute($query, $this->values, $this->_connection_name);
         $statement = self::get_last_statement();
 
         $rows = [];
@@ -2557,19 +2526,19 @@ class Query extends Orm\Db
         }
 
         // reset the query after executing it
-        $this->_reset();
+        $this->reset();
 
         return $rows;
     }
 
     /**
-     * reset the bound values and result columns after executing the query
+     * Clear the bound values and result columns after a run.
      */
-    protected function _reset(): void
+    private function reset(): void
     {
-        $this->_values                       = [];
-        $this->_result_columns               = ['*'];
-        $this->_using_default_result_columns = true;
+        $this->values                       = [];
+        $this->result_columns               = ['*'];
+        $this->using_default_result_columns = true;
     }
 
     /**
@@ -2623,7 +2592,7 @@ class Query extends Orm\Db
 
         if ($method === 'order_by_list') {
             if ($parameters[1]) {
-                $this->_order_by[] = Term::by_field_list($parameters[0], $parameters[1]);
+                $this->order_by[] = Term::by_field_list($parameters[0], $parameters[1]);
 
                 return $this;
             }
