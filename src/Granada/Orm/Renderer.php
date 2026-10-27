@@ -437,6 +437,37 @@ class Renderer
     }
 
     /**
+     * The reorder UPDATE: a CASE over the listed ids writes each
+     * position, and every value binds.
+     */
+    public static function reorder(ReorderSpec $spec): Statement
+    {
+        $whens  = [];
+        $values = [];
+        foreach ($spec->positions as $id => $position) {
+            $whens[]  = 'WHEN ? THEN ?';
+            $values[] = $id;
+            $values[] = $position;
+        }
+
+        $where = self::build_where_condition($spec->where_conditions, $spec->dialect);
+
+        $query = self::join_if_not_empty(' ', [
+            'UPDATE',
+            $spec->dialect->quote_identifier($spec->table_name),
+            'SET',
+            $spec->dialect->quote_identifier($spec->order_column)
+                . ' = CASE ' . $spec->dialect->quote_identifier($spec->id_column)
+                . ' ' . implode(' ', $whens)
+                . ' ELSE ' . $spec->dialect->quote_identifier($spec->order_column)
+                . ' END',
+            $where->fragment,
+        ]);
+
+        return new Statement($query, [...$values, ...$where->values]);
+    }
+
+    /**
      * DELETE from the accumulated WHERE conditions.
      */
     public static function delete_many(BulkDeleteSpec $spec): Statement

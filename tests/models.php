@@ -546,17 +546,40 @@ class CrateExtra extends Model
 }
 
 /**
- * Turns automatic timestamps on, with the default columns.
+ * Turns automatic timestamps on, with the default columns, and names
+ * position as its auto-order column.
  */
 class Stamped extends Model
 {
     protected static bool $_auto_timestamps = true;
+
+    protected static ?string $_auto_order_column = 'position';
 }
 
 /**
  * A model that does not turn timestamps on.
  */
 class Unstamped extends Model {}
+
+/**
+ * Names position as its auto-order column.
+ */
+class Ordered extends Model
+{
+    public static $_table = 'ordered';
+
+    protected static ?string $_auto_order_column = 'position';
+}
+
+/**
+ * Turns the auto-order column off with an empty name.
+ */
+class OrderedOff extends Ordered
+{
+    public static $_table = 'ordered_off';
+
+    protected static ?string $_auto_order_column = '';
+}
 
 /**
  * A base that turns timestamps on with custom column names and one

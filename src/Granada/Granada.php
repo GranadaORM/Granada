@@ -87,6 +87,12 @@ class Granada implements ArrayAccess
      */
     protected static array $_auto_timestamps_ignore = [];
 
+    /**
+     * Set _auto_order_column to replace a written 0 in the column with
+     * the next number in the table on every save.
+     */
+    protected static ?string $_auto_order_column = null;
+
     public static string $resultSetClass = 'Granada\ResultSet';
 
     /**
@@ -423,6 +429,7 @@ class Granada implements ArrayAccess
             created: static::$_auto_timestamps ? static::$_auto_timestamp_columns['created'] : null,
             updated: static::$_auto_timestamps ? static::$_auto_timestamp_columns['updated'] : null,
             ignored: static::$_auto_timestamps_ignore,
+            auto_order_column: static::$_auto_order_column,
         );
     }
 
