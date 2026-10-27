@@ -200,6 +200,14 @@ class ORM extends Orm\Db implements ArrayAccess
     }
 
     /**
+     * The name of the connection this row reads from and writes to.
+     */
+    public function _get_connection_name(): string
+    {
+        return $this->_connection_name;
+    }
+
+    /**
      * Set a property to a particular value on this object.
      * To set multiple properties at once, pass an associative array
      * as the first parameter and leave out the second parameter.

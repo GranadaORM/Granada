@@ -1,5 +1,6 @@
 <?php
 
+use Granada\Granada;
 use Granada\ORM;
 use Granada\ResultSet;
 
@@ -141,6 +142,140 @@ class IdiormResultSetTest extends \PHPUnit\Framework\TestCase
             $this->assertTrue(isset($record->field2));
             $this->assertSame($record->field2, 'value');
         }
+    }
+
+    public function testCallingMethodsReturnsResultSet()
+    {
+        $result_set = [
+            'item'  => ORM::_new_row('test'),
+            'item2' => ORM::_new_row('test'),
+        ];
+        $ResultSet = new ResultSet($result_set);
+        $this->assertSame($ResultSet, $ResultSet->set('field', 'value'));
+    }
+
+    public function testCallingMethodReturningNullReturnsTheResultSet()
+    {
+        $result_set = [
+            'item'  => ORM::_new_row('test'),
+            'item2' => ORM::_new_row('test'),
+        ];
+        $ResultSet = new ResultSet($result_set);
+        $this->assertSame($ResultSet, $ResultSet->id());
+        $this->assertNull($result_set['item']->id());
+    }
+
+    public function testCallingSaveThatFailsThrows()
+    {
+        ORM::get_db()->exec('CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE)');
+        // The write must report false instead of throwing
+        ORM::get_db()->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+
+        ORM::_new_row('test')
+            ->create(['name' => 'one'])
+            ->save();
+
+        $ResultSet = new ResultSet([
+            'item'  => ORM::_new_row('test')->create(['name' => 'one']),
+            'item2' => ORM::_new_row('test')->create(['name' => 'two']),
+        ]);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('save on Granada\ORM id NULL failed');
+        $ResultSet->save();
+    }
+
+    public function testCallingSaveThatFailsNamesTheRowId()
+    {
+        ORM::get_db()->exec('CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE)');
+        // The write must report false instead of throwing
+        ORM::get_db()->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+
+        $row = ORM::_new_row('test')
+            ->create(['name' => 'one']);
+        $row->save();
+
+        ORM::_new_row('test')
+            ->create(['name' => 'two'])
+            ->save();
+
+        $ResultSet = new ResultSet(['item' => $row]);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('save on Granada\ORM id \'1\' failed');
+        $ResultSet->set('name', 'two')->save();
+    }
+
+    public function testFailedBatchWritesNothing()
+    {
+        ORM::get_db()->exec('CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL)');
+        // The write must report false instead of throwing
+        ORM::get_db()->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+
+        ORM::_new_row('test')
+            ->create(['name' => 'one'])
+            ->save();
+        ORM::_new_row('test')
+            ->create(['name' => 'blue'])
+            ->save();
+
+        try {
+            Granada::for_table('test')
+                ->find_many()
+                ->set('name', 'crimson')
+                ->save();
+            $this->fail('The failed save should abort the batch');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('save on Granada\ORM id', $e->getMessage());
+        }
+
+        $first = Granada::for_table('test')->find_one(1);
+        $this->assertSame('one', $first->name);
+        $second = Granada::for_table('test')->find_one(2);
+        $this->assertSame('blue', $second->name);
+    }
+
+    public function testFailedBatchInCallerTransactionRollsBackOuterWork()
+    {
+        ORM::get_db()->exec('CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL)');
+        // The write must report false instead of throwing
+        ORM::get_db()->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+
+        ORM::_new_row('test')
+            ->create(['name' => 'one'])
+            ->save();
+        ORM::_new_row('test')
+            ->create(['name' => 'blue'])
+            ->save();
+
+        try {
+            ORM::transaction(function (): void {
+                ORM::_new_row('test')
+                    ->create(['name' => 'outer'])
+                    ->save();
+                Granada::for_table('test')
+                    ->find_many()
+                    ->set('name', 'two')
+                    ->save();
+            });
+            $this->fail('The failed save should abort the transaction');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('save on Granada\ORM id', $e->getMessage());
+        }
+
+        $this->assertSame(2, Granada::for_table('test')->count());
+        $first = Granada::for_table('test')->find_one(1);
+        $this->assertSame('one', $first->name);
+        $second = Granada::for_table('test')->find_one(2);
+        $this->assertSame('blue', $second->name);
+    }
+
+    public function testCallingMethodExceptionPropagates()
+    {
+        $ResultSet = new ResultSet([
+            'item' => ORM::_new_row('test')->create(),
+        ]);
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cannot save a new record with no fields set');
+        $ResultSet->save();
     }
 
     public function testAsJson()

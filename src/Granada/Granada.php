@@ -816,6 +816,14 @@ class Granada implements ArrayAccess
     }
 
     /**
+     * The name of the connection this model reads from and writes to.
+     */
+    public function _get_connection_name(): string
+    {
+        return $this->orm->_get_connection_name();
+    }
+
+    /**
      * Is this record the first result in a foreach()
      * @return boolean
      */
