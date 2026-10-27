@@ -212,20 +212,28 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate
     }
 
     /**
-     * Call a method on all models in a result set. This allows for method
-     * chaining such as setting a property on all models in a result set or
-     * any other batch operation across models.
+     * Call a method on all models in a result set, and return the result set.
+     * The calls run in one transaction.
+     * Any call returning false rolls back the transaction and throws RuntimeException
      * @example Granada::for_table('Widget')->find_many()->set('field', 'value')->save();
-     * @param string $method
-     * @param array $params
-     * @return static
      */
     public function __call(string $method, array $params = []): static
     {
-        foreach ($this->_results as $model) {
-            call_user_func_array([$model, $method], $params);
+        if ($this->_results === []) {
+            return $this;
         }
 
-        return $this;
+        return ORM::transaction(function () use ($method, $params) {
+            foreach ($this->_results as $model) {
+                $call_result = call_user_func_array([$model, $method], $params);
+                if (false === $call_result) {
+                    $id = method_exists($model, 'id') ? $model->id() : null;
+
+                    throw new \RuntimeException('ResultSet::__call(): ' . $method . ' on ' . $model::class . ' id ' . var_export($id, true) . ' failed');
+                }
+            }
+
+            return $this;
+        }, $this->first()->_get_connection_name());
     }
 }
