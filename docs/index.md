@@ -721,6 +721,12 @@ The assigned number never changes `updated_at`.
 The numbering is for the whole table.
 Two saves at the same moment can store the same number.
 
+`set_order_many()` puts the listed rows in the order you send their ids.
+
+```php
+Car::q()->set_order_many([5, 2, 9]);
+```
+
 ## Junction writes
 
 A `has_many_through` relationship loads its models through a link table. The same declaration gives you `attach()`, `detach()`, and `sync()` to write that table.

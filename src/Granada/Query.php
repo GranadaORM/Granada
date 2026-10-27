@@ -4,6 +4,7 @@ namespace Granada;
 
 use Closure;
 use Granada\Orm\BulkUpdateSpec;
+use Granada\Orm\ReorderSpec;
 use Granada\Orm\Renderer;
 use Granada\Orm\RowHydrator;
 use Granada\Orm\Term;
@@ -17,6 +18,12 @@ use PDO;
  */
 class Query extends Orm\Db
 {
+    /**
+     * Ids per reorder statement: three binds per id stays under every
+     * dialect's bind-parameter cap.
+     */
+    private const REORDER_CHUNK = 250;
+
     /**
      * The class finds hydrate rows into. Null for a model-less
      * query, whose finds return ORM rows.
@@ -1028,6 +1035,54 @@ class Query extends Orm\Db
         ));
 
         return (bool) self::_execute_write($statement->query, $statement->values, $this->_connection_name);
+    }
+
+    /**
+     * Number the listed rows 1..n on the model's auto-order column, in the order given.
+     * Rows not listed keep their position, and the write never changes `updated_at`.
+     * True when the statements ran; an empty list is a no-op.
+     * A joined query throws, as does a model that declares no auto-order column.
+     *
+     * @param (int|string)[] $ids
+     */
+    public function set_order_many(array $ids): bool
+    {
+        $this->refuse_joined_query('set_order_many');
+
+        $order_column = $this->_write_rules->auto_order_column;
+        if (!$order_column) {
+            throw new \InvalidArgumentException('set_order_many() needs a model that declares $_auto_order_column');
+        }
+
+        if ($ids === []) {
+            return true;
+        }
+
+        // A repeated id keeps its last position
+        $positions = [];
+        $position  = 0;
+        foreach ($ids as $id) {
+            $positions[$id] = ++$position;
+        }
+
+        $id_column = $this->_get_id_column_name();
+
+        return (bool) ORM::transaction(function () use ($positions, $id_column, $order_column): bool {
+            $ran = true;
+            foreach (array_chunk($positions, self::REORDER_CHUNK, true) as $chunk) {
+                $statement = Renderer::reorder(new ReorderSpec(
+                    table_name: $this->_table_name,
+                    dialect: self::_dialect($this->_connection_name),
+                    id_column: $id_column,
+                    order_column: $order_column,
+                    positions: $chunk,
+                    where_conditions: [Orm\Condition::in($id_column, array_keys($chunk)), ...$this->where_conditions],
+                ));
+                $ran = (bool) self::_execute_write($statement->query, $statement->values, $this->_connection_name) && $ran;
+            }
+
+            return $ran;
+        }, $this->_connection_name);
     }
 
     private function refuse_joined_query(string $method): void
