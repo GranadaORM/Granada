@@ -1,6 +1,7 @@
 <?php
 
 use Granada\Model;
+use Granada\Relationship;
 use Granada\ResultSet;
 
 /**
@@ -90,6 +91,11 @@ class Car extends Model
     public function owner()
     {
         return $this->belongs_to('Owner');
+    }
+
+    public function hand_built_manufactor()
+    {
+        return new Relationship($this, 'belongs_to', 'Manufactor', 'manufactor_id');
     }
 
     public function parts()

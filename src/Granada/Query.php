@@ -2153,10 +2153,7 @@ class Query extends Orm\Db
         // order_by would make SQL Server reject it.
         $related->order_by_clear();
 
-        [$related_column, $outer_column] = match ($relationship->kind) {
-            'belongs_to' => [$relationship->related_key, $relationship->key],
-            default      => [$relationship->key, $relationship->local_key ?? $this->_get_id_column_name()],
-        };
+        [$related_column, $outer_column] = $relationship->correlated_columns();
 
         $related_table = Granada::_get_table_name($relationship->class);
         $outer_table   = $this->table_alias ?? $this->_table_name;

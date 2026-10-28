@@ -194,6 +194,25 @@ class ExistenceFilterTest extends \PHPUnit\Framework\TestCase
         $this->assertSame($named->get_select_query(), $sugary->get_select_query());
     }
 
+    public function testWhereHasOnAHandBuiltRelationshipMatchesTheLazyLoad()
+    {
+        $query = Car::q()->where_has('hand_built_manufactor');
+
+        $this->assertSame(
+            'SELECT * FROM `car` WHERE `car`.`is_deleted` = \'0\''
+            . ' AND EXISTS ( SELECT 1 FROM `manufactor`'
+            . ' WHERE `manufactor`.`id` = `car`.`manufactor_id` )',
+            $query->get_select_query()
+        );
+
+        $this->assertSame(['Car1', 'Car2', 'Car3', 'Car4', 'Car6'], $this->names($query->find_many()));
+
+        $car = Car::q()
+            ->where('id', 1)
+            ->find_one();
+        $this->assertSame('Manufactor1', $car->hand_built_manufactor->name);
+    }
+
     public function testWhereHasOnAThroughRelationshipThrows()
     {
         $this->expectException(\LogicException::class);

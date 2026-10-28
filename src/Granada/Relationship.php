@@ -32,6 +32,8 @@ class Relationship
 
     private ?string $order_column = null;
 
+    public readonly ?string $related_key;
+
     /**
      * @param string      $key         For has_one and has_many: the foreign key
      *                                 on the associated table. For belongs_to:
@@ -45,7 +47,7 @@ class Relationship
      *                                 matches; empty means the id column.
      * @param string|null $related_key The column on the associated model the
      *                                 query matches; empty means its id
-     *                                 column.
+     *                                 column for the kinds that read it.
      * @param string|null $connection  The connection of the associated model.
      */
     public function __construct(
@@ -56,9 +58,14 @@ class Relationship
         public readonly ?string $other_key = null,
         public readonly ?string $table = null,
         public readonly ?string $local_key = null,
-        public readonly ?string $related_key = null,
+        ?string $related_key = null,
         public readonly ?string $connection = null,
-    ) {}
+    ) {
+        if ($related_key === null && in_array($this->kind, ['belongs_to', 'has_many_through'])) {
+            $related_key = Granada::_get_id_column_name($this->class);
+        }
+        $this->related_key = $related_key;
+    }
 
     /**
      * Set the link table column that holds each link's position.
@@ -86,6 +93,18 @@ class Relationship
     }
 
     /**
+     * The columns an existence filter or related count correlates by:
+     * the column on the associated model, and the column on this
+     * model.
+     *
+     * @return array{string, string}
+     */
+    public function correlated_columns(): array
+    {
+        return [$this->related_key_column(), $this->parent_key_column()];
+    }
+
+    /**
      * The column on the associated model this relation matches by:
      * the declared key column for belongs_to, the foreign key
      * otherwise.
@@ -93,7 +112,7 @@ class Relationship
     private function related_key_column(): string
     {
         return $this->kind === 'belongs_to'
-            ? $this->related_key ?? Granada::_get_id_column_name($this->class)
+            ? $this->related_key
             : $this->key;
     }
 

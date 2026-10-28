@@ -345,14 +345,13 @@ class Granada implements ArrayAccess
         $associated_class_name = self::$auto_prefix_models . $associated_class_name;
         $associated_table_name = self::_get_table_name($associated_class_name);
         $foreign_key_name      = self::_build_foreign_key_name($foreign_key_name, $associated_table_name);
-        $related_key           = $foreign_key_name_in_associated_models_table ?? self::_get_id_column_name($associated_class_name);
 
         return new Relationship(
             $this,
             'belongs_to',
             $associated_class_name,
             key: $foreign_key_name,
-            related_key: $related_key,
+            related_key: $foreign_key_name_in_associated_models_table,
             connection: $connection_name,
         );
     }
@@ -404,7 +403,7 @@ class Granada implements ArrayAccess
             other_key: $other_key,
             table: $link_table_name,
             local_key: $this_table_key,
-            related_key: $other_table_key ?? self::_get_id_column_name($associated_class_name),
+            related_key: $other_table_key,
             connection: $connection_name,
         );
     }
