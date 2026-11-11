@@ -233,8 +233,8 @@ class Relationship
      * Eager-load this relationship for every parent row and store each
      * parent's set value under $name, the property the models read.
      * With $return_result_sets on, a "many" relationship's set value
-     * is a result set; a "one" relationship's is null until a row
-     * arrives.
+     * is a result set; a "one" relationship's is null until the load
+     * finds a row.
      *
      * @param Granada[] $parents
      */
@@ -611,7 +611,7 @@ class Relationship
     }
 
     /**
-     * The value a parent starts with, before any child row arrives.
+     * The value a parent starts with when no child row is found.
      */
     private function empty_value(?string $result_set_class): null|array|ResultSet
     {

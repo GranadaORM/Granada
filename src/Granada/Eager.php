@@ -113,16 +113,4 @@ class Eager
 
         return $results;
     }
-
-    /**
-     * Every parent's id, in parent order, via
-     * Relationship::parent_column_values().
-     *
-     * @param array<int|string, Granada>|ResultSet $parents
-     * @return mixed[]
-     */
-    public static function getKeys(array|ResultSet $parents): array
-    {
-        return Relationship::parent_column_values($parents, 'id');
-    }
 }

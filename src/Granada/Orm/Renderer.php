@@ -63,8 +63,8 @@ class Renderer
 
     /**
      * The correlated subquery for a related count or exists column.
-     * The subquery arrives quoted and correlated; only the alias is
-     * quoted here.
+     * The subquery is already quoted and correlated when this method
+     * receives it; only the alias is quoted here.
      */
     private static function related_count_column(RelatedCount $related_count, Dialect $dialect): string
     {
@@ -92,7 +92,7 @@ class Renderer
     }
 
     /**
-     * The SELECT list. Plain strings arrive already quoted or raw;
+     * The SELECT list. Plain strings are already quoted or raw;
      * Aggregate entries get their column reference quoted here.
      * @return string[]
      */

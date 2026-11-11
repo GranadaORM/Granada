@@ -251,20 +251,24 @@ class Granada implements ArrayAccess
         return Query::_for_model(self::$auto_prefix_models . static::class);
     }
 
+    private static function new_orm_row(string $model_class): ORM
+    {
+        // create(null) marks the row new, so the next save() inserts
+        return ORM::_new_row(
+            self::_get_table_name($model_class),
+            self::_get_static_property($model_class, '_connection_name', ORM::DEFAULT_CONNECTION),
+            self::_get_id_column_name($model_class),
+        )->create(null);
+    }
+
     /**
      * Create a new, unsaved model row, seeded with the given column
      * values. Every field given is written on the next save().
      */
     public static function create(?array $data = null): static
     {
-        $class = self::$auto_prefix_models . static::class;
         $model = new static();
-        // create(null) marks the row new, so the next save() inserts
-        $model->set_orm(ORM::_new_row(
-            self::_get_table_name($class),
-            self::_get_static_property($class, '_connection_name', ORM::DEFAULT_CONNECTION),
-            self::_get_id_column_name($class),
-        )->create(null));
+        $model->set_orm(self::new_orm_row(self::$auto_prefix_models . static::class));
         if ($data !== null) {
             $model->set($data);
         }
@@ -282,11 +286,7 @@ class Granada implements ArrayAccess
     public static function _new_model_row(string $model_class): Granada
     {
         $model = new $model_class();
-        $model->set_orm(ORM::_new_row(
-            self::_get_table_name($model_class),
-            self::_get_static_property($model_class, '_connection_name', ORM::DEFAULT_CONNECTION),
-            self::_get_id_column_name($model_class),
-        )->create(null));
+        $model->set_orm(self::new_orm_row($model_class));
 
         return $model;
     }
