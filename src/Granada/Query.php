@@ -2535,32 +2535,7 @@ class Query extends Orm\Db
      */
     private function run(): array
     {
-        $query           = $this->build_select();
-        $caching_enabled = self::get_config('caching', $this->_connection_name);
-
-        $cache_key = '';
-        if ($caching_enabled) {
-            $cache_key     = self::_create_cache_key($query, $this->values);
-            $cached_result = self::_check_query_cache($cache_key, $this->_connection_name);
-
-            if ($cached_result !== false) {
-                $this->reset();
-
-                return $cached_result;
-            }
-        }
-
-        self::_execute($query, $this->values, $this->_connection_name);
-        $statement = self::get_last_statement();
-
-        $rows = [];
-        while ($row = $statement->fetch(PDO::FETCH_ASSOC)) {
-            $rows[] = $row;
-        }
-
-        if ($caching_enabled) {
-            self::_cache_query_result($cache_key, $rows, $this->_connection_name);
-        }
+        $rows = $this->fetch_rows($this->to_statement());
 
         // reset the query after executing it
         $this->reset();
