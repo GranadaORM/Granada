@@ -15,7 +15,7 @@ namespace Granada;
 use Exception;
 
 /**
- * Parses the with() marks on a query and hands each named relationship
+ * Parses the with() marks on a query and passes each named relationship
  * the rows to load. The relationship builds its eager query and writes
  * each parent's value for the relation.
  *

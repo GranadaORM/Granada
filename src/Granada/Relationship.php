@@ -528,7 +528,8 @@ class Relationship
 
     /**
      * The condition where() stores for one column and value. The
-     * eager query removes its twin from the cloned chain.
+     * eager query removes the condition with the same fields from the
+     * cloned chain.
      */
     private function condition_for(string $column, mixed $value): Orm\Condition
     {
