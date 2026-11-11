@@ -29,7 +29,7 @@ class Eager
      * @param Query $orm
      * @param array|ResultSet $results
      */
-    public static function hydrate(Query $orm, array|ResultSet &$results, bool $return_result_set = false): array|ResultSet
+    public static function hydrate(Query $orm, array|ResultSet $results, bool $return_result_set = false): array|ResultSet
     {
         if (!$results) {
             return $results;
@@ -45,48 +45,13 @@ class Eager
         }
 
         foreach ($orm->relationships as $entry) {
-            $relationship       = false;
-            $relationship_with  = null;
-            $relationship_args  = [];
-            $relationship_query = null;
+            $mark = self::relationship_mark($entry);
 
-            if (is_array($entry)) {
-                $relationship = key($entry);
-                $value        = $entry[$relationship];
-
-                if ($value instanceof \Closure) {
-                    $relationship_query = $value;
-                    $relationship_args  = [];
-                } else {
-                    if (isset($value['with'])) {
-                        $relationship_with = $value['with'];
-                        unset($value['with']);
-                    }
-                    $relationship_args = $value;
-                }
-            } else {
-                $relationship = $entry;
+            if (!method_exists($model, $mark['name'])) {
+                throw new Exception("Attempting to eager load [{$mark['name']}], but the relationship is not defined.", 500);
             }
 
-            if ($pos = strpos($relationship, '.')) {
-                $relationship_with = substr($relationship, $pos + 1, strlen($relationship));
-                $relationship      = substr($relationship, 0, $pos);
-                $relationship_args = [];
-            }
-
-            $include = [
-                'name'  => $relationship,
-                'with'  => $relationship_with,
-                'args'  => (array) $relationship_args,
-                'query' => $relationship_query,
-            ];
-
-            // check if relationship exists on the model
-            if (!method_exists($model, $include['name'])) {
-                throw new Exception("Attempting to eager load [{$include['name']}], but the relationship is not defined.", 500);
-            }
-
-            $relationship = $model->{$include['name']}(...$include['args']);
+            $relationship = $model->{$mark['name']}(...$mark['args']);
 
             if ($relationship instanceof Query) {
                 // Chained calls return the query, with the relationship attached
@@ -96,21 +61,70 @@ class Eager
                 continue;
             }
 
-            if ($include['query'] instanceof \Closure) {
-                $relationship->constrain($include['query']);
+            if ($mark['query'] instanceof \Closure) {
+                $relationship->constrain($mark['query']);
             }
 
-            if ($include['with']) {
-                $relationship->with($include['with']);
+            if ($mark['with']) {
+                $relationship->with($mark['with']);
             }
 
             $relationship->load(
                 $results instanceof ResultSet ? $results->as_array() : $results,
-                $include['name'],
+                $mark['name'],
                 $return_result_set
             );
         }
 
         return $results;
+    }
+
+    /**
+     * The fields a with() mark contains, in the shape it was written.
+     *
+     * @return array{
+     *     name: string,
+     *     with: mixed,
+     *     args: array<int|string, mixed>,
+     *     query: \Closure|null
+     * }
+     */
+    private static function relationship_mark(mixed $mark): array
+    {
+        $name  = $mark;
+        $with  = null;
+        $args  = [];
+        $query = null;
+
+        if (is_array($mark)) {
+            $name  = key($mark);
+            $value = $mark[$name];
+
+            if ($value instanceof \Closure) {
+                $query = $value;
+            } else {
+                if (isset($value['with'])) {
+                    $with = $value['with'];
+                    unset($value['with']);
+                }
+
+                $args = (array) $value;
+            }
+        }
+
+        $dot = strpos($name, '.');
+
+        if ($dot > 0) {
+            $with = substr($name, $dot + 1);
+            $name = substr($name, 0, $dot);
+            $args = [];
+        }
+
+        return [
+            'name'  => $name,
+            'with'  => $with,
+            'args'  => $args,
+            'query' => $query,
+        ];
     }
 }

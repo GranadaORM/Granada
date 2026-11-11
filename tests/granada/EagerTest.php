@@ -331,6 +331,20 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($expectedSql, ORM::get_query_log());
     }
 
+    public function testWithArrayMarkPassesArgumentsToTheRelationship()
+    {
+        $car = Car::q()
+            ->with(['manufactor_by_name' => ['Manufactor1']])
+            ->find_one(1);
+
+        $expectedSql   = [];
+        $expectedSql[] = "SELECT * FROM `car` WHERE `car`.`is_deleted` = '0' AND `car`.`id` = '1' LIMIT 1";
+        $expectedSql[] = "SELECT * FROM `manufactor` WHERE `manufactor`.`enabled` = '1' AND `manufactor`.`name` = 'Manufactor1' AND `manufactor`.`id` IN ('1')";
+
+        $this->assertEquals('Manufactor1', $car->manufactor_by_name->name);
+        $this->assertEquals($expectedSql, ORM::get_query_log());
+    }
+
     public function testDotNotationEagerLoading()
     {
         $owner = Owner::q()
