@@ -75,7 +75,7 @@ class UpdateManyTest extends \PHPUnit\Framework\TestCase
         $this->assertTrue($result);
         $this->assertSame(6.01, (float) $this->raw('part', 1)['price']);
         $this->assertSame(11.95, (float) $this->raw('part', 3)['price']);
-        // The row the query did not match stays as it was
+        // The row the query did not match remains as it was
         $this->assertSame(15.0, (float) $this->raw('part', 2)['price']);
     }
 

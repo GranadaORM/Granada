@@ -47,7 +47,7 @@ class GranadaTest extends \PHPUnit\Framework\TestCase
         $this->assertSame([5], $statement->values);
     }
 
-    public function testARelationshipQueryHoldsItsOwnConditions()
+    public function testARelationshipQueryContainsItsOwnConditions()
     {
         $gadget = Gadget::create([
             'id'      => 1,

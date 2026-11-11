@@ -30,7 +30,7 @@ class RowWriteTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * A handle holding the shared schema that counts what reaches it.
+     * A handle that contains the shared schema and counts what reaches it.
      */
     private function counting_connection(): CountingPDO
     {
@@ -105,7 +105,7 @@ class RowWriteTest extends \PHPUnit\Framework\TestCase
     {
         $widget = $this->widget(1);
 
-        // Another writer changes hidden while the loaded row is held.
+        // Another writer changes hidden while the loaded row is in memory.
         Granada::for_table('widget')
             ->where_id_is(1)
             ->update_many(['hidden' => 1]);
@@ -285,7 +285,7 @@ class RowWriteTest extends \PHPUnit\Framework\TestCase
 
     public function testAvgReturnsTheMean()
     {
-        // Five widgets hold gadget_id 1, 1, 2, null and 4, so the mean
+        // Five widgets have gadget_id 1, 1, 2, null and 4, so the mean
         // skips the null row.
         $this->assertSame(2, Granada::for_table('widget')->avg('gadget_id'));
     }

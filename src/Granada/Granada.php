@@ -12,7 +12,7 @@ use ArrayAccess;
  *
  * https://github.com/GranadaORM/Granada/
  *
- * A simple Active Record implementation built on top of Idiorm, Paris and Eloquent
+ * A simple Active Record implementation built on Idiorm, Paris and Eloquent
  * ( https://github.com/GranadaORM/Granada/ ).
  *
  * You should include Idiorm before you include this file:
@@ -112,8 +112,7 @@ class Granada implements ArrayAccess
     public $orm;
 
     /**
-     * A stash of values held for the request, so the model does not
-     * repeat database work. Backs the $relationships property.
+     * The values stored for the request. Backs the $relationships property.
      */
     private ?ValueStash $_value_stash = null;
 
@@ -121,7 +120,7 @@ class Granada implements ArrayAccess
      * The model's $relationships attributes.
      *
      * $relationships attributes will not be saved to the database, and are
-     * primarily used to hold relationships.
+     * primarily used to store relationships.
      * __set and __get need the relationship method defined on the model to determine if the relationship exists.
      */
     public array $relationships {
@@ -243,7 +242,7 @@ class Granada implements ArrayAccess
 
     /**
      * The query for this model: conditions, the where_* and
-     * order_by_* magic, aggregates, and finds, with the model's
+     * order_by_* suffix methods, aggregates, and finds, with the model's
      * defaultFilter() applied. Always table-wide; instance-scoped
      * querying is the relationship methods.
      */
@@ -514,8 +513,8 @@ class Granada implements ArrayAccess
     }
 
     /**
-     * Drop the computed values, so the next read of those properties
-     * works them out again. Set values stay.
+     * Remove the computed values, so the next read of those properties
+     * computes them again. Set values remain.
      */
     public function clear_computed_values(): static
     {
@@ -617,8 +616,8 @@ class Granada implements ArrayAccess
     }
 
     /**
-     * Increment a counter column with one atomic write and return the
-     * value read back from the row.
+     * Increment a counter column with one UPDATE and return the value read
+     * back from the row.
      */
     public function increment(string $column, float|int $amount = 1): mixed
     {
@@ -626,8 +625,8 @@ class Granada implements ArrayAccess
     }
 
     /**
-     * Decrement a counter column with one atomic write and return the
-     * value read back from the row.
+     * Decrement a counter column with one UPDATE and return the value read
+     * back from the row.
      */
     public function decrement(string $column, float|int $amount = 1): mixed
     {
@@ -755,7 +754,7 @@ class Granada implements ArrayAccess
     /**
      * Delete the database row associated with this model instance.
      * On a model that names $_soft_delete_column, writes the flag and
-     * keeps the row; delete_forced() removes it.
+     * marks the row; delete_forced() removes it.
      */
     public function delete(): ?bool
     {
@@ -782,7 +781,7 @@ class Granada implements ArrayAccess
     /**
      * Set or clear the soft-delete flag on this row and save.
      * Returns null when the model has no soft deletes, so delete() can
-     * fall through to a real delete.
+     * perform a real delete.
      */
     private function write_soft_delete_flag(bool $deleted): ?bool
     {

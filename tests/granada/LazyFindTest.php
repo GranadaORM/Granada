@@ -40,18 +40,18 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
         $expected = Car::q()
             ->order_by_asc('name')
             ->find_many();
-        $walked = Car::q()
+        $lazy = Car::q()
             ->order_by_asc('name')
             ->find_many_lazy();
 
-        $this->assertSame($this->pairs($expected), $this->pairs($walked));
+        $this->assertSame($this->pairs($expected), $this->pairs($lazy));
     }
 
     public function testKeysAreRowIdsByDefault()
     {
-        $walked = Car::q()->find_many_lazy();
+        $lazy = Car::q()->find_many_lazy();
 
-        $this->assertSame([1, 2, 3, 4, 6], array_keys(iterator_to_array($walked)));
+        $this->assertSame([1, 2, 3, 4, 6], array_keys(iterator_to_array($lazy)));
     }
 
     public function testPositionalKeysRunContinuouslyAcrossChunksWhenConfigIsOff()
@@ -59,25 +59,25 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
         ORM::configure('find_many_primary_id_as_key', false);
 
         // Five cars over chunks of two: the keys must not restart per chunk.
-        $walked = Car::q()->find_many_lazy(2);
+        $lazy = Car::q()->find_many_lazy(2);
 
-        $this->assertSame([0, 1, 2, 3, 4], array_keys(iterator_to_array($walked)));
+        $this->assertSame([0, 1, 2, 3, 4], array_keys(iterator_to_array($lazy)));
     }
 
     public function testAModelLessQueryWithoutAnIdColumnNumbersRowsPositionally()
     {
-        $walked = Granada::for_table('car')->find_many_lazy();
+        $lazy = Granada::for_table('car')->find_many_lazy();
 
-        $this->assertSame([0, 1, 2, 3, 4, 5], array_keys(iterator_to_array($walked)));
+        $this->assertSame([0, 1, 2, 3, 4, 5], array_keys(iterator_to_array($lazy)));
     }
 
     public function testAModelLessQueryWithAnIdColumnKeysRowsById()
     {
-        $walked = Granada::for_table('car')
+        $lazy = Granada::for_table('car')
             ->use_id_column('id')
             ->find_many_lazy();
 
-        $this->assertSame([1, 2, 3, 4, 5, 6], array_keys(iterator_to_array($walked)));
+        $this->assertSame([1, 2, 3, 4, 5, 6], array_keys(iterator_to_array($lazy)));
     }
 
     public function testOneIdQueryThenOneRowQueryPerChunk()
@@ -99,20 +99,20 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
             ->find_many());
 
         foreach ([1, 2, 1000] as $chunk_size) {
-            $walked = Car::q()
+            $lazy = Car::q()
                 ->order_by_asc('name')
                 ->find_many_lazy($chunk_size);
 
-            $this->assertSame($expected, $this->pairs($walked), "chunk size {$chunk_size}");
+            $this->assertSame($expected, $this->pairs($lazy), "chunk size {$chunk_size}");
         }
     }
 
     public function testEagerLoadsRunOncePerChunkAgainstThatChunksParents()
     {
-        $walked = Car::q()
+        $lazy = Car::q()
             ->with('parts')
             ->find_many_lazy(2);
-        $results = iterator_to_array($walked);
+        $results = iterator_to_array($lazy);
 
         $log = $this->log();
 
@@ -129,29 +129,29 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
 
     public function testEveryYieldedModelHasItsEagerLoads()
     {
-        $walked = Car::q()
+        $lazy = Car::q()
             ->with('manufactor')
             ->find_many_lazy(2);
 
-        foreach ($walked as $car) {
+        foreach ($lazy as $car) {
             $this->assertInstanceOf(Manufactor::class, $car->manufactor);
             $this->assertSame($car->manufactor_id, $car->manufactor->id());
         }
     }
 
-    public function testLazyRelationshipAccessMidWalkCostsOneQueryPerTouch()
+    public function testLazyRelationshipAccessDuringFindRunsOneQueryPerRead()
     {
         $owners = [];
-        $walked = Car::q()
+        $lazy   = Car::q()
             ->order_by_asc('id')
             ->find_many_lazy(2);
-        foreach ($walked as $car) {
+        foreach ($lazy as $car) {
             $owners[] = $car->owner->name;
         }
 
-        // Five touches; the Owner4 touch repeats, and LazyItemCache
-        // answers the repeat, so four queries in all. No chunk
-        // prefetches owners.
+        // Five reads; the Owner4 read repeats, and LazyItemCache returns
+        // the cached value, so four queries in all. No chunk prefetches
+        // owners.
         $this->assertSame(4, $this->queriesContaining($this->log(), 'FROM `owner`'));
         $this->assertSame(['Owner1', 'Owner2', 'Owner3', 'Owner4', 'Owner4'], $owners);
     }
@@ -163,13 +163,13 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
             ->limit(3)
             ->offset(1)
             ->find_many();
-        $walked = Car::q()
+        $lazy = Car::q()
             ->order_by_asc('id')
             ->limit(3)
             ->offset(1)
             ->find_many_lazy();
 
-        $this->assertSame($this->pairs($expected), $this->pairs($walked));
+        $this->assertSame($this->pairs($expected), $this->pairs($lazy));
     }
 
     public function testSelectMatchesFindMany()
@@ -178,29 +178,29 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
             ->select('name')
             ->order_by_asc('id')
             ->find_many();
-        $walked = Car::q()
+        $lazy = Car::q()
             ->select('name')
             ->order_by_asc('id')
             ->find_many_lazy();
 
         $this->assertSame(
             array_map(fn($car) => $car->as_array(), $expected),
-            array_map(fn($car) => $car->as_array(), iterator_to_array($walked))
+            array_map(fn($car) => $car->as_array(), iterator_to_array($lazy))
         );
     }
 
     public function testAJoinedQueryWithTheDefaultSelectYieldsTheBaseRowsInIdPassOrder()
     {
-        $walked = Car::q()
+        $lazy = Car::q()
             ->join('manufactor', ['car.manufactor_id', '=', 'manufactor.id'])
             ->where('manufactor.name', 'Manufactor2')
             ->order_by_asc('car.name')
             ->find_many_lazy();
 
-        $results = iterator_to_array($walked);
+        $results = iterator_to_array($lazy);
 
         // The join narrows and orders the id pass; the row pass
-        // returns clean car rows, whatever the join matched.
+        // returns unmodified car rows, whatever the join matched.
         $this->assertSame([3, 4, 6], array_keys($results));
         $this->assertSame(['Car3', 'Car4', 'Car6'], $this->names($results));
     }
@@ -245,22 +245,22 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
 
     public function testAnEmptyResultYieldsNothingBeyondTheIdPass()
     {
-        $walked = Car::q()
+        $lazy = Car::q()
             ->where('id', 99999)
             ->find_many_lazy();
 
-        $this->assertSame([], iterator_to_array($walked));
+        $this->assertSame([], iterator_to_array($lazy));
         $this->assertCount(1, $this->log());
     }
 
-    public function testTheWalkIsSingleUse()
+    public function testTheLazyFindIsSingleUse()
     {
-        $walked = Car::q()->find_many_lazy();
-        $walked->current();
-        $walked->next();
+        $lazy = Car::q()->find_many_lazy();
+        $lazy->current();
+        $lazy->next();
 
         $this->expectException(Exception::class);
-        $walked->rewind();
+        $lazy->rewind();
     }
 
     public function testReturnResultSetsDoesNotApply()
@@ -272,13 +272,13 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
 
     public function testRowsWithANullIdAreSkipped()
     {
-        // keyed_row holds a duplicated id, a null id and a zero id.
+        // keyed_row contains a duplicated id, a null id and a zero id.
         // The null id has no row to fetch by, so that row is
-        // skipped; the duplicated id comes back once per
+        // skipped; the duplicated id appears once per
         // occurrence, in row order.
-        $walked = KeyedRow::q()->find_many_lazy();
+        $lazy = KeyedRow::q()->find_many_lazy();
 
-        $this->assertSame(['a', 'a-dup', 'c', 'zero'], $this->names($walked));
+        $this->assertSame(['a', 'a-dup', 'c', 'zero'], $this->names($lazy));
     }
 
     /**

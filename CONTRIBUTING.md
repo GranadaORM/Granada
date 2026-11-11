@@ -1,48 +1,44 @@
-How to contribute to GranadaORM/Granada?
+How to contribute to GranadaORM/Granada
 ========================================
 
-When contributing to you have to follow some conventions and a simple
-workflow. It allows us to handle the requests quickly and ensure best quality
-for the code.
+When you contribute, follow these conventions and this workflow. They help us
+handle requests quickly and keep the code consistent.
 
-Following guidelines will result in less work for all of us.
+Reporting bugs
+--------------
 
-Contributing by reporting bugs
-------------------------------
+If you find a problem, report it so that we can fix it.
 
-If you come across a problem, please report it so that it can be addressed.
+Before you report, check that nobody has reported it already.
 
-Before you report, please check that it hasn't been reported already.
+A good bug report is more likely to be fixed. Include:
 
-A good bug report is more likely to be addressed. This includes:
+1. A clear description of what you expected
+2. A clear description of what happened instead
+3. The PHP version you use
+4. Any other detail that could help us find the problem
 
-1. A good description of what was expected
-2. A good description of what happened instead
-3. What version of PHP you are using
-4. Any other details you believe are relevant that could help pinpoint the problem
+Sample code that shows the problem helps.
 
-If you can provide sample code showing the problem, that would really help.
-
-Any vague bug reports may be closed.
+We may close a vague bug report.
 
 Contributing code
 -----------------
 
-If you have code you wish to contribute to this project, firstly **Thank you!**
-We will accept clean pull requests that are in line with the rest of the project.
+If you have code to contribute, first **thank you**. We accept focused pull
+requests that match the rest of the project.
 
-Please create an issue noting that you are intending to create a pull request, that way 
-everyone knows that something is coming, and may start conversation to help refine the
-concept / create a clean bug fix.
+Create an issue to say that you intend to open a pull request. That way
+everyone can see what is planned and can discuss the design or the fix with
+you.
 
-There is an `.editorconfig` file in the repository. Please ensure your IDE is set to follow
-this for coding convention.
+The repository has an `.editorconfig` file. Set your IDE to follow it.
 
-For coding style please follow PSR12 for new code. Do not reformat existing code.
+For coding style, follow PSR-12 for new code. Do not reformat existing code.
 
-When you create a pull request, please reference the issues that it addresses.
+When you open a pull request, reference the issues that it addresses.
 
-**Note:** All new code must be accompanied by tests and all tests must pass for the 
-pull request to be approved.
+**Note:** All new code needs tests, and every test must pass before we approve
+the pull request.
 
-To test your code, use `composer test` to run the suite of PHPUnit tests.
+To run the tests, use `composer test`.

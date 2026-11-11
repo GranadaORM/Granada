@@ -13,7 +13,7 @@ class MultipleConnectionsTest extends \PHPUnit\Framework\TestCase
         $manager = new ConnectionManager('sqlite::memory:');
 
         // Two real databases with the same schema. The rows in each are
-        // renamed, so a result says which handle the query reached.
+        // renamed, so a result shows which handle the query reached.
         $default   = $this->seeded_connection('Default');
         $alternate = $this->seeded_connection('Alternate');
 
@@ -24,7 +24,7 @@ class MultipleConnectionsTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * A handle holding the shared schema, with its rows renamed.
+     * A handle that contains the shared schema, with its rows renamed.
      */
     private function seeded_connection(string $prefix): PDO
     {
@@ -51,7 +51,7 @@ class MultipleConnectionsTest extends \PHPUnit\Framework\TestCase
         $this->assertSame('Default1', $row->name);
     }
 
-    public function testTheTableFirstDoorTakesAConnectionName()
+    public function testTheTableFirstEntryPointTakesAConnectionName()
     {
         $row = Granada::for_table('simple', self::ALTERNATE)->find_one(1);
 

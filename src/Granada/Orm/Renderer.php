@@ -62,7 +62,7 @@ class Renderer
     }
 
     /**
-     * The correlated subquery behind a related count or exists column.
+     * The correlated subquery for a related count or exists column.
      * The subquery arrives quoted and correlated; only the alias is
      * quoted here.
      */
@@ -216,7 +216,7 @@ class Renderer
     }
 
     /**
-     * Render each condition, joining each with its own AND or OR.
+     * Render each condition, connecting each with its AND or OR.
      * @param Condition[] $conditions
      * @return array{string, mixed[]} fragment and bound values
      */
@@ -243,7 +243,7 @@ class Renderer
      */
     private static function render_condition(Condition $condition, Dialect $dialect): array
     {
-        [$fragment, $values] = self::render_bare_condition($condition, $dialect);
+        [$fragment, $values] = self::render_plain_condition($condition, $dialect);
 
         if ($condition->negate && !in_array($condition->type, [Condition::GROUP, Condition::EXISTS], true)) {
             $fragment = "NOT ( {$fragment} )";
@@ -255,7 +255,7 @@ class Renderer
     /**
      * @return array{string, mixed[]}
      */
-    private static function render_bare_condition(Condition $condition, Dialect $dialect): array
+    private static function render_plain_condition(Condition $condition, Dialect $dialect): array
     {
         $quoted = $condition->column === '' ? '' : $dialect->quote_identifier($condition->column);
 
@@ -286,7 +286,7 @@ class Renderer
     }
 
     /**
-     * The subquery's placeholders stay bound; its values merge into
+     * The subquery's placeholders remain bound; its values merge into
      * the outer statement.
      * @return array{string, mixed[]}
      */
@@ -504,7 +504,8 @@ class Renderer
     }
 
     /**
-     * The dirty fields that get bound, except expr fields, in field order.
+     * The dirty fields that are bound, except expression fields, in field
+     * order.
      * @return mixed[]
      */
     private static function bound_values(WriteSpec $spec): array

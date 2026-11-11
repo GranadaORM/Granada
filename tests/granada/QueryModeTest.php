@@ -7,7 +7,7 @@ use Granada\Query;
 /**
  * The query/data split: q() and the other entry points return a
  * Query, the per-model query class resolves and applies its
- * defaultFilter(), and a query refuses row work.
+ * defaultFilter(), and a query rejects row writes.
  */
 class QueryModeTest extends \PHPUnit\Framework\TestCase
 {
@@ -140,7 +140,7 @@ class QueryModeTest extends \PHPUnit\Framework\TestCase
         Car::q()->save();
     }
 
-    public function testAQueryHoldsNoRowData()
+    public function testAQueryContainsNoRowData()
     {
         // The warning names the class and property; no row data comes out.
         $reported = null;
@@ -170,12 +170,12 @@ class QueryModeTest extends \PHPUnit\Framework\TestCase
         $this->assertTrue($car->is_new());
         $this->assertNull($car->id());
 
-        // The name went through the model's set_name hook at seeding
+        // The model's set_name hook processed the name at seeding
         $this->assertSame('test', $car->name);
 
         $car->save();
         // The new row has no soft-delete flag yet, so the model's
-        // filter hides it; model-less finds see it.
+        // filter hides it; model-less finds return it.
         $this->assertSame(5, Car::q()->count());
         $this->assertSame(7, Granada::for_table('car')->count());
     }

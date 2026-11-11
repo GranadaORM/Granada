@@ -19,8 +19,8 @@ parameters:
       path: src/Granada/Granada.php
       count: 1
     # The @param string[] docblock is the contract; the is_string() guard
-    # deliberately tolerates non-string pieces at this public seam instead
-    # of fataling on trim().
+    # deliberately tolerates non-string values in this public method instead
+    # of failing in trim().
     -
       identifier: function.alreadyNarrowedType
       path: src/Granada/Orm/Renderer.php

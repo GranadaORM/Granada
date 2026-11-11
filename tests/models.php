@@ -312,7 +312,7 @@ class Gadget extends Model
     }
 
     /**
-     * A relation with its own select(), so a related-count subquery
+     * A relation with a select(), so a related-count subquery
      * must ignore that select list.
      */
     public function picked_widgets()
@@ -463,7 +463,7 @@ class Machine extends Model
     }
 
     /**
-     * A link column that holds a string key, joined through another
+     * A link column that stores a string key, joined through another
      * table's column rather than its id.
      */
     public function bolt_codes()
@@ -523,7 +523,7 @@ class Crate extends Model
 
     /**
      * A relation chaining a where, a select, an order_by and an
-     * ordered_by, so eager and lazy loading must agree on its rows.
+     * ordered_by, so eager and lazy loading must return the same rows.
      */
     public function titled_items()
     {
@@ -535,8 +535,8 @@ class Crate extends Model
     }
 
     /**
-     * A relation with its own filter, so sync operates on the
-     * filtered subset the read sees.
+     * A relation with a filter, so sync operates on the same
+     * filtered subset as the read.
      */
     public function named_items()
     {
@@ -605,7 +605,7 @@ abstract class StampedChildBase extends Model
 
 /**
  * Inherits the switch, the custom columns, and the ignore list.
- * Its last_login column pins the suffix path's timezone adjustment.
+ * Its last_login column tests the suffix path's timezone adjustment.
  */
 class StampedChild extends StampedChildBase
 {

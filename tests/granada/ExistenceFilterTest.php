@@ -4,7 +4,7 @@ use Granada\Granada;
 use Granada\ORM;
 
 /**
- * Existence filters: where_has() and where_not_has() keep parents by
+ * Existence filters: where_has() and where_not_has() select parents by
  * their related rows, one parent row per match.
  */
 class ExistenceFilterTest extends \PHPUnit\Framework\TestCase
@@ -172,12 +172,12 @@ class ExistenceFilterTest extends \PHPUnit\Framework\TestCase
         $this->assertSame([], $this->names($manufactors));
     }
 
-    public function testWhereHasRelationSugarMatchesTheNamedMethod()
+    public function testWhereHasNamedMethodMatchesTheRelation()
     {
-        $named  = Gadget::q()->where_has('widgets');
-        $sugary = Gadget::q()->where_has_widgets();
+        $named        = Gadget::q()->where_has('widgets');
+        $named_method = Gadget::q()->where_has_widgets();
 
-        $this->assertSame($named->get_select_query(), $sugary->get_select_query());
+        $this->assertSame($named->get_select_query(), $named_method->get_select_query());
 
         $gadgets = Gadget::q()
             ->where_has_widgets(['name' => 'Widget1'])
@@ -186,12 +186,12 @@ class ExistenceFilterTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(['Gadget1'], $this->names($gadgets));
     }
 
-    public function testWhereNotHasRelationSugarMatchesTheNamedMethod()
+    public function testWhereNotHasNamedMethodMatchesTheRelation()
     {
-        $named  = Gadget::q()->where_not_has('widgets');
-        $sugary = Gadget::q()->where_not_has_widgets();
+        $named        = Gadget::q()->where_not_has('widgets');
+        $named_method = Gadget::q()->where_not_has_widgets();
 
-        $this->assertSame($named->get_select_query(), $sugary->get_select_query());
+        $this->assertSame($named->get_select_query(), $named_method->get_select_query());
     }
 
     public function testWhereHasOnAHandBuiltRelationshipMatchesTheLazyLoad()

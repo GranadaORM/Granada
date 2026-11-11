@@ -65,7 +65,7 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
 
     public function testTwoHasOneRelationsIntoTheSameClassReturnTheirOwnRows()
     {
-        // Owner 2 owns car 2 and is the manufactor of car 3.
+        // Owner 2 has car 2 and is the manufactor of car 3.
         $owner = Owner::q()->find_one(2);
         $owned = $owner->car;
         $made  = $owner->made_car;

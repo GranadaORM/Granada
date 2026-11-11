@@ -3,7 +3,7 @@
 namespace Granada;
 
 /**
- * Holds what a relationship method specified: the kind, the related class,
+ * Contains what a relationship method specified: the kind, the related class,
  * the key columns, and for has_many_through the link table.
  *
  * A relationship method attaches it to the query it returns, and loading
@@ -15,8 +15,8 @@ namespace Granada;
  * value for the relation. A has_many_through relationship also writes
  * its link table, through attach(), detach(), and sync().
  *
- * Calls chained on the relationship run on the lazy query. The one
- * parent condition that query holds is remembered, so the eager query
+ * Calls chained on the relationship run on the lazy query. The
+ * parent condition that the query contains is stored, so the eager query
  * starts from the same conditions and replaces that condition with
  * the many-parent restriction.
  *
@@ -68,8 +68,8 @@ class Relationship
     }
 
     /**
-     * Set the link table column that holds each link's position.
-     * Reads order by it, and the writes keep it up to date.
+     * Set the link table column that stores each link's position.
+     * Reads order by it, and the writes update it.
      */
     public function ordered_by(string $column): static
     {
@@ -145,8 +145,8 @@ class Relationship
 
     /**
      * The related query restricted to the parents whose key values
-     * are in $keys. Every condition the chain added stays on it: a
-     * query the chain built is cloned, and the clone holds those
+     * are in $keys. Every condition the chain added remains on it: a
+     * query the chain built is cloned, and the clone contains those
      * conditions.
      *
      * @param mixed[] $keys
@@ -245,7 +245,7 @@ class Relationship
             $result_set_class = Query::_result_set_class($this->class::$resultSetClass);
         }
 
-        // Eager and lazy loading must hold the same type. "Many"
+        // Eager and lazy loading must return the same type. "Many"
         // relationships start as an empty result set when
         // return_result_sets is on, an empty array when it is off.
         // "One" relationships start as null.
@@ -316,11 +316,11 @@ class Relationship
 
     /**
      * Set the links to match $members: missing links are created, unlisted
-     * ones are removed, and the rest stay. $members holds ids, or ids mapped
+     * ones are removed, and the rest remain. $members contains ids, or ids mapped
      * to data for each link.
      *
      * Through a has_many, $members syncs the children to the rows
-     * given, adding, updating, and deleting as needed. Each row is a
+     * given, adding, updating, and deleting when needed. Each row is a
      * set of columns, with an optional id.
      *
      * @param mixed[] $members
@@ -376,7 +376,7 @@ class Relationship
 
     /**
      * Syncs the list of children to the rows given, adding, updating,
-     * and deleting as needed, and sets each child's data from its row.
+     * and deleting when needed, and sets each child's data from its row.
      *
      * @param mixed[] $rows
      */
@@ -428,10 +428,10 @@ class Relationship
     }
 
     /**
-     * The related query with the one condition on this model's row:
+     * The related query with the condition on this model's row:
      * the parent condition first, then the hiding, the default
      * filter, the link join, and the order column. A has_many_through
-     * read keeps every link row, so repeated rows stay in the list.
+     * read returns every link row, so repeated rows remain in the list.
      */
     private function one_parent_query(): Query
     {
@@ -454,8 +454,8 @@ class Relationship
     }
 
     /**
-     * The one-parent query including soft-deleted rows, so a write
-     * sees the flagged rows too.
+     * The query for one parent, including soft-deleted rows, so a write
+     * includes the flagged rows too.
      */
     private function query_including_soft_deleted(): Query
     {
@@ -471,7 +471,7 @@ class Relationship
     /**
      * The hiding, the model's defaultFilter(), the link join, and the
      * order column. The model's hiding and defaultFilter() go on
-     * before the join: when a join is present, where() prefixes bare
+     * before the join: when a join is present, where() prefixes unqualified
      * column names with the table.
      */
     private function finish_query(Query $query, bool $hide_soft_deleted): void
@@ -489,7 +489,7 @@ class Relationship
                 ->join($this->table, ["{$this->table_name()}.{$this->related_key}", '=', "{$this->table}.{$this->other_key}"]);
         }
 
-        // The order column lives on the link table for a has_many_through,
+        // The order column is on the link table for a has_many_through,
         // and on the associated table for a has_many.
         if ($this->order_column !== null) {
             $order_table = $this->table ?? $this->table_name();
@@ -528,7 +528,7 @@ class Relationship
 
     /**
      * The condition where() stores for one column and value. The
-     * eager query drops its twin from the cloned chain.
+     * eager query removes its twin from the cloned chain.
      */
     private function condition_for(string $column, mixed $value): Orm\Condition
     {
@@ -643,7 +643,7 @@ class Relationship
 
     /**
      * The children are stored in each parent's list under the
-     * child's id, so a repeated child id keeps the last row.
+     * child's id, so a repeated child id uses the last row.
      *
      * @param array<mixed, non-empty-list<Granada>> $parents_by_key
      * @param array<int|string, Granada>|ResultSet $children
@@ -659,9 +659,9 @@ class Relationship
 
     /**
      * Each child found by its declared key column is matched to the
-     * parents whose foreign key holds that value. The first child
-     * for a value wins, so the eager row is the row the lazy
-     * find_one() takes when several children share the value.
+     * parents whose foreign key has that value. The first child for a value
+     * is used, so the eager row is the row that the lazy find_one() takes
+     * when several children share the value.
      *
      * @param Granada[]                             $parents
      * @param array<int|string, Granada>|ResultSet $children

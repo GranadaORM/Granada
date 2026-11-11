@@ -51,7 +51,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
         $car      = Car::q()->find_one(1);
         $expected = 'This property is missing';
-        $this->assertEquals($expected, $car->someProperty, 'Missing property fallback test');
+        $this->assertEquals($expected, $car->someProperty, 'Missing property test');
     }
 
     public function testSetterForProperty()
@@ -533,7 +533,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $cars = Car::q()
             ->select('name')
             ->find_many();
-        // Not an empty array
+        // The result contains rows
         $this->assertNotSame([], $cars);
         $this->assertEquals(true, $cars->has_results());
 
@@ -816,7 +816,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
     public function testfindMany()
     {
         $cars = Car::q()->find_many();
-        // Not an empty array
+        // The result contains rows
         $this->assertNotSame([], $cars);
         $this->assertEquals(true, $cars->has_results());
 
@@ -838,7 +838,7 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $cars = Car::q()
             ->where('id', 3)
             ->find_many();
-        // Not an empty array
+        // The result contains rows
         $this->assertNotSame([], $cars);
 
         $expected = [

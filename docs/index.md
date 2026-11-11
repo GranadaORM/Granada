@@ -2,27 +2,24 @@
 
 ## Documentation
 
-Please note this documentation is not yet complete.
-We're working on it!
-Most of the functionality is based on Idiorm/Paris, so their documentation can be used as a starting basis.
-For starters we'll have some more complex examples here, and as features are added.
+Most of the query language comes from Idiorm and Paris, so start with their docs
+for anything this page does not cover. The sections here explain the rest, with
+an example for each.
 
-If you want to contribute to the documentation, please feel free to submit a pull request!
-
-## Querying
-
-Note: in the examples below, it shows the query as executed on the SQL database.
-Internally it does use placeholders so you only need to escape data if you are sending your data inline in a raw query.
+The comments in the examples give the SQL that Granada sends. Granada escapes
+data for you, except in a raw query.
 
 ## Query mode
 
-`Model::q()` starts a query for a model: conditions, ordering, and the finds build on it.
+Query mode starts at `Model::q()`. You add conditions and ordering, then one of
+the finds executes the query:
 
 ```php
 $cars = Car::q()->where_gt('price', 1000)->find_many();
 ```
 
-To add custom filters to a model, create a `QueryCar` class that extends `\Granada\Query`:
+To add a custom query action to a model, create a `QueryCar` class that extends
+`\Granada\Query`:
 
 ```php
 class QueryCar extends \Granada\Query
@@ -36,23 +33,25 @@ class QueryCar extends \Granada\Query
 $cars = Car::q()->is_expensive()->find_many();
 ```
 
-To create a row, use `Car::create($data)`. It returns a model containing `$data`, you need to `save()` to write to the database.
+To create a model, use `Car::create($data)`. It returns the model unsaved, with
+the data you passed, and `save()` writes it to the database.
 
 ## Table-first queries
 
-`Granada::for_table()` starts a query on a table without a model class.
-It takes the table name and returns a query that chains conditions, ordering, and finds like any model query.
+A table-first query starts at `Granada::for_table()` on a table that has no model
+class. You add conditions and ordering, then call a find, as with a model query:
 
 ```php
 $items = Granada::for_table('legacy_user')->where_gt('age', 21)->find_many();
 // SELECT * FROM legacy_user WHERE age > '21';
 ```
 
-This returns raw ORM object rows rather than models.
+Its finds return ORM rows rather than models, so the model's methods and
+relationships are not available.
 
 ## By primary key
 
-To load a model by its primary key, use the `find_one()` function, specifying the primary key:
+Pass the key to `find_one()` to load one model by its primary key:
 
 ```php
 $item = User::q()->find_one($id);
@@ -62,36 +61,38 @@ echo $item->name;
 
 ## Loading a single record
 
-To load a single record of a model, set the query parameters then use `find_one()` function to limit to one record:
+Set your conditions, then call `find_one()` for the first match:
 
 ```php
-$item = User::q()->find_one();
-// SELECT * FROM user LIMIT 1;
+$item = User::q()->where('name', 'John')->find_one();
+// SELECT * FROM user WHERE name = 'John' LIMIT 1;
 echo $item->name;
 ```
 
 ## Loading multiple records
 
-Get a number of records from the database, in an iterable list, by using the `find_many()` function.
+`find_many()` returns the result set, which you can loop over:
 
 ```php
 $items = User::q()->find_many();
 // SELECT * FROM user;
 foreach ($items as $item) {
-   echo $item->name;
+    echo $item->name;
 }
 ```
 
 ## Loading multiple records, mapped to a structure
 
-Get a number of records from the database, in a custom mapped structure, by using the `find_map()` function.
+`find_map()` calls your function on each model and collects the results, so you
+get your own structure instead of models:
 
 ```php
-$item = User::q()->find_map(fn ($e) => (object)[
+$items = User::q()->find_map(fn ($e) => (object)[
     'id'      => $e->id,
     'name'    => $e->first_name . ' ' . $e->last_name,
     'isChild' => $e->age < 18,
 ]);
+
 foreach ($items as $item) {
     echo $item->isChild;
 }
@@ -99,9 +100,9 @@ foreach ($items as $item) {
 
 ## Loading many records one at a time
 
-Use `find_many_lazy()` when the result is too big to hold in memory,
-for example a report over many thousands of rows. It returns a
-generator: each step of the loop gives you one model:
+A lazy find yields models one at a time as a generator, so it suits a result too
+large to keep in memory, such as a report over thousands of rows. `find_many_lazy()`
+returns one:
 
 ```php
 foreach (User::q()->where('active', 1)->find_many_lazy() as $id => $user) {
@@ -109,26 +110,25 @@ foreach (User::q()->where('active', 1)->find_many_lazy() as $id => $user) {
 }
 ```
 
-The order and the array keys are the same as `find_many()` gives
-you.
+The order and array keys match `find_many()`.
 
 ### The chunk size
 
-The method loads the rows in chunks. The first argument is the chunk
-size. The default is 1000:
+`find_many_lazy()` reads the rows in chunks. Pass how many each query should
+fetch:
 
 ```php
 // 200 rows per query
 foreach (User::q()->find_many_lazy(200) as $user) { ... }
 ```
 
-A smaller chunk uses less memory and runs more queries. A bigger
-chunk does the opposite. The results you get are identical.
+A smaller chunk uses less memory and runs more queries; a bigger chunk uses more
+memory and runs fewer queries. The results are identical either way.
 
 ### Eager loading
 
-`with()` works as usual. The relationship query runs once per chunk,
-not once per model:
+`with()` works as usual, and the relationship query runs once per chunk rather
+than once per model:
 
 ```php
 foreach (Car::q()->with('parts')->find_many_lazy() as $car) {
@@ -136,29 +136,26 @@ foreach (Car::q()->with('parts')->find_many_lazy() as $car) {
 }
 ```
 
-### Loop only once
+### Run the find once
 
-The method returns a generator. A generator cannot restart. To loop
-again, call `find_many_lazy()` again. Each call runs the queries
-again, so the data may have changed.
+A lazy find is single-use: to run it again, call `find_many_lazy()` again. Each
+call runs the queries again, so the data may have changed.
 
-### Queries the method refuses
+### Queries the method rejects
 
-The method throws an exception when the query has one of these:
+The method throws when the query has one of these:
 
-- `group_by()` - the method loads each row by its id, and a grouped
-  row has no single id
-- `raw_query()` - the method loads the rows by rebuilding the query,
-  and it cannot rebuild raw SQL
-- a `join()` plus a custom `select()` - the rows are loaded from the
-  table alone, so the select may only name that table's columns
+- `group_by()`, since a grouped row has no single id
+- `raw_query()`
+- a `join()` plus a custom `select()`, since the select may only name the table's
+  own columns
 
-If you turned on `return_result_sets`, it does not apply here: the
-method always returns a generator.
+`return_result_sets` does not apply here: the method always returns a generator.
+For small results, use `find_many()`.
 
 ## Limiting results
 
-Specify the number of results you want to load using the `limit()` and `offset()` functions:
+Use `limit()` and `offset()` to select a page of results:
 
 ```php
 $items = User::q()->offset(15)
@@ -169,8 +166,8 @@ $items = User::q()->offset(15)
 
 ### Filtering results
 
-Add comparative filters to the query by using various functions.
-As you can see they are by default all reducing (uses AND).
+Add comparative filters to the query. They combine with AND, so each one narrows
+the results:
 
 ```php
 $items = User::q()->where('class', 'Test')
@@ -199,7 +196,8 @@ $items = User::q()->where('class', 'Test')
 // AND `id` IN (SELECT user_id FROM class_enrolment WHERE class_id=$class_id);
 ```
 
-Also available is the option to put the variable name in the called function. For example:
+A suffix method puts the column in the method name: `where_class('Test')` does the
+same as `where('class', 'Test')`, and the calls below match the list above:
 
 ```php
 $items = User::q()->where_class('Test')
@@ -215,36 +213,28 @@ $items = User::q()->where_class('Test')
     ->find_many();
 ```
 
-This is useful when using IDE and you put in docblocks to inform the IDE of the functions existing.
-For example:
+Your IDE cannot detect the suffix methods that Granada adds at runtime, so list
+the ones you use in a `@method` docblock on the query class:
 
 ```php
 /**
- * @method static where_enabled($value) Add WHERE enabled = "$value"
- * @method static where_enabled_not_equal($value) Add WHERE enabled != "$value"
- * @method static where_enabled_like($value) Add WHERE enabled LIKE "$value"
- * @method static where_enabled_not_like($value) Add WHERE enabled NOT LIKE "$value"
- * @method static where_enabled_gt($value) Add WHERE enabled > "$value"
- * @method static where_enabled_lt($value) Add WHERE enabled < "$value"
- * @method static where_enabled_gte($value) Add WHERE enabled >= "$value"
- * @method static where_enabled_lte($value) Add WHERE enabled <= "$value"
+ * @method QueryCar where_enabled($value)
+ * @method QueryCar where_enabled_not_equal($value)
+ * @method QueryCar where_enabled_like($value)
+ * @method QueryCar where_enabled_not_like($value)
+ * @method QueryCar where_enabled_gt($value)
+ * @method QueryCar where_enabled_lt($value)
+ * @method QueryCar where_enabled_gte($value)
+ * @method QueryCar where_enabled_lte($value)
  */
 ```
 
 ### Subselects for in and not in
 
-Instead of doing multiple queries or raw queries to perform a subselect, you can send a filter to the list instead of an array and it will use a subselect at the database.
-
-For example, instead of:
+Pass a query where you would pass an array, and Granada runs it as a subselect, so
+one query replaces two:
 
 ```php
-$items = User::q()->where_id_in(
-    Invoice::q()->where_is_paid(false)->find_pairs('user_id', 'user_id')
-)->find_many();
-// SELECT user_id FROM invoice WHERE is_paid = 0
-// SELECT * FROM user WHERE id IN (1,2,3,4,5,6,7,8,9,10)
-
-// Do instead
 $items = User::q()->where_id_in(
     Invoice::q()->where_is_paid(false)->select('user_id')
 )->find_many();
@@ -252,13 +242,10 @@ $items = User::q()->where_id_in(
 // SELECT * FROM user WHERE id IN (SELECT user_id FROM invoice WHERE is_paid = 0)
 ```
 
-The subquery's values bind into the outer statement as placeholders.
+### OR filters that match NULL
 
-### Some built-in OR filters
-
-To reduce complexity of the OR filtering (below) a few shortened filters are available to check whether a field is NULL as well.
-
-For example:
+These filters match a range or a list and also match NULL, so a row with no value
+still matches:
 
 ```php
 $items = User::q()->where_lt_or_null('age', 5)
@@ -271,9 +258,9 @@ $items = User::q()->where_lt_or_null('age', 5)
 
 ### Using OR in filters
 
-Since the default is to reduce results by using AND's, we use the `where_any_is()` function to add a group of filters that are OR'd together.
-
-A simple OR, shown mixed with an AND filter:
+Conditions combine with AND, so `where_any_is()` takes a list of groups and ORs them
+together. The query below matches either name, as long as the user is
+enabled:
 
 ```php
 $items = User::q()->where_any_is(
@@ -286,7 +273,7 @@ $items = User::q()->where_any_is(
     // SELECT * FROM `user` WHERE (`name` = 'Joe' OR `name` = 'Fred' ) AND `enabled` = 1
 ```
 
-An OR, with a non-default operator
+A second argument to `where_any_is()` changes the operator for every comparison:
 
 ```php
 $items = User::q()->where_any_is(
@@ -299,7 +286,8 @@ $items = User::q()->where_any_is(
     // SELECT * FROM `user` WHERE (`name` != 'Joe' OR `name` != 'Fred' ) AND `enabled` = 1
 ```
 
-Adding some AND comparisons inside the OR
+One group can contain more than one comparison, and the comparisons in a group
+combine with AND:
 
 ```php
 $items = User::q()->where_any_is(
@@ -310,21 +298,18 @@ $items = User::q()->where_any_is(
     // SELECT * FROM `user` WHERE (( `name` = 'Joe' ) OR ( `name` = 'Fred' AND `age` = '20' ))
 ```
 
-Overriding the comparison for one data type:
+Send an array of column => operator to change the operator for those columns only,
+or a string to change it for every comparison:
 
 ```php
 $items = User::q()->where_any_is(
     [
         ['name' => 'Joe', 'age' => 10],
         ['name' => 'Fred', 'age' => 20],
-    ], array('age' => '>')
-    )->find_many();
+    ], ['age' => '>'])
+    ->find_many();
     // SELECT * FROM `user` WHERE (( `name` = 'Joe' AND `age` > '10' ) OR ( `name` = 'Fred' AND `age` > '20' ))
-```
 
-Overriding the comparison for all data types:
-
-```php
 $items = User::q()->where_any_is(
     [
         ['score' => '5', 'age' => 10],
@@ -333,90 +318,84 @@ $items = User::q()->where_any_is(
     // SELECT * FROM `user` WHERE (( `score` > '5' AND `age` > '10' ) OR ( `score` > '15' AND `age` > '20' ))
 ```
 
-You can use NULL values in comparisons:
+A `null` value becomes `IS NULL`:
 
 ```php
 $items = User::q()->where_any_is(
     [
-        ['name' => 'Joe', 'age' => NULL],
-        ['name' => NULL, 'age' => 20],
+        ['name' => 'Joe', 'age' => null],
+        ['name' => null, 'age' => 20],
     ])->find_many();
 // SELECT * FROM `user` WHERE (( `name` = 'Joe' AND `age` IS NULL ) OR ( `name` IS NULL AND `age` = '20' ))
 ```
 
-They also work with the `!=` operator:
+With the `!=` operator it becomes `IS NOT NULL`:
 
 ```php
 $items = User::q()->where_any_is(
     [
-        ['name' => 'Joe', 'age' => NULL],
-        ['name' => NULL, 'age' => 20],
+        ['name' => 'Joe', 'age' => null],
+        ['name' => null, 'age' => 20],
     ], '!=')
     ->find_many();
     // SELECT * FROM `user` WHERE (( `name` != 'Joe' AND `age` IS NOT NULL ) OR ( `name` IS NOT NULL AND `age` != '20' ))
 ```
 
-Pass an array to convert it into an IN or NOT IN (depending on the operator):
+An array value becomes `IN`, or `NOT IN` with the `!=` operator:
 
 ```php
 $items = User::q()->where_any_is(
     [
-        [
-            'name' => 'Joe',
-            'age' => [18, 19],
-        ],
-        [
-            'name' => ['Bob', 'Jack'],
-            'age' => 20,
-        ],
-    ], array( 'age' => '!=')
-    )->find_many();
+        ['name' => 'Joe', 'age' => [18, 19]],
+        ['name' => ['Bob', 'Jack'], 'age' => 20],
+    ], ['age' => '!='])
+    ->find_many();
     // SELECT * FROM `user` WHERE (( `name` = 'Joe' AND `age` NOT IN ('18', '19') ) OR ( `name` IN ('Bob', 'Jack') AND `age` != '20' ))
 ```
 
-Optionally apply a where, use this to avoid breaking long chains. Can also be used for order:
+### Adding a condition when it applies
+
+`onlyif()` makes a long chain readable when part of it depends on a value. It adds
+the closure's conditions when the condition is true and skips them when it is
+false. The closure can add ordering too:
 
 ```php
 $min_age = 5;
 $order = true;
 $items = User::q()->where('class', 'Test')
-        ->onlyif(false, function(User $q) { // Will skip this filter
-            $q->where_lt('age', 10);
-        })
-        ->onlyif($min_age > 0, function(User $q) use ($min_age) { // Will apply this filter only when min_age is greater than 0
-            $q->where_gt('age', $min_age);
-        })
-        ->onlyif($order, function(User $q) {
-            $q->order_by_asc('age');
-        })
-        ->find_many();
+    ->onlyif(false, function (QueryUser $q) { // skipped
+        $q->where_lt('age', 10);
+    })
+    ->onlyif($min_age > 0, function (QueryUser $q) use ($min_age) {
+        $q->where_gt('age', $min_age);
+    })
+    ->onlyif($order, function (QueryUser $q) {
+        $q->order_by_asc('age');
+    })
+    ->find_many();
 // SELECT * FROM `user` WHERE `class` = 'Test' AND `age` > '5' ORDER BY `age` ASC
 ```
 
 ### Grouping conditions
 
-Some queries need to have sub-conditions grouped.
-In SQL that means putting in parenthesis.
-Particularly useful for OR logic when we also need an AND.
-Pass a closure to group conditions together.
-For example:
+A group condition puts a closure's conditions in parentheses, which is how you
+combine OR logic with an AND query. Inside the closure, `$q` is a query for the
+same model, so type it as the model's query class:
 
 ```php
 $items = User::q()->where('enabled', 1)
-    ->or_where(function (User $q) {
+    ->or_where(function (QueryUser $q) {
         $q->where_name('Jack')->where_verified(1);
     })
     ->find_many();
 // SELECT * FROM `user` WHERE `enabled` = 1 OR ( `user`.`name` = 'Jack' AND `user`.`verified` = '1' )
 ```
 
-Inside the closure, `$q` is a clean starting point for building a sub-condition.
-
-A closure inside a closure nests the groups:
+Group conditions can contain other groups:
 
 ```php
-$items = User::q()->where(function (User $q) {
-    $q->where('enabled', 1)->where(function (User $inner) {
+$items = User::q()->where(function (QueryUser $q) {
+    $q->where('enabled', 1)->where(function (QueryUser $inner) {
         $inner->where('role', 'admin')->or_where('role', 'owner');
     });
 })->find_many();
@@ -425,25 +404,26 @@ $items = User::q()->where(function (User $q) {
 
 ### NOT conditions
 
-`where_not()` and `or_where_not()` prefix the sub-condition with NOT:
+`where_not()` and `or_where_not()` negate a condition:
 
 ```php
 $items = User::q()->where_not('role', 'banned')->find_many();
 // SELECT * FROM `user` WHERE NOT ( `role` = 'banned' )
 
-$items = User::q()->where_not(function (User $q) {
+$items = User::q()->where_not(function (QueryUser $q) {
     $q->where('role', 'banned')->where('enabled', 0);
 })->find_many();
 // SELECT * FROM `user` WHERE NOT ( `role` = 'banned' AND `enabled` = 0 )
 ```
 
-A magic method exists so that wherever there was a `where_*` there is also an `or_where_*` so e.g. `or_where_price_gt(10)` adds `OR price > 10`.
-The `or_where_*` condition connects to the condition before it, so an OR can not leak past an AND, and a default filter stays intact.
+Every `where_*` method has an `or_where_*` form, so `or_where_price_gt(10)` adds
+`OR price > 10`. It connects to the condition before it, so the OR only affects
+that condition and your default filter keeps applying.
 
 ### EXISTS conditions
 
-In sql, you can return just the rows that exist in a subquery.
-Use `where_exists()` to declare the query that is used in the EXISTS portion. `where_not_exists()` outputs NOT EXISTS.
+`where_exists()` selects the rows that a subquery returns, and
+`where_not_exists()` is its negation:
 
 ```php
 $items = User::q()->where_exists(
@@ -452,116 +432,111 @@ $items = User::q()->where_exists(
 // SELECT * FROM `user` WHERE EXISTS ( SELECT * FROM `invoice` WHERE invoice.user_id = user.id AND `is_paid` = 0 )
 ```
 
-HAVING has the same methods: `having()` takes a closure, `or_having()`, `having_not()` and `or_having_not()` are the HAVING forms of `or_where()`, `where_not()` and `or_where_not()`, and `having_exists()` / `having_not_exists()` render `EXISTS` in HAVING.
+HAVING has the same methods. `having()` takes a group closure, and `or_having()`,
+`having_not()` and `or_having_not()` mirror their `where` equivalents.
+`having_exists()` and `having_not_exists()` test in HAVING.
 
 ### Setting the order of results
 
-Ordering results are set in order of priority, and can be defined multiple times for sub-ordering.
-
-order_by_asc()
-
-```php
-$items = User::q()->order_by_asc('name')
-    ->find_many();
-    // SELECT * FROM `user` ORDER BY `name` ASC
-```
-
-order_by_desc()
+Each `order_by_*()` call adds to the order, so a second call orders rows that the
+first call leaves equal:
 
 ```php
-$items = User::q()->order_by_desc('name')
-    ->find_many();
-    // SELECT * FROM `user` ORDER BY `name` DESC
-```
+$items = User::q()->order_by_asc('name')->find_many();
+// SELECT * FROM `user` ORDER BY `name` ASC
 
-Combining two order types
+$items = User::q()->order_by_desc('name')->find_many();
+// SELECT * FROM `user` ORDER BY `name` DESC
 
-```php
 $items = User::q()->order_by_desc('name')
     ->order_by_asc('id')
     ->find_many();
-    // SELECT * FROM `user` ORDER BY `name` DESC, `id` ASC
+// SELECT * FROM `user` ORDER BY `name` DESC, `id` ASC
 ```
 
-order_by_expr()
+`order_by_expr()` orders by SQL you write yourself:
 
 ```php
 $items = User::q()->order_by_expr('name+0')
     ->find_many();
-    // SELECT * FROM `user` ORDER BY name+0
+// SELECT * FROM `user` ORDER BY name+0
 ```
 
-### Clearing previous order declarations
+### Clearing the order
 
-If an order declaration is already made (e.g. from a filter or previous code) that you want to over-ride, you can clear it:
+`order_by_clear()` removes the order set so far, including any order that a filter
+added, so you can set the order again:
 
 ```php
 $items = User::q()->order_by_desc('name')
-    ->order_by_clear() // Clears out the name order from above
+    ->order_by_clear()
     ->order_by_asc('id')
     ->find_many();
-    // SELECT * FROM `user` ORDER BY `id` ASC
+// SELECT * FROM `user` ORDER BY `id` ASC
 ```
 
-### Clearing previous where and having declarations
+### Clearing where and having conditions
 
-If an where or having declaration is already made (e.g. from a filter or previous code) that you want to over-ride, you can clear it:
-
-For where:
+`clear_where()` removes every where condition, and `clear_having()` removes every
+having condition, including conditions that a filter added:
 
 ```php
 $items = User::q()->where('name', 'Fred')
-    ->clear_where() // Clears out all where declarations
+    ->clear_where()
     ->where('name', 'Joe')
     ->find_many();
-    // SELECT * FROM `user` WHERE `name` = 'Joe'
-```
+// SELECT * FROM `user` WHERE `name` = 'Joe'
 
-Similarly for having:
-
-```php
 $items = User::q()->group_by('name')
     ->having('name', 'Fred')
-    ->clear_having() // Clears out all having declarations
+    ->clear_having()
     ->having('name', 'Joe')
     ->find_one();
-    // SELECT * FROM `user` GROUP BY `name` HAVING `name` = 'Joe' LIMIT 1
+// SELECT * FROM `user` GROUP BY `name` HAVING `name` = 'Joe' LIMIT 1
 ```
 
-If you only want to remove a single where that was previously set, you can remove it:
+`remove_where()` removes the conditions on one column and leaves the rest:
 
 ```php
 $items = User::q()->where('name', 'Fred')
     ->where('age', 10)
     ->remove_where('name')
     ->find_many();
-    // SELECT * FROM `user` WHERE `age` = 10
+// SELECT * FROM `user` WHERE `age` = 10
 ```
 
-### Getting all fields when previously selected fields
+### Selecting all fields
 
-If a situation where a field to select is already specified, and you want all fields, just select('_') and the `_` goes to the front of the list:
+`select('*')` selects every column, and Granada places it at the front of the
+list:
 
 ```php
 $items = User::q()->select('name')
     ->select('*')
     ->find_one();
-    // SELECT *, `name` FROM `user` LIMIT 1
+// SELECT *, `name` FROM `user` LIMIT 1
 ```
 
-For some databases (e.g. Mysql) the `*` must be at the start of the list
+MySQL needs the `*` at the start of the list, which is where Granada places it.
 
-### Get raw SELECT query
+### Getting the SQL without running it
 
-Sometimes you may want to build a raw SELECT query for use, e.g. to send to a reporting module that directly connects to the database.
-Instead of calling `find_many()` call `get_select_query()` and it will give you the raw SELECT ready to send to the database server.
+Call `get_select_query()` instead of `find_many()` to get the SQL without running
+it, for example to pass to a reporting tool that connects to the database itself:
+
+```php
+$sql = User::q()->where('name', 'John')->get_select_query();
+// SELECT * FROM `user` WHERE `name` = 'John'
+```
+
+The result is an inlined query, with its values filled in, so it runs as written.
 
 ## Default filtering
 
-A query class applies a default filter, so every query for the model starts from the same conditions.
-For example, hide every car that is not enabled, without adding the condition to each query.
-To flag records as deleted, use the soft deletes below - those rows are already hidden.
-Add your own conditions by overriding `defaultFilter()` on the model's query class:
+A query class can apply a default filter, so every query for the model starts
+from the same conditions. This hides every car that is not enabled, without
+adding the condition to each query. To mark records as deleted, use the soft
+deletes below, which already hide those rows:
 
 ```php
 class QueryCar extends \Granada\Query
@@ -573,24 +548,24 @@ class QueryCar extends \Granada\Query
 }
 ```
 
-Every query for that model starts with the conditions in the default filter.
-Soft-deleted rows are hidden before `defaultFilter()` runs, so the filter adds only its own conditions.
+Every model query starts with its default filter. The filter adds only its own
+conditions, so soft deletes continue to work alongside it. Index the columns it
+filters on.
 
-Don't forget to create an index on columns that have a default filter!
-
-To override the default filtering, use the `clear_where()` function, for example:
+To query without the filter, call `clear_where()`:
 
 ```php
 $count = Car::q()->clear_where()->count();
-// Gets the number of all cars, filtered or not
+// every car, filtered or not
 $count = Car::q()->count();
-// Gets only the cars the default filter lets through
+// only the cars the default filter includes
 ```
 
 ## Soft deletes
 
-Setting `$_soft_delete_column` on a model makes `delete()` soft-delete the row instead of removing it.
-Soft-deleted rows drop out of finds, counts, and relationship queries for that model.
+A model opts into soft deletes by naming `$_soft_delete_column`. Its `delete()` then
+marks the row instead of removing it, and marked rows are left out of finds,
+counts, and relationship queries for that model:
 
 ```php
 class Car extends Model
@@ -599,34 +574,36 @@ class Car extends Model
 }
 ```
 
-`delete()` soft-deletes the row.
-`restore()` brings it back.
-`delete_forced()` removes the row, on any model.
+`delete()` soft-deletes the row, `restore()` returns it to normal finds, and
+`delete_forced()` force-deletes it:
 
 ```php
 $car = Car::q()->find_one(1);
 $car->delete();        // soft-deleted, queries no longer return it
 $car->restore();       // queries return it again
-$car->delete_forced(); // removes the row for good
+$car->delete_forced(); // removes the row permanently
 ```
 
-`delete_many()` soft-deletes every matching row on a soft-delete model, and removes rows as before on every other model.
+`delete_many()` soft-deletes every matching row on a soft-delete model, and
+removes rows on every other model:
 
 ```php
 Car::q()->where('enabled', 0)->delete_many();
 // Soft-deletes all disabled cars
 ```
 
-To list the soft-deleted rows, use `clear_where()`.
+To find soft-deleted rows, clear the filter with `clear_where()` and filter on the
+column:
 
 ```php
 $count = Car::q()->clear_where()->where('car.is_deleted', 1)->count();
-// Gets the number of soft-deleted cars
+// Returns the number of soft-deleted cars
 ```
 
-## Timestamps
+## Automatic timestamps
 
-Setting `$_auto_timestamps` on a model makes Granada write its `created_at` and `updated_at` columns, in UTC, on every write.
+A model opts into automatic timestamps by naming `$_auto_timestamps`. Granada then
+writes its `created_at` and `updated_at` columns, in UTC, on every write:
 
 ```php
 class Car extends Model
@@ -635,9 +612,8 @@ class Car extends Model
 }
 ```
 
-An insert writes both columns.
-An update writes `updated_at`.
-A save with no other change writes neither.
+An insert writes both columns, an update writes `updated_at`, and a save that
+changes nothing writes neither:
 
 ```php
 $car = Car::create(['name' => 'Car1']);
@@ -646,17 +622,18 @@ $car->save();          // created_at and updated_at are written
 $car->name = 'Car2';
 $car->save();          // updated_at is written, created_at is not
 
-$car->save();          // no change, so updated_at is not written
+$car->save();          // no change, so neither column is written
 ```
 
-Other writes to the table update `updated_at` as well, including increment(), update_many() and soft-deletes.
+Other writes to the table also update `updated_at`, including `increment()`,
+`update_many()` and soft deletes:
 
 ```php
 $car->increment('views');   // updated_at is written with the count
 ```
 
-The columns default to `created_at` and `updated_at`.
-Set `$_auto_timestamp_columns` to name different columns.
+The columns are `created_at` and `updated_at` unless `$_auto_timestamp_columns`
+names others:
 
 ```php
 class Car extends Model
@@ -669,7 +646,8 @@ class Car extends Model
 }
 ```
 
-If you set the `created_at` or `updated_at` field, then it saves your data rather than the current time.
+A value you set yourself takes precedence over the current time, so seeding an old
+date works:
 
 ```php
 $car = Car::create([
@@ -679,8 +657,8 @@ $car = Car::create([
 $car->save();   // created_at is written as given, updated_at is written
 ```
 
-`$_auto_timestamps_ignore` lists fields that won't update `updated_at` when changed.
-Examples include `sort_order`.
+`$_auto_timestamps_ignore` lists the fields that do not update `updated_at` when
+they change, such as `sort_order`:
 
 ```php
 class Car extends Model
@@ -692,8 +670,8 @@ class Car extends Model
 
 ## Auto order
 
-Set `$_auto_order_column` on a model to keep its rows in an order.
-When a save writes 0 to the column, Granada stores the next number instead.
+An auto-order column gives a model's rows a position. Name it with
+`$_auto_order_column`:
 
 ```php
 class Car extends Model
@@ -701,6 +679,8 @@ class Car extends Model
     protected static ?string $_auto_order_column = 'sort_order';
 }
 ```
+
+When a save writes 0 to the column, Granada stores the next number instead:
 
 ```php
 $car = Car::create(['name' => 'Car1', 'sort_order' => 0]);
@@ -710,18 +690,18 @@ $car->sort_order = 0;
 $car->save();   // sort_order is 2
 ```
 
-Any other value saves as given.
+Any other value is saved as given:
 
 ```php
 $car->sort_order = 7;
 $car->save();   // sort_order is 7
 ```
 
-The assigned number never changes `updated_at`.
-The numbering is for the whole table.
-Two saves at the same moment can store the same number.
+The numbering covers the whole table, and it does not change `updated_at`. Two
+concurrent writes can store the same number.
 
-`set_order_many()` puts the listed rows in the order you send their ids.
+`set_order_many()` sets the listed rows to positions 1..n in the order of their
+ids:
 
 ```php
 Car::q()->set_order_many([5, 2, 9]);
@@ -729,9 +709,9 @@ Car::q()->set_order_many([5, 2, 9]);
 
 ## Junction writes
 
-A `has_many_through` relationship loads its models through a link table. The same declaration gives you `attach()`, `detach()`, and `sync()` to write that table.
-
-Name the link model and the two link columns when you declare the relationship:
+A `has_many_through` relationship loads its models through a link table. The
+same declaration provides the junction writes `attach()`, `detach()` and `sync()`.
+In the declaration, name the model for the link table and its two key columns:
 
 ```php
 class User extends Model
@@ -748,36 +728,40 @@ class User extends Model
 }
 ```
 
-`attach()` links one model to another. It creates the link row if it is not there yet, and the data you pass is written onto the row, whether the link is new or already there.
+`attach()` adds a role to the user. If the user already has it, Granada stores the
+values you pass with that role for this user:
 
 ```php
-$user->attach_roles(2);                   // creates the user-role link
-$user->attach_roles(2, ['enabled' => 1]); // adds data to the link
+$user->attach_roles(2);                   // adds role 2
+$user->attach_roles(2, ['enabled' => 1]); // adds role 2, with values
 ```
 
-`detach()` removes the link to one model. Called with no argument, it removes every link this model has.
+`detach()` removes a role from the user. With no argument it removes every role
+the user has:
 
 ```php
-$user->detach_roles(2); // removes that link
-$user->detach_roles();  // removes every role link for this user
+$user->detach_roles(2); // removes role 2
+$user->detach_roles();  // removes every role for this user
 ```
 
-`sync()` sets the list to match what you send. Either send a list of ids, or a list of id => data to also set attributes on the link table.
+`sync()` makes the roles match what you send. Send ids, or ids with values to
+store with each role:
 
 ```php
-$user->sync_roles([1, 2, 3]);                        // links become exactly 1, 2, 3
-$user->sync_roles([1 => ['enabled' => 1], 3 => []]); // 1 and 3, with data on 1
+$user->sync_roles([1, 2, 3]);                        // roles become exactly 1, 2, 3
+$user->sync_roles([1 => ['enabled' => 1], 3 => []]); // 1 and 3, with values on 1
 ```
 
-All three work on the relation itself, for a call that reads better chained:
+All three also work on the relationship itself:
 
 ```php
 $user->roles()->attach(2, ['enabled' => 1]);
 ```
 
-### Ordering the links
+### Ordering the related models
 
-`ordered_by()` names a column on the link table that holds each link's position. Reads come back in that order, and the writes keep it up to date.
+`ordered_by()` names the order column on the link table. Reads return in that
+order:
 
 ```php
 public function steps()
@@ -791,20 +775,23 @@ public function steps()
 }
 ```
 
-`attach()` adds a new link at the end, and `sync()` numbers the links in the order you list them.
+`attach()` adds a new step at the end, and `sync()` numbers the steps in the order
+you list them:
 
 ```php
 $recipe->attach_steps(3);      // placed last
 $recipe->sync_steps([9, 4, 7]); // numbered 1, 2, 3 in the order given
 ```
 
-`detach()` removes a link and leaves the other positions as they are, so the column can have gaps.
-
-Writing the same parent's links from two processes at once can give two links the same position. Wrap the write in a mutex of your own if your application can do that. A model's `save()` never writes links.
+`detach()` removes a step and does not change the other positions, so the order
+column can have gaps. A model's `save()` writes only its own row; use
+`attach()`, `detach()` and `sync()` for link rows.
 
 ## Syncing children
 
-A `has_many` relationship loads a parent's child rows. `sync()` sets the children to the rows you send in one call, adding, updating, and deleting as needed. Send the child's id on a row to update it, or leave it off to create a new child.
+A `has_many` relationship loads a parent's children, and `sync()` makes them match
+the rows you send in one call. Send an entry with the child's id to update it, or
+without one to create it:
 
 ```php
 class EventEntry extends Model
@@ -821,43 +808,50 @@ $entry->sync_extras([
 ]);
 ```
 
-An id that doesn't match any of the parent's children is simply ignored. If the child model uses soft deletes, children you leave out aren't really gone - they're just hidden, and they come back the moment you list them again.
+An id that matches none of the parent's children is ignored. On a child model with
+soft deletes, a child you leave out is soft-deleted rather than removed, and it
+appears again when you list it again.
 
-The foreign key is set from the parent, so you never set it yourself. Every write runs inside one transaction, and the call does nothing until the parent has been saved.
+Granada fills in the foreign key from the parent, so you do not set it yourself,
+and every write runs inside one transaction. The call takes effect after the
+parent is saved.
 
-`ordered_by()` names a column on the child table that holds each row's position, the same way it does on a link table. `sync()` numbers the rows in the order you list them, and reads come back in that order.
+`ordered_by()` names the order column on the child table, just as it does on a
+`has_many_through`. `sync()` numbers the rows in the order you list them, and reads
+return in that order:
 
 ```php
 $entry->ordered_extras()->sync([['name' => 'A'], ['name' => 'B']]); // positions 1, 2
 ```
 
-A model's `save()` never writes children; the call is always explicit.
+A `save()` updates only the row; call `sync()` to update the children.
 
 ## Existence filters and related counts
 
-Filter rows by their related rows, or keep a related count on each row, without loading them.
+Filter models by their related rows, or store a count of them on each model,
+without loading the related rows.
 
 ### Filtering by related rows
 
-`where_has()` keeps the rows that have at least one related row matching.
-Pass the relationship method name.
-The relationship is `has_one`, `has_many` or `belongs_to`.
+An existence filter selects only the parents with at least one matching related
+row. `where_has()` accepts the relationship method's name, and it must declare a
+`has_one`, `has_many` or `belongs_to`:
 
 ```php
 $users = User::q()->where_has('invoices')->find_many();
 // SELECT * FROM `user` WHERE EXISTS ( SELECT 1 FROM `invoice` WHERE `invoice`.`user_id` = `user`.`id` )
 ```
 
-Filter the related rows with an array of column => value pairs.
-A null value becomes `IS NULL`.
+Narrow it with an array of column => value pairs, where a null value becomes
+`IS NULL`:
 
 ```php
 $users = User::q()->where_has('invoices', ['is_paid' => 0])->find_many();
 // SELECT * FROM `user` WHERE EXISTS ( SELECT 1 FROM `invoice` WHERE `invoice`.`user_id` = `user`.`id` AND `is_paid` = '0' )
 ```
 
-Or filter them with a closure.
-It receives the related model's query, so type it as the related query class - `QueryInvoice` for the `Invoice` model - or as the base `Granada\Query`.
+A closure receives the related model's query, so type it as that model's query
+class, `QueryInvoice` for `Invoice`, or as `Granada\Query`:
 
 ```php
 $users = User::q()->where_has('invoices', function (QueryInvoice $query) {
@@ -865,35 +859,37 @@ $users = User::q()->where_has('invoices', function (QueryInvoice $query) {
 })->find_many();
 ```
 
-`where_not_has()` keeps the rows with none.
+`where_not_has()` is the negated form and selects the parents with none:
 
 ```php
 $users = User::q()->where_not_has('invoices')->find_many();
 // SELECT * FROM `user` WHERE NOT EXISTS ( SELECT 1 FROM `invoice` WHERE `invoice`.`user_id` = `user`.`id` )
 ```
 
-Naming the relationship in the method gives `where_has_{relation}()` and `where_not_has_{relation}()`.
+Name the relationship in the method instead, and you get
+`where_has_{relation}()` and `where_not_has_{relation}()`:
 
 ```php
 $users = User::q()->where_has_invoices()->find_many();
 $users = User::q()->where_not_has_invoices(['is_paid' => 0])->find_many();
 ```
 
-A row that matches appears once, whatever the number of related rows, so `count()`, `limit()` and `offset()` include it once.
+A row that matches appears once, however many related rows it has, so `count()`,
+`limit()` and `offset()` count it once.
 
-### Keeping rows with at least N related rows
+### Selecting rows with at least N related rows
 
-Pass `count` to keep only rows with at least that many matching related rows.
+Pass `count` to select only the rows with at least that many matching related
+rows:
 
 ```php
 $users = User::q()->where_has('invoices', count: 3)->find_many();
 // SELECT * FROM `user` WHERE ( SELECT COUNT(*) FROM `invoice` WHERE `invoice`.`user_id` = `user`.`id` ) >= 3
 ```
 
-### Keeping a related count on each row
+### Storing a related count on each model
 
-`with_count()` gives each row the number of its related rows, on the model as `{relation}_count`.
-The count is read in the one find query, so the related rows are never loaded.
+`with_count()` stores a related count on each model as `{relation}_count`:
 
 ```php
 foreach (User::q()->with_count('invoices')->find_many() as $user) {
@@ -902,118 +898,133 @@ foreach (User::q()->with_count('invoices')->find_many() as $user) {
 // SELECT *, ( SELECT COUNT(*) FROM `invoice` WHERE `invoice`.`user_id` = `user`.`id` ) AS `invoices_count` FROM `user`
 ```
 
-`with_exists()` puts a boolean on `{relation}_exists`.
+`with_exists()` stores an existence flag on each model as `{relation}_exists`:
 
 ```php
 foreach (User::q()->with_exists('invoices')->find_many() as $user) {
-    echo $user->invoices_exists ? 'has invoices' : 'none'; // a boolean
+    echo $user->invoices_exists ? 'has invoices' : 'none';
 }
 ```
 
-Both take the same array or closure as `where_has()` to filter what is counted.
+Granada computes a related count or existence flag in the find query itself, so
+it never loads the related rows. Both take the same array or closure as
+`where_has()` to narrow the related rows:
 
 ```php
 $users = User::q()->with_count('invoices', ['is_paid' => 0])->find_many();
 ```
 
-The count is a set value on the model's relationships, so `clear_computed_values()` keeps it.
+Related counts and existence flags are set values, so
+`clear_computed_values()` leaves them.
 
-Existence filters and related counts cover `has_one`, `has_many` and `belongs_to`.
-A `has_many_through` relationship is not supported yet and throws.
+Existence filters and related counts cover `has_one`, `has_many` and
+`belongs_to`. Using either with a `has_many_through` relationship throws.
 
-## Property Access Methods
+## Property access methods
 
-When accessing a property on a model (e.g. `$model->property`), Granada checks several method prefixes in order to resolve the value.
+`$model->property` works like a column. When the column has no value, Granada
+checks the model's methods in this order: `missing_`, `missingonce_`, then a method
+with the property's name. A `get_` method changes a column value when it reads it.
+The sections below describe each form.
 
-### `get_` prefix - Transform an existing value
+### `get_` transforms an existing value
 
-If the property exists in the database (not null), and a `get_{property}` method exists, the raw database value is passed to the method and the return value is used. This is recalculated every time the property is accessed.
+When the column has a value and the model defines `get_{property}()`, Granada
+passes the value in and uses the returned value:
 
 ```php
-class Car extends Model {
-    public function get_brand($value) {
+class Car extends Model
+{
+    public function get_brand($value)
+    {
         return ucfirst(strtolower($value));
     }
 }
 
 $car = Car::q()->find_one(1);
-echo $car->brand; // e.g. Toyota
+echo $car->brand; // for example Toyota
 ```
 
-### `missing_` prefix - Compute when not in the database
+The method runs on every read, so the property always reflects the stored value.
 
-If the property does not exist in the database (null), and a `missing_{property}` method exists, the method is called with no arguments. The result is **recalculated every time** the property is accessed.
+### `missing_` computes a value the database does not have
+
+When no column contains the property and the model defines `missing_{property}()`,
+Granada calls it on every read, so the value always reflects the current state:
 
 ```php
-class Car extends Model {
-    public function missing_nameNow() {
+class Car extends Model
+{
+    public function missing_nameNow()
+    {
         return $this->name . '-' . microtime(true);
     }
 }
 
 $car = Car::q()->find_one(1);
-echo $car->nameNow; // includes current time
+echo $car->nameNow; // includes the current time
 sleep(1);
-echo $car->nameNow; // will be different
+echo $car->nameNow; // a different value
 ```
 
-Use `missing_` for lightweight computations that should reflect the current state of the model on every access.
+### `missingonce_` computes a value once and stores it
 
-### `missingonce_` prefix - Compute once and keep
-
-If the property does not exist in the database (null), and a `missingonce_{property}` method exists, the method is called on the **first access only**. The result is kept and returned on all subsequent accesses within the same object lifecycle.
-
-This is ideal for expensive operations such as database queries that you do not expect to change within the current request.
+A `missingonce_{property}()` method runs on the first read only, and every later
+read returns the same value, which suits a slow call such as a query:
 
 ```php
-class User extends Model {
-    public function missingonce_orderCount() {
+class User extends Model
+{
+    public function missingonce_orderCount()
+    {
         return Order::q()->where('user_id', $this->id)->count();
     }
 }
 
 $user = User::q()->find_one(1);
-echo $user->orderCount; // Queries the database
-echo $user->orderCount; // Returns the kept value (no query)
+echo $user->orderCount; // queries the database
+echo $user->orderCount; // returns the stored value, with no query
 ```
 
-Do not have both `missing_` and `missingonce_` methods exist for the same property. Order of priority may change.
+Do not define both a `missing_` and a `missingonce_` method for the same property.
 
 ### Relationships as properties
 
-If a method matching the property name exists on the model and it returns a relationship (e.g. `has_one`, `has_many`, `belongs_to`), the related model(s) are lazy-loaded on first access and kept for subsequent access.
+When a method with the property's name returns a relationship, Granada loads the
+related model or models on the first read and stores them:
 
 ```php
-class Car extends Model {
-    public function manufactor() {
+class Car extends Model
+{
+    public function manufactor()
+    {
         return $this->belongs_to('Manufactor');
     }
 }
 
 $car = Car::q()->find_one(1);
-echo $car->manufactor->name; // Lazy-loaded on first access
-echo $car->manufactor->name; // No database query
+echo $car->manufactor->name; // lazy-loaded on first read
+echo $car->manufactor->name; // no database query
 ```
 
-See the Relationships section below for more detail.
+### Clearing computed values
 
-### `clear_computed_values()` - Work out computed values again
-
-Lazy-loaded relationships and `missingonce_` values are kept in the model's `$relationships` array. `clear_computed_values()` drops those kept values, so the next read of each affected property works them out again.
+`clear_computed_values()` removes the computed values, so the next read computes
+each one again:
 
 ```php
 $user = User::q()->find_one(1);
-echo $user->orderCount; // Queries the database
+echo $user->orderCount; // queries the database
 $user->clear_computed_values();
-echo $user->orderCount; // Queries the database again
+echo $user->orderCount; // queries the database again
 ```
 
-Eager-loaded results (from `with()`), values routed to `$relationships` by `set()`, and values you write to `$relationships` yourself are kept.
+Granada preserves set values and eager-loaded results from `with()`.
 
-## First and Last items in a result
+## First and last row flags
 
-When using `foreach` to iterate through a list of results, there are two functions you can use to determine if the result is the first or last item.
-This is very handy when outputting data and you want the first or last to be slightly different from the others.
+The row flags `isFirstResult()` and `isLastResult()` report your position inside a
+`foreach`. Use them to produce different output for the first or last row:
 
 ```php
 foreach ($items as $item) {
@@ -1028,7 +1039,10 @@ foreach ($items as $item) {
 
 ## Transactions
 
-Wrap several writes so they commit together or roll back together with `ORM::transaction()`. The callable runs inside a transaction. When it returns normally, the transaction is committed and its return value is passed through. When it throws, the transaction is rolled back and the exception is rethrown.
+`ORM::transaction()` runs several writes as one transaction, so they commit
+together or roll back together. The callable runs inside the transaction, Granada
+returns its return value, and a thrown exception rolls the transaction back and
+rethrows it:
 
 ```php
 $invoice = ORM::transaction(function () {
@@ -1046,9 +1060,12 @@ $invoice = ORM::transaction(function () {
 });
 ```
 
-Returning `false` is not a rollback: only a thrown exception rolls the work back.
+Returning `false` is not a rollback: only a thrown exception rolls the transaction
+back.
 
-To run a transaction manually, use `beginTransaction()`, `commit()` and `rollBack()`. The names match PDO, so code written against `get_db()` moves over by dropping that prefix:
+To run a transaction manually, use `beginTransaction()`, `commit()` and
+`rollBack()`. The names match PDO, so code written against `get_db()` works
+after you remove that prefix:
 
 ```php
 ORM::beginTransaction();
@@ -1061,7 +1078,8 @@ try {
 }
 ```
 
-Transactions live on one connection. Every method above takes an optional connection name, defaulting to the default connection, the same way `get_db()` does:
+Every method above takes an optional connection name and uses the default
+connection when you omit it:
 
 ```php
 ORM::transaction(function () {
@@ -1071,7 +1089,9 @@ ORM::transaction(function () {
 ORM::beginTransaction('reporting');
 ```
 
-Transaction calls nest. A call made while a transaction is already open joins the outermost transaction: only the outermost begin and commit touch the database, and there is no savepoint to roll back to. A failure anywhere rolls the whole thing back:
+If you start a transaction while one is already open, it joins that transaction.
+Only the outermost transaction commits, so a failure anywhere rolls back the whole
+transaction:
 
 ```php
 ORM::transaction(function () {
@@ -1082,12 +1102,13 @@ ORM::transaction(function () {
 // the commit on the database happens here, with the outer call
 ```
 
-`insert()` builds on this: the rows you pass are saved one by one inside one transaction, so a failure on any row rolls back every row instead of leaving the transaction open.
+`insert()` uses the same mechanism: every row you pass it is saved in one
+transaction, so a failure on any row rolls back every row.
 
 ## Increment and decrement
 
-`increment()` adds an amount to a column. `decrement()` subtracts one.
-They only affect that column, and let you run two increments or decrements without losing count.
+`increment()` adds an amount to a column and `decrement()` subtracts an amount.
+Each changes only its column, so two calls running at once do not lose a count:
 
 ```php
 $widget->increment('views');               // UPDATE widget SET views = views + 1
@@ -1096,13 +1117,14 @@ $widget->decrement('stock', 2);            // UPDATE widget SET stock = stock - 
 $new_total = $widget->increment('views');  // reads the value back from the row
 ```
 
-`$new_total` and `$widget->views` store the new value.
-On a newly created model, the database isn't updated until you `save()`.
-If something goes wrong, they return `false`.
+The model stores the new value. On a newly created model, `increment()` changes
+only the model in memory; call `save()` to write it. If the write fails, both
+methods return `false`.
 
 ## Mass updates
 
-`update_many()` writes the same values to every row the query matches, in one UPDATE, without loading any rows.
+`update_many()` writes the same values to every row the query matches, in one
+UPDATE, without loading any rows:
 
 ```php
 Car::q()
@@ -1110,21 +1132,21 @@ Car::q()
     ->update_many(['name' => 'Sold']);
 ```
 
-It returns `true` when the statement runs and `false` when the write fails.
-Call it with an empty array and nothing is written.
-
-The query's where conditions pick the rows.
-A query with no where conditions updates every row in the table.
+It returns `true` when the write succeeds and `false` when it fails, and an empty
+array writes nothing. The where conditions select the rows, so a query with no
+where conditions updates every row in the table:
 
 ```php
 Part::q()->update_many(['price' => 0]);
 // Updates every part
 ```
 
-A query with a join throws on both `update_many()` and `delete_many()`.
-A soft-delete model's hidden rows stay hidden; `clear_where()` lifts the hiding.
-
-An `Expression` value writes raw SQL, for shifts like `sort_order + 1`.
+A query with a join throws on both `update_many()` and `delete_many()`, and a
+soft-delete model's hidden rows remain hidden until `clear_where()` clears the
+filter. An `Expression` value writes raw SQL, for an adjustment such as
+`sort_order + 1`.
+Every other value converts through the model's `set_<column>()` method, so a date
+or money object reaches the database converted:
 
 ```php
 use Granada\Orm\Expression;
@@ -1135,5 +1157,3 @@ Part::q()
         'price' => new Expression('price * 1.1'),
     ]);
 ```
-
-Every other value runs through the model's `set_<column>()` method, so a date or money object reaches the database converted.

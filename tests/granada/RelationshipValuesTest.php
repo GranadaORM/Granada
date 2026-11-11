@@ -3,8 +3,8 @@
 use Granada\ORM;
 
 /**
- * Writes to $relationships must not lose what is already there.
- * clear_computed_values() drops computed values only.
+ * Writes to $relationships must preserve the existing values.
+ * clear_computed_values() removes computed values only.
  */
 class RelationshipValuesTest extends \PHPUnit\Framework\TestCase
 {

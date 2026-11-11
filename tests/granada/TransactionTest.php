@@ -7,7 +7,7 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
     protected function setUp(): void
     {
         // The transaction tests need a real database.
-        // Fresh connections: no handle or setting leaks between tests
+        // Fresh connections: no handle or setting is shared between tests
         ORM::reset_db();
         ORM::reset_config();
 

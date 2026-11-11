@@ -5,9 +5,9 @@ namespace Granada\Orm;
 use PDO;
 
 /**
- * The connection machinery shared by the row core (ORM) and the query
- * class (Granada\Query): the connection manager behind the static
- * facade, the execute paths, the query cache, and the dialect.
+ * The connection code shared by the row class (ORM) and the query
+ * class (Granada\Query): the connection manager that serves the static
+ * calls, the execute paths, the query cache, and the dialect.
  *
  * @internal
  */
@@ -33,7 +33,7 @@ abstract class Db
     protected ?string $_instance_id_column = null;
 
     /**
-     * The connection manager behind these statics, created on first use.
+     * The connection manager that these statics use, created on first use.
      */
     protected static function _manager(): ConnectionManager
     {
@@ -41,8 +41,8 @@ abstract class Db
     }
 
     /**
-     * Swap the connection manager behind the ORM statics, eg for a fresh
-     * one per test.
+     * Replace the connection manager that the ORM statics use, for example
+     * to get a fresh one per test.
      */
     public static function set_connection_manager(ConnectionManager $manager): void
     {
@@ -99,7 +99,7 @@ abstract class Db
      * This is public in case the ORM should use a ready-instantiated
      * PDO object as its database connection. Accepts an optional string key
      * to identify the connection if multiple connections are used. Passing
-     * null drops the handle; the next use reconnects from the settings.
+     * null removes the handle; the next use reconnects from the settings.
      * @param PDO|null $db
      * @param string $connection_name Which connection to use
      */
@@ -142,7 +142,7 @@ abstract class Db
     /**
      * Run the callable inside one transaction on the connection:
      * success commits and returns the callable's return value; a
-     * thrown exception rolls the work back and rethrows. A call
+     * thrown exception rolls the transaction back and rethrows. A call
      * inside an open transaction joins the outermost one.
      * @param callable $fn
      * @param string $connection_name Which connection to use
@@ -236,7 +236,7 @@ abstract class Db
 
     /**
      * Execute a mutating statement, then run the write callbacks.
-     * Every write path goes through here; the read path does not.
+     * Every write path uses this method; the read path does not.
      * @param string $query
      * @param mixed[] $parameters
      */
@@ -253,7 +253,8 @@ abstract class Db
 
     /**
      * Whether a raw statement changes rows.
-     * A raw statement is a single statement, so its leading keyword decides.
+     * A raw statement is a single statement, so its leading keyword determines
+     * the path.
      * @param string $query
      */
     private static function is_write(string $query): bool
@@ -354,7 +355,7 @@ abstract class Db
 
     /**
      * Quote a string that is used as an identifier
-     * (table names, column names etc). This method can
+     * (table names, column names, and so on). This method can
      * also deal with dot-separated identifiers eg table.column
      */
     protected function _quote_identifier(string $identifier): string
@@ -384,9 +385,8 @@ abstract class Db
      * Specify the ID column to use for this instance or array of instances only.
      * This overrides the id_column and id_column_overrides settings.
      *
-     * This is mostly useful for libraries built on top of Idiorm, and will
-     * not normally be used in manually built queries. If you don't know why
-     * you would want to use this, you should probably just ignore it.
+     * This is mostly useful for libraries built on Idiorm, and it is
+     * not normally used in manually built queries.
      */
     public function use_id_column(?string $id_column): static
     {

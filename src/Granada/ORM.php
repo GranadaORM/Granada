@@ -112,7 +112,7 @@ class ORM extends Orm\Db implements ArrayAccess
     // ------------------------ //
 
     /**
-     * "Private" constructor; shouldn't be called directly.
+     * Rows are created through create(); this constructor is protected.
      * @param array<string, mixed> $data
      * @param string $connection_name Which connection to use
      */
@@ -158,7 +158,7 @@ class ORM extends Orm\Db implements ArrayAccess
 
     /**
      * Force the ORM to flag all the fields in the $data array
-     * as "dirty" and therefore update them when save() is called.
+     * as dirty and therefore update them when save() is called.
      */
     public function force_all_dirty(): static
     {
@@ -211,7 +211,7 @@ class ORM extends Orm\Db implements ArrayAccess
      * Set a property to a particular value on this object.
      * To set multiple properties at once, pass an associative array
      * as the first parameter and leave out the second parameter.
-     * Flags the properties as 'dirty' so they will be saved to the
+     * Marks the properties as dirty so they will be saved to the
      * database when save() is called.
      */
     public function set(array|string $key, mixed $value = null): static
@@ -223,7 +223,7 @@ class ORM extends Orm\Db implements ArrayAccess
      * Set a property to a particular value on this object.
      * To set multiple properties at once, pass an associative array
      * as the first parameter and leave out the second parameter.
-     * Flags the properties as 'dirty' so they will be saved to the
+     * Marks the properties as dirty so they will be saved to the
      * database when save() is called.
      * @param string|array $key
      * @param string|null $value
@@ -262,11 +262,11 @@ class ORM extends Orm\Db implements ArrayAccess
                 $set_as_dirty = abs($oldval - $value) > 0.000_000_000_000_01;
             } elseif (is_string($oldval)) {
                 if ($oldval !== $value) {
-                    // Strings must match exactly, e.g. '0123' == '123' so need ===
+                    // Strings must match exactly, for example '0123' and '123', so use ===
                     $set_as_dirty = true;
                 }
             } elseif ($oldval != $value) {
-                // Fall back to a loose equality match
+                // Use a loose equality match otherwise
                 $set_as_dirty = true;
             }
             if ($set_as_dirty) {
@@ -304,7 +304,7 @@ class ORM extends Orm\Db implements ArrayAccess
     }
 
     /**
-     * List the dirty fields that need updating on next save
+     * List the dirty fields that the next save updates
      * @return array
      */
     public function list_dirty_fields(): array
@@ -313,7 +313,7 @@ class ORM extends Orm\Db implements ArrayAccess
     }
 
     /**
-     * Get the clean data for this record before it was made dirty
+     * Get the stored data for this record before it became dirty
      * @return array
      */
     public function clean_values(): array
@@ -322,8 +322,8 @@ class ORM extends Orm\Db implements ArrayAccess
     }
 
     /**
-     * Get the value of this field when the data was last hydrated
-     * ie before it became dirty
+     * Get the value of this field at the last hydration, before it became
+     * dirty
      * @return mixed
      */
     public function clean_value(string $key): mixed
@@ -422,7 +422,7 @@ class ORM extends Orm\Db implements ArrayAccess
     }
 
     /**
-     * Write the next order number in place of a written 0, when the
+     * Write the next order number instead of a written 0, when the
      * model sets $_auto_order_column.
      */
     private function apply_auto_order(): void
@@ -505,7 +505,7 @@ class ORM extends Orm\Db implements ArrayAccess
             return $this->$column;
         }
 
-        // Save a clone, so pending changes on this row stay pending
+        // Save a clone, so pending changes on this row remain pending
         $counter                = clone $this;
         $counter->_dirty_fields = [];
         $counter->_expr_fields  = [];
@@ -618,7 +618,7 @@ class ORM extends Orm\Db implements ArrayAccess
         $method = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $name));
 
         // A snake_case name maps to itself here, so an unknown name
-        // would re-enter this dispatch; refuse it instead.
+        // would call this method again; reject it instead.
         if (!method_exists(static::class, $method)) {
             throw new \BadMethodCallException("Method {$name} does not exist");
         }

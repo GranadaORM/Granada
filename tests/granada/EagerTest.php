@@ -387,7 +387,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
                 $test_exists = $car->as_array();
             }
         }
-        // NO FATAL ERRORS OR EXCEPTIONS THROW
+        // No fatal error or exception occurs
         $this->assertInstanceOf('Granada\Model', $car);
     }
 
@@ -426,7 +426,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * Car 4 has no part at its own list position, so a position-based
+     * Car 4 has no part at its list position, so a position-based
      * match corrupts the parts and then crashes on a missing row.
      */
     public function testChainedHasManyThroughOnCarWithoutIdAtOwnPosition()
@@ -661,7 +661,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * Eager and lazy loading must hold the same type, with child rows
+     * Eager and lazy loading must return the same type, with child rows
      * or without.
      */
     public function testEagerLoadedEmptyHasManyMatchesLazyLoading()
@@ -959,7 +959,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * The bolt names a machine holds through its name-keyed links.
+     * The names of the bolts linked to the machine through its name-keyed links.
      */
     private function boltCodeNames(Model $machine): array
     {
@@ -976,8 +976,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
      */
     public function testEagerHasOneDeclaredLocalKeyMatchesLazyLoading()
     {
-        // set_expr() writes the name clean: the model's set_name hook
-        // turns any name value into 'test'.
+        // set_expr() writes the name without the set_name hook, which
+        // would turn any name value into 'test'.
         Car::create([
             'id'               => 7,
             'manufactor_id'    => 1,
@@ -1087,8 +1087,8 @@ class EagerTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * The titled_items relation keeps only qty 1, selects the id
-     * column, and orders by sort position.
+     * The titled_items relation filters on qty 1, selects the id column,
+     * and orders by sort position.
      */
     private function titledItemIds(Model $crate): array
     {

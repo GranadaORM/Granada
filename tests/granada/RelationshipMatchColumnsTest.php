@@ -38,7 +38,7 @@ class RelationshipMatchColumnsTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public function testBelongsToWithoutARelatedKeyFallsBackToTheRelatedIdColumn()
+    public function testBelongsToWithoutARelatedKeyUsesTheRelatedIdColumn()
     {
         $relationship = new Relationship(Car::create(), 'belongs_to', 'Manufactor', 'manufactor_id');
 

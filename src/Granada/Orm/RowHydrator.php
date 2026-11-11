@@ -29,7 +29,7 @@ class RowHydrator
     /**
      * Keyed instances for the fetched rows. A row is keyed by its id
      * when associative results are on and the id is truthy, and by
-     * its position otherwise. With duplicate ids the last row wins.
+     * its position otherwise. With duplicate ids the last row is kept.
      *
      * @param array<int, array<string, mixed>> $rows
      * @return array<int|string, ORM|Granada>
@@ -90,7 +90,7 @@ class RowHydrator
     }
 
     /**
-     * The single instance for find_one. Eager::hydrate needs keyed
+     * The instance for find_one. Eager::hydrate needs keyed
      * results, so the instance is hydrated as a one-entry array.
      * Null passes through.
      */
@@ -141,7 +141,7 @@ class RowHydrator
 
     /**
      * Resolves the connection once for the whole result. Row
-     * instances are built without one of their own.
+     * instances are built without their own connection.
      */
     private function resolve_connection(): void
     {

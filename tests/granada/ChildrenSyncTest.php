@@ -212,7 +212,7 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
         $crate->sync_items([['name' => 'Item1'], ['name' => 'Item2']]);
         [$item1, $item2] = $this->itemIds(1);
 
-        // The relation reads only Item1, so sync sees that subset: Item1
+        // The relation reads only Item1, so sync operates on that subset: Item1
         // is kept, and Item2 - outside the filter - is left untouched.
         $crate->sync_named_items([
             [
@@ -237,7 +237,7 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
             ],
         ]);
 
-        // The unlisted extra keeps its row, flagged, and drops out of reads.
+        // The unlisted extra retains its row, flagged, and is left out of reads.
         $this->assertSame(2, CrateExtra::q()
             ->clear_where()
             ->count());
@@ -259,7 +259,7 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
         $crate->sync_extras([['name' => 'Extra1'], ['name' => 'Extra2']]);
         [$kept, $flagged] = $this->extraIds(1);
 
-        // Extra2 is unlisted, so it is flagged; only Extra1 stays visible.
+        // Extra2 is unlisted, so it is flagged; only Extra1 remains visible.
         $crate->sync_extras([
             [
                 'id'   => $kept,
@@ -349,7 +349,7 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
                 ['name' => 'Item3'],
             ]);
 
-        // Reverse the set; the reads come back in the new order.
+        // Reverse the set; the reads return in the new order.
         $crate = Crate::q()->find_one(1);
         $ids   = $this->itemIds(1);
         $crate->ordered_items()->sync([

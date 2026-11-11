@@ -82,7 +82,7 @@ class ConnectionManagerTest extends \PHPUnit\Framework\TestCase
         }
 
         foreach ($settings as $key => $value) {
-            $this->assertSame($value, $manager->get_config($key), "Setting {$key} survived round trip");
+            $this->assertSame($value, $manager->get_config($key), "Setting {$key} was preserved");
         }
     }
 

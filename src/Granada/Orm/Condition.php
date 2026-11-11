@@ -5,7 +5,7 @@ namespace Granada\Orm;
 /**
  * One WHERE or HAVING entry as plain data: a column, an operator and
  * the bound values. The Renderer turns it into SQL through the
- * Dialect. Only RAW holds SQL (where_raw).
+ * Dialect. Only RAW contains SQL (where_raw).
  */
 final class Condition
 {
@@ -72,7 +72,7 @@ final class Condition
     }
 
     /**
-     * The subquery's placeholders stay bound; its values merge into
+     * The subquery's placeholders remain bound; its values merge into
      * the outer statement.
      * @param mixed[] $values
      */

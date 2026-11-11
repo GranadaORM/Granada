@@ -9,12 +9,12 @@ use PDOStatement;
 use Pdo\Mysql;
 
 /**
- * Owns every connection: per name the validated settings, the PDO
- * handle (connected lazily on first use), the driver facts detected
- * from that handle (driver name, quote character, limit style), the
- * query log and the query cache. The last statement and last query
- * span all its connections. One instance stands behind the ORM's
- * static calls.
+ * Manages every connection: for each name it stores the validated
+ * settings, the PDO handle (opened lazily on first use), the driver facts
+ * detected from that handle (driver name, quote character, limit style),
+ * the query log and the query cache. The last statement and last query
+ * cover all its connections. One default instance serves the ORM's static
+ * calls.
  *
  * @internal
  */
@@ -45,7 +45,7 @@ class ConnectionManager
     private array $settings = [];
 
     // Driver facts detected from a handle, kept apart from the settings
-    // so they can be re-detected when the handle is dropped
+    // so they can be re-detected when the handle is removed
     /** @var array<string, array<string, mixed>> */
     private array $facts = [];
 
@@ -141,7 +141,7 @@ class ConnectionManager
     /**
      * Set the PDO object used to communicate with the database, taking
      * it ready-made instead of connecting from the settings. Passing
-     * null drops the handle; the next use reconnects from the settings
+     * null removes the handle; the next use reconnects from the settings
      * and re-detects the driver facts.
      * @param string $connection_name Which connection to use
      */
@@ -165,7 +165,7 @@ class ConnectionManager
 
     /**
      * Returns the PDO instance for a connection, connecting from the
-     * settings if no live handle is held.
+     * settings if no handle is open.
      * @param string $connection_name Which connection to use
      */
     public function get_db(string $connection_name = self::DEFAULT_CONNECTION): PDO
@@ -189,7 +189,7 @@ class ConnectionManager
     }
 
     /**
-     * Whether a live handle is held for the connection.
+     * Whether a handle is open for the connection.
      * @param string $connection_name Which connection to use
      */
     public function has_db(string $connection_name = self::DEFAULT_CONNECTION): bool
@@ -200,7 +200,7 @@ class ConnectionManager
     /**
      * Run the callable inside one transaction on the connection.
      * Success commits and returns the callable's return value; a
-     * thrown exception rolls the work back and rethrows. A call
+     * thrown exception rolls the transaction back and rethrows. A call
      * inside an open transaction joins the outermost one.
      * @param callable $fn
      * @param string $connection_name Which connection to use
@@ -298,7 +298,7 @@ class ConnectionManager
 
     /**
      * The Dialect for a connection: every driver-specific fact the
-     * renderer, save() and Query need. Falls back to the mysql/sqlite
+     * renderer, save() and Query need. Uses the mysql/sqlite
      * dialect when the driver name is unknown or not yet detected.
      * @param string $connection_name Which connection to use
      */
@@ -385,7 +385,7 @@ class ConnectionManager
 
     /**
      * Returns the PDOStatement instance last used by any connection
-     * the manager holds. Useful for access to PDOStatement::rowCount()
+     * the manager contains. Useful for access to PDOStatement::rowCount()
      * or error information.
      */
     public function get_last_statement(): ?PDOStatement
@@ -474,7 +474,7 @@ class ConnectionManager
 
     /**
      * Detect and initialise the character used to quote identifiers
-     * (table names, column names etc), unless specified manually.
+     * (table names, column names, and so on), unless you specify them manually.
      * @param string $connection_name Which connection to use
      */
     private function setup_identifier_quote_character(string $connection_name): void
