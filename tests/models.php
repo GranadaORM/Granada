@@ -88,6 +88,13 @@ class Car extends Model
         return $this->belongs_to('Manufactor')->where('enabled', 1);
     }
 
+    public function manufactor_by_name(string $name)
+    {
+        return $this->belongs_to('Manufactor')
+            ->where('enabled', 1)
+            ->where('name', $name);
+    }
+
     public function owner()
     {
         return $this->belongs_to('Owner');
