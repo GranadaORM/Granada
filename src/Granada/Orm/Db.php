@@ -373,12 +373,9 @@ abstract class Db
             return $this->_instance_id_column;
         }
 
-        $id_column_overrides = self::get_config('id_column_overrides', $this->_connection_name);
-        if (isset($id_column_overrides[$this->_table_name])) {
-            return $id_column_overrides[$this->_table_name];
-        }
+        $config = self::get_config(null, $this->_connection_name);
 
-        return self::get_config('id_column', $this->_connection_name);
+        return $config['id_column_overrides'][$this->_table_name] ?? $config['id_column'];
     }
 
     /**
