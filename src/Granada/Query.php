@@ -698,6 +698,39 @@ class Query extends Orm\Db
      */
     private function lazy_walk(int $chunk_size): \Generator
     {
+        [$ids, $id_hidden] = $this->lazy_id_pass();
+
+        $hydrator    = $this->row_hydrator();
+        $keyed_by_id = $this->associative_results && $this->_instance_id_column !== null;
+        $chunk_start = 0;
+
+        foreach (array_chunk($ids, $chunk_size) as $chunk_ids) {
+            $instances = $this->lazy_chunk_instances($chunk_ids, $id_hidden, $hydrator);
+
+            foreach ($instances as $index => $instance) {
+                // The yielded key is the instance's id, the way
+                // find_many keys its results. When the caller's
+                // select() left the id out (or the id is zero),
+                // the key uses the position.
+                $id  = $instance->id();
+                $key = ($keyed_by_id && $id) ? $id : $chunk_start + $index;
+
+                yield $key => $instance;
+            }
+
+            $chunk_start += count($chunk_ids);
+        }
+    }
+
+    /**
+     * Run the id pass: the caller's query reduced to the id column,
+     * in the caller's order.
+     *
+     * @return array{0: array, 1: bool} The ordered ids, and whether
+     *   the row pass must add the id column and hide it again.
+     */
+    private function lazy_id_pass(): array
+    {
         $id_column = $this->_get_id_column_name();
 
         // The id pass preserves every clause of the caller's query and
@@ -720,73 +753,70 @@ class Query extends Orm\Db
         $id_hidden = !$this->using_default_result_columns
             && !in_array($this->_quote_identifier($id_column), $this->result_columns, true);
 
-        $hydrator    = $this->row_hydrator();
-        $keyed_by_id = $this->associative_results && $this->_instance_id_column !== null;
-        $chunk_start = 0;
+        return [$ids, $id_hidden];
+    }
 
-        foreach (array_chunk($ids, $chunk_size) as $chunk_ids) {
-            // Each chunk's rows load by id from the table alone.
-            $query                 = static::_for_table($this->_table_name, $this->_connection_name);
-            $query->related_counts = $this->related_counts;
-            if ($this->table_alias !== null) {
-                $query->table_alias($this->table_alias);
+    /**
+     * Run the row pass for one chunk: fetch the chunk's rows from the
+     * table alone, hydrate them in the chunk's order, and run the with()
+     * eager loads against this chunk's parents.
+     *
+     * @param array       $chunk_ids The ids to fetch, in yielded order.
+     * @param bool        $id_hidden Whether the id column was added and must be removed.
+     * @param RowHydrator $hydrator  Builds the models from the rows.
+     * @return array<int, ORM|Granada> The instances, keyed by position in the chunk.
+     */
+    private function lazy_chunk_instances(array $chunk_ids, bool $id_hidden, RowHydrator $hydrator): array
+    {
+        $id_column = $this->_get_id_column_name();
+
+        // Each chunk's rows load by id from the table alone.
+        $query                 = static::_for_table($this->_table_name, $this->_connection_name);
+        $query->related_counts = $this->related_counts;
+        if ($this->table_alias !== null) {
+            $query->table_alias($this->table_alias);
+        }
+        if ($this->_instance_id_column !== null) {
+            $query->use_id_column($this->_instance_id_column);
+        }
+        if (!$this->using_default_result_columns) {
+            foreach ($this->result_columns as $column) {
+                $query->select_expr($column);
             }
-            if ($this->_instance_id_column !== null) {
-                $query->use_id_column($this->_instance_id_column);
+        }
+        if ($id_hidden) {
+            $query->select_expr($this->_quote_identifier($id_column));
+        }
+        $query->where_in($id_column, $chunk_ids);
+
+        // The row query returns the rows in database order. Grouping
+        // them by id lets the caller yield them in $chunk_ids order
+        // instead. A chunk id with no row was deleted between the two
+        // queries.
+        $rows_by_id = [];
+        foreach ($query->find_array() as $row) {
+            $rows_by_id[$row[$id_column]][] = $row;
+        }
+
+        $instances = [];
+        foreach ($chunk_ids as $index => $id) {
+            $row = null;
+            if (isset($rows_by_id[$id])) {
+                $row = array_shift($rows_by_id[$id]);
             }
-            if (!$this->using_default_result_columns) {
-                foreach ($this->result_columns as $column) {
-                    $query->select_expr($column);
-                }
+            if ($row === null) {
+                continue;
             }
             if ($id_hidden) {
-                $query->select_expr($this->_quote_identifier($id_column));
+                unset($row[$id_column]);
             }
-            $query->where_in($id_column, $chunk_ids);
-
-            // The row query returns the rows in database order.
-            // Grouping them by id lets the loop below yield them
-            // in $chunk_ids order instead. A chunk id with no row
-            // was deleted between the two queries.
-            $rows_by_id = [];
-            foreach ($query->find_array() as $row) {
-                $rows_by_id[$row[$id_column]][] = $row;
-            }
-
-            $instances = [];
-            foreach ($chunk_ids as $index => $id) {
-                $row = null;
-                if (isset($rows_by_id[$id])) {
-                    $row = array_shift($rows_by_id[$id]);
-                }
-                if ($row === null) {
-                    continue;
-                }
-                if ($id_hidden) {
-                    unset($row[$id_column]);
-                }
-                $instances[$index] = $hydrator->instance($row);
-            }
-
-            // The query's with() eager loads run here, once per
-            // chunk against the chunk's parents. The lazy find yields
-            // one model at a time, so return_result_sets does
-            // not apply and the chunk remains an array.
-            $instances = $hydrator->many($this, $instances, false);
-
-            foreach ($instances as $index => $instance) {
-                // The yielded key is the instance's id, the way
-                // find_many keys its results. When the caller's
-                // select() left the id out (or the id is zero),
-                // the key uses the position.
-                $id  = $instance->id();
-                $key = ($keyed_by_id && $id) ? $id : $chunk_start + $index;
-
-                yield $key => $instance;
-            }
-
-            $chunk_start += count($chunk_ids);
+            $instances[$index] = $hydrator->instance($row);
         }
+
+        // The query's with() eager loads run here, once per chunk
+        // against the chunk's parents. The chunk stays an array because
+        // return_result_sets does not apply.
+        return $hydrator->many($this, $instances, false);
     }
 
     /**
