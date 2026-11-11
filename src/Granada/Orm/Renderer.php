@@ -14,8 +14,8 @@ class Renderer
 {
     public static function select(SelectSpec $spec): Statement
     {
-        $where  = self::build_where_condition($spec->where_conditions, $spec->dialect);
-        $having = self::build_having_condition($spec->having_conditions, $spec->dialect);
+        $where  = self::build_condition('WHERE', $spec->where_conditions, $spec->dialect);
+        $having = self::build_condition('HAVING', $spec->having_conditions, $spec->dialect);
 
         $sql = self::join_if_not_empty(' ', [
             self::select_start($spec),
@@ -193,7 +193,10 @@ class Renderer
         return $spec->dialect->offset_fragment($spec->offset);
     }
 
-    private static function build_where_condition(array $conditions, Dialect $dialect): Condition
+    /**
+     * @param 'WHERE'|'HAVING' $keyword
+     */
+    private static function build_condition(string $keyword, array $conditions, Dialect $dialect): Condition
     {
         if ($conditions === []) {
             return Condition::raw('');
@@ -201,18 +204,7 @@ class Renderer
 
         [$fragment, $values] = self::render_conditions($conditions, $dialect);
 
-        return Condition::raw('WHERE ' . $fragment, $values);
-    }
-
-    private static function build_having_condition(array $conditions, Dialect $dialect): Condition
-    {
-        if ($conditions === []) {
-            return Condition::raw('');
-        }
-
-        [$fragment, $values] = self::render_conditions($conditions, $dialect);
-
-        return Condition::raw('HAVING ' . $fragment, $values);
+        return Condition::raw($keyword . ' ' . $fragment, $values);
     }
 
     /**
@@ -423,7 +415,7 @@ class Renderer
             $values[] = $value;
         }
 
-        $where = self::build_where_condition($spec->where_conditions, $spec->dialect);
+        $where = self::build_condition('WHERE', $spec->where_conditions, $spec->dialect);
 
         $query = self::join_if_not_empty(' ', [
             'UPDATE',
@@ -450,7 +442,7 @@ class Renderer
             $values[] = $position;
         }
 
-        $where = self::build_where_condition($spec->where_conditions, $spec->dialect);
+        $where = self::build_condition('WHERE', $spec->where_conditions, $spec->dialect);
 
         $query = self::join_if_not_empty(' ', [
             'UPDATE',
@@ -472,7 +464,7 @@ class Renderer
      */
     public static function delete_many(BulkDeleteSpec $spec): Statement
     {
-        $where = self::build_where_condition($spec->where_conditions, $spec->dialect);
+        $where = self::build_condition('WHERE', $spec->where_conditions, $spec->dialect);
 
         $query = self::join_if_not_empty(' ', [
             'DELETE FROM',
