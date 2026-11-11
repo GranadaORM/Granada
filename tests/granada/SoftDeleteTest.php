@@ -5,7 +5,7 @@ use Granada\LazyItemCache;
 use Granada\ORM;
 
 /**
- * Soft deletes: a model that names $_soft_delete_column makes delete() keep
+ * Soft deletes: a model that names $_soft_delete_column makes delete() mark
  * the row and hide it, and its queries leave soft-deleted rows out.
  */
 class SoftDeleteTest extends \PHPUnit\Framework\TestCase
@@ -34,8 +34,8 @@ class SoftDeleteTest extends \PHPUnit\Framework\TestCase
             $names[] = $gadget->name;
         }
 
-        // Gadget3 has hidden = 1; Gadget2 is dropped by the model's
-        // own filter (enabled = 1) on top of the hiding.
+        // Gadget3 has hidden = 1; Gadget2 is excluded by the model's
+        // own filter (enabled = 1) in addition to the hiding.
         $this->assertSame(['Gadget1', 'Gadget4'], $names);
         $this->assertSame(2, Gadget::q()->count());
         $this->assertNull(Gadget::q()->find_one(3));
@@ -121,7 +121,7 @@ class SoftDeleteTest extends \PHPUnit\Framework\TestCase
             ->gadget
             ->name);
 
-        // Gadget2 fails the model's own filter (enabled = 1) through the
+        // Gadget2 fails the model's filter (enabled = 1) through the
         // relationship query as well.
         $this->assertNull(Widget::q()
             ->find_one(3)

@@ -114,7 +114,7 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate
     }
 
     /**
-     * Push an element on the result set
+     * Add an element to the result set
      * @return static
      */
     public function add(mixed $value): static
@@ -151,7 +151,7 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate
     }
 
     /**
-     * Was this model the first result the last time a result set holding it was iterated
+     * Was this model the first result the last time a result set containing it was iterated
      * @return bool
      */
     public static function is_first(object $model): bool
@@ -160,7 +160,7 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate
     }
 
     /**
-     * Was this model the last result the last time a result set holding it was iterated
+     * Was this model the last result the last time a result set containing it was iterated
      * @return bool
      */
     public static function is_last(object $model): bool

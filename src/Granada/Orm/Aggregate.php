@@ -4,7 +4,7 @@ namespace Granada\Orm;
 
 /**
  * An aggregate result column, eg COUNT(*) AS `count`. The column
- * reference is quoted by the Renderer; '*' stays bare.
+ * reference is quoted by the Renderer; '*' is not quoted.
  */
 final class Aggregate
 {

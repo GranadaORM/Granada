@@ -47,7 +47,7 @@ class CacheTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')
             ->where('name', 'Widget1')
             ->where('gadget_id', 1)
-            ->find_one(); // this shouldn't run a query!
+            ->find_one(); // this call reads the cache
 
         $this->assertCount($statements, ORM::get_query_log());
     }
@@ -68,7 +68,7 @@ class CacheTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget', self::ALTERNATE)
             ->where('name', 'Widget3')
             ->where('gadget_id', 2)
-            ->find_one(); // this shouldn't run a query!
+            ->find_one(); // this call reads the cache
 
         $this->assertCount($statements, ORM::get_query_log(self::ALTERNATE));
     }
@@ -78,7 +78,7 @@ class CacheTest extends \PHPUnit\Framework\TestCase
         Granada::for_table('widget')->count();
         $statements = count(ORM::get_query_log());
 
-        Granada::for_table('widget')->count(); // this shouldn't run a query!
+        Granada::for_table('widget')->count(); // this call reads the cache
 
         $this->assertCount($statements, ORM::get_query_log());
     }

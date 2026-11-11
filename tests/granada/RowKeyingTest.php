@@ -7,9 +7,9 @@ use Granada\Orm\ConnectionManager;
 
 /**
  * Tests for which array key each fetched row gets in find_many
- * results, and what find_one hands back.
+ * results, and what find_one returns.
  *
- * The seeded table covers the edges: a duplicated id, a null id and
+ * The seeded table covers the edge cases: a duplicated id, a null id and
  * a zero id, in row order.
  */
 class RowKeyingTest extends \PHPUnit\Framework\TestCase
@@ -42,7 +42,7 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(['a-dup', 'null-id', 'c', 'zero'], $this->names($results));
     }
 
-    public function testDuplicateIdsLastRowWins()
+    public function testDuplicateIdsKeepTheLastRow()
     {
         $this->seed([[5, 'first'], [5, 'second'], [5, 'third']]);
 
@@ -52,7 +52,7 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(['third'], $this->names($results));
     }
 
-    public function testNullIdRowFallsBackToPositionalKey()
+    public function testNullIdRowUsesAPositionalKey()
     {
         $this->seed([[1, 'a'], [null, 'orphan'], [2, 'b']]);
 
@@ -63,7 +63,7 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(['orphan', 'b'], $this->names($results));
     }
 
-    public function testZeroIdRowFallsBackToPositionalKey()
+    public function testZeroIdRowUsesAPositionalKey()
     {
         $this->seed([[7, 'seven'], [0, 'zero']]);
 
@@ -137,7 +137,7 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(['a', 'a-dup', 'null-id', 'c', 'zero'], $this->names($results));
     }
 
-    public function testTheLastToggleCallBeforeTheFetchWins()
+    public function testTheLastToggleCallBeforeTheFetchSetsTheMode()
     {
         ORM::configure('find_many_primary_id_as_key', false);
 

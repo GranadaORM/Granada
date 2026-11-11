@@ -4,50 +4,54 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/granadaorm/granada?style=flat-square)](https://packagist.org/packages/granadaorm/granada/stats)
 ![Build Status](https://github.com/GranadaORM/Granada/actions/workflows/ci.yml/badge.svg)
 
-Granada is a easy to use Active Record implementation, and ORM based on Idiorm/Paris.
+Granada is an Active Record ORM for PHP, based on Idiorm and Paris.
 
 Upgrading from 6.x? Read [the upgrading guide](docs/upgrading-to-7.md).
+The full documentation is in [docs/index.md](docs/index.md).
 
-## A quick view
+## Quick example
 
 ```php
-
 use Granada\Model;
 
 class User extends Model
 {
-    public function posts() {
+    public function posts()
+    {
         return $this->has_many('Post');
     }
 }
 
 class Post extends Model {}
 
-// select
+// find one user
 $user = User::q()->where('name', 'John')->find_one();
 
-// modify
+// change a field
 $user->first_name = 'Doe';
 $user->save();
 
-// select relationship
+// read the user's posts
 $posts = $user->posts()->find_many();
 foreach ($posts as $post) {
     echo $post->content;
 }
 ```
 
-You can read the Paris Docs on [paris.readthedocs.org](http://paris.rtfd.org) but be sure to read the additions below.
+Granada grew out of Idiorm and Paris, and their documentation still covers most
+of the query language. Granada needs PHP 8.4, so use
+[docs/index.md](docs/index.md) when their documentation differs from
+Granada's behavior.
 
 ## Install
 
-Using composer:
+Install it with composer:
 
 ```sh
 composer require granadaorm/granada
 ```
 
-Configure it:
+Then point Granada at your database:
 
 ```php
 require 'vendor/autoload.php';
@@ -59,19 +63,21 @@ ORM::configure('username', 'database_user');
 ORM::configure('password', 'top_secret');
 ```
 
-As always, you can check it in detail on [Paris documentation](http://idiorm.readthedocs.org/en/latest/configuration.html#setup)
+`ORM::configure()` takes the connection string, then each setting by name.
+Granada works with SQLite, MySQL, PostgreSQL, SQL Server and Firebird.
 
-## Additions
+## What Granada adds
 
 ### Eager loading
 
-You can use the "with" method to add relationships eager loading to the query.
+`with()` eager-loads the related models for the whole result in a few queries,
+rather than one query per model:
 
 ```php
 $results = User::q()->with('avatar', 'posts')->find_many();
 ```
 
-will use 3 querys to fetch the users and the relationships:
+That runs three queries:
 
 ```sql
 SELECT * FROM user
@@ -79,12 +85,13 @@ SELECT * FROM avatar WHERE user_id IN (....)
 SELECT * FROM posts WHERE user_id IN (....)
 ```
 
-It is possible to get the relationships results for each result, this way
+Each user then has its avatar and posts, so the loop only reads the loaded
+values:
 
 ```php
-foreach($results as $result){
+foreach ($results as $result) {
     echo $result->avatar->img;
-    foreach($result->posts as $post){
+    foreach ($result->posts as $post) {
         echo $post->title;
     }
 }
@@ -92,24 +99,30 @@ foreach($results as $result){
 
 ### Lazy loading
 
-Triying to access to a not fetched relationship will call and return it
+If you leave `with()` off, a relationship is loaded the first time you read it,
+so this loop also works:
 
 ```php
 $results = User::q()->find_many();
-foreach($results as $result){
+foreach ($results as $result) {
     echo $result->avatar->img;
 }
 ```
 
-Notice that if there is no result for `avatar` on the above example it will throw a `Notice: Trying to get property of non-object...`
-Note: Maybe worth the effort to create a NULL object for this use case and others.
+If there is no avatar, the property is `null`, and reading `->img` on it raises
+a warning. Check first when a relationship can be empty:
+
+```php
+if ($result->avatar) {
+    echo $result->avatar->img;
+}
+```
 
 ### Lazy finds
 
-`find_many_lazy()` is `find_many()` for big tables. Use it when the
-result is too big to hold in memory, for example a report over many
-thousands of rows. The loop looks the same, but your script holds
-one model at a time:
+`find_many_lazy()` is `find_many()` for large tables. It returns a generator
+that yields one model at a time, so a report over thousands of rows does not
+retain the whole result set in memory:
 
 ```php
 foreach (User::q()->where('active', 1)->find_many_lazy() as $id => $user) {
@@ -117,167 +130,110 @@ foreach (User::q()->where('active', 1)->find_many_lazy() as $id => $user) {
 }
 ```
 
-The order and the array keys are the same as `find_many()` gives
-you.
+Pass a smaller chunk when you need less memory and can run more queries. Read
+[the lazy finds section](docs/index.md#loading-many-records-one-at-a-time)
+before you use it on a query with a join, a group, or raw SQL.
 
-#### The chunk size
+### Limit the columns an eager load fetches
 
-The method loads the rows in chunks. The first argument is the chunk
-size. The default is 1000:
-
-```php
-// 200 rows per query
-foreach (User::q()->find_many_lazy(200) as $user) { ... }
-```
-
-A smaller chunk uses less memory and runs more queries. A bigger
-chunk does the opposite. The results you get are identical.
-
-#### Eager loading
-
-`with()` works as usual. The relationship query runs once per chunk,
-not once per model:
+`with_{relation}()` eager-loads one relationship and lets you limit or order
+what it loads. Called without a callback, it does the same thing as `with()`:
 
 ```php
-foreach (Car::q()->with('parts')->find_many_lazy() as $car) {
-    echo $car->parts[0]->name;
-}
-```
-
-#### Loop only once
-
-The method returns a generator. A generator cannot restart. To loop
-again, call `find_many_lazy()` again. Each call runs the queries
-again, so the data may have changed.
-
-#### Queries the method refuses
-
-The method throws an exception when the query has one of these:
-
-- `group_by()` - the method loads each row by its id, and a grouped
-  row has no single id
-- `raw_query()` - the method loads the rows by rebuilding the query,
-  and it cannot rebuild raw SQL
-- a `join()` plus a custom `select()` - the rows are loaded from the
-  table alone, so the select may only name that table's columns
-
-If you turned on `return_result_sets`, it does not apply here: the
-method always returns a generator.
-
-For small results, keep using `find_many()`.
-
-### Eager loading with query control
-
-Use `with_{relation}()` to eager-load a relationship and optionally configure the query via a callback:
-
-```php
-// Basic - equivalent to with('manufactor')
 $car = Car::q()->with_manufactor()->find_one(1);
+```
 
-// Limit columns selected
+Use the closure to select columns, add conditions, or set an order:
+
+```php
 $car = Car::q()->with_manufactor(fn($q) => $q->select('id, name'))->find_one(1);
 // SELECT `id`, `name` FROM `manufactor` WHERE ...
 
-// Add ordering (has_many - multiple related records)
 $manufactor = Manufactor::q()->with_cars(fn($q) => $q->select('id, name')->order_by_desc('name'))->find_one(1);
 // SELECT `id`, `name`, `manufactor_id` FROM `car` WHERE ... ORDER BY `name` DESC
 ```
 
-Mix with the existing `with()` method:
+You can use the two forms on one query. Inside the closure, another `with_*`
+call eager-loads a nested relationship:
 
 ```php
 $car = Car::q()->with_manufactor(fn($q) => $q->select('name'))->with('owner')->find_one(1);
-```
 
-Nested eager loading via `with_*` inside the callback:
-
-```php
 $owner = Owner::q()->with_car(fn($q) => $q->select('id, manufactor_id')
     ->with_manufactor(fn($q) => $q->select('name'))
 )->find_one(1);
 ```
 
-**Auto-included columns.** You don't need to specify the columns the ORM uses for matching. They are added automatically:
+You do not have to select the key that ties the two models together. Granada
+adds it for you, and selecting it yourself is also fine.
 
-| Relationship type     | Column auto-added                    |
-| --------------------- | ------------------------------------ |
-| `belongs_to`          | The related model's primary key      |
-| `has_one`, `has_many` | The foreign key on the related table |
-
-If you already include these columns in your `select()`, they won't be added twice.
-
-**Column names.** Use comma-separated strings for multiple columns: `select('id, name')`. Do not use `select('id', 'name')` - the second argument is an alias.
-
-**has_many_through.** Qualify column names with the table because the query involves a join:
+Limit a relationship query to the columns you name: `select('id, name')`. On a
+`has_many_through`, qualify each column with the table name:
 
 ```php
 $car = Car::q()->with_parts(fn($q) => $q->select('part.id, part.name'))->find_one(1);
 ```
 
-### Chained relationships with arguments for eager loading
+### Nested eager loads and arguments
 
-It is possible to chain relationships and add arguments to the relationships calls
+Nested eager loading chains relationship names with a dot: `posts.comments`
+loads each user's posts, then the comments on those posts:
 
 ```php
-// chained relationships with dot notation
 $results = User::q()->with('posts.comments')->find_many();
-
-// OR
-
-// chained relationships use the "with" reserved word. (usefull if you want to pass arguments to the relationships)
-$results = User::q()->with(array('posts'=>array('with'=>array('comments'))))->find_many();
-
 // SELECT * FROM user
 // SELECT * FROM post WHERE user_id IN (....)
 // SELECT * FROM comments WHERE post_id IN (....)
 
-foreach($results as $result){
-    foreach($posts as $post){
+foreach ($results as $result) {
+    foreach ($result->posts as $post) {
         echo $post->title;
-        foreach($post->comments as $comment){
-        echo $comment->subject;
+        foreach ($post->comments as $comment) {
+            echo $comment->subject;
         }
     }
 }
+```
 
-// you can use arguments (one or more) to call the models relationships
-$results = User::q()->with(array('posts'=>array('arg1')))->find_many();
-// will call the relationship defined in the user model with the argument "arg1"
+If the relationship method takes arguments, `with()` takes an array keyed by
+the relationship name, with the arguments as the value. Add a `with` key to
+eager-load a nested relationship:
+
+```php
+$results = User::q()->with(['posts' => ['with' => ['comments']]])->find_many();
+$results = User::q()->with(['posts' => ['arg1']])->find_many(); // posts(arg1)
 ```
 
 ### Custom query actions
 
-We use a query class to build filters for a query.
-To add custom filters to a Query model, create a `Query<ModelName>` class that extends `\Granada\Query`.
+A custom query action is a real method on the model's query class. The class is
+named `Query` plus the model name, extends `\Granada\Query`, and any method you
+add is available through `q()`:
 
 ```php
-class QueryModelName extends \Granada\Query {
-    public function aname($argument1, $argument2): static
+class QueryCar extends \Granada\Query
+{
+    public function is_expensive(): static
     {
-        return $this->where('property', 'value')->limit(10);
+        return $this->where_gt('price', 1000);
     }
 }
+
+$cars = Car::q()->is_expensive()->find_many();
 ```
 
-and call it through `q()`:
+### Other query methods
 
-```php
-ModelName::q()->aname($argument1, $argument2)->...
-```
+Some methods take SQL that you write: `select_raw()`, `group_by_raw()`,
+`order_by_raw()` and `raw_join()`. `insert()` saves a list of rows in one
+transaction, `pluck()` returns one column's value, and `find_pairs()` returns a
+key => value array. `delete_many()` and `update_many()` change every row that
+the query matches.
 
-### Multiple additions names for Granada
+### Setter methods
 
-- select_raw
-- group_by_raw
-- order_by_raw
-- raw_join
-- insert : To create and save multiple elements from an array
-- pluck : returns a single column from the result.
-- find_pairs : Return array of key=>value as result
-- delete_many : removes every row the query matches
-- update_many : writes the same values to every row the query matches
-
-### Overload SET
+A `set_{column}()` setter receives each value you set for that column and
+returns the value that Granada saves:
 
 ```php
 // In the Model
@@ -288,124 +244,111 @@ protected function set_title($value)
 }
 ```
 
+`set()`, `create()` and a direct assignment all call it:
+
 ```php
 // outside of the model
 $content_instance->set('title', 'A title');
 
-// works with multiple set too
-$properties = array(
+// several fields at once
+$properties = [
     'title'   => 'A title',
-    'content' => 'Some content'
-);
+    'content' => 'Some content',
+];
 $content_instance->set($properties);
 
-// try it with a direct assignement
+// a direct assignment calls it too
 $content_instance->title = 'A title';
 ```
 
 ### Mass assignment
 
-`create()` and `set()` write every key they are given. There is no fillable or
-guarded list to declare: Granada does not know what is safe to write, and the
-model does not filter for you.
+`create()` and `set()` write every key you give them. There is no fillable or
+guarded list, and Granada does not filter the keys.
 
-If the array comes from a request, keep only the fields the request was meant
-to set before it reaches the model:
+If the array comes from a request, pass only the fields that the form offered
+before the array reaches the model:
 
 ```php
-$allowed = array('name', 'email', 'phone');
+$allowed = ['name', 'email', 'phone'];
 $enquiry = Enquiry::create(array_intersect_key($data, array_flip($allowed)));
 ```
 
-Unknown keys are not dropped. They are stored like any other field, and the
-save fails with a database error if the column does not exist. Filtering
-request data is the caller's job, because the caller is the one who knows
-the fields the form offered.
+Granada does not remove unknown keys: the save fails with a database error if the
+column does not exist. Filter the keys yourself, based on what the form offered.
 
-### Overload GET and MISSING property
+### Getters and computed values
+
+A `get_{column}()` getter transforms a column value before you read it, and a
+`missing_{name}()` method computes a value that the database does not have:
 
 ```php
 // In the Model
 
-// Work on defined
+// Transform a stored column value.
 protected function get_path($value)
 {
     return strtolower($value);
 }
 
-// and non-defined attributes.
-protected function mising_testing()
+// Compute a value that no column stores.
+protected function missing_testing()
 {
     return 'whatever';
 }
 ...
 
 // outside of the model
-echo $content_instance->path; // returns the lowercase path value of $content_instance
-echo $content_instance->testing; // returns 'whatever' since we defined a missing_{attribute_name}
+echo $content_instance->path;    // returns the lowercase path value of $content_instance
+echo $content_instance->testing; // returns 'whatever', from missing_testing()
 ```
 
-Of course, you still can define functions with the property name if you want to overload it completely.
+A method named after the property runs last, and it can return a relationship.
 
-### Define resultSet (collection type) class on Model
+### Use your own result set class
 
-Now is possible to define the resultSet class returned for a model instances result. (if `return_result_sets` config variable is set to true)
-Notice that the resultSet class defined must `extends Granada\ResultSet` and must be loaded
+Turn on `return_result_sets`, and a find returns a `Granada\ResultSet` instead
+of an array. A model can name its own subclass, as long as it extends
+`Granada\ResultSet` and is loaded:
 
 ```php
 // In the Model
-public static $resultSetClass = 'TreeResultSet';
+public static string $resultSetClass = 'TreeResultSet';
 ```
 
 ```php
 // outside of the model
-var_dump(Content::q()->find_many());
-
-// echoes
-object(TreeResultSet)[10]
-    protected '_results' => array(...)
-....
+echo get_class(Content::q()->find_many()); // TreeResultSet
 ```
 
-ResultSets are defined by the model in the result, as you can see above.
-On eager load, the results are consistent.
-For example, if we have a `Content` model, with `$resultSetClass = 'TreeResultSet'` and a `has_many` relationship defined as `media`:
+An eager load returns the same class: a `Content` model that names
+`TreeResultSet` and has a `media` relationship returns a `TreeResultSet` of
+`Content` models, with `media` as a plain `Granada\ResultSet`:
 
 ```php
 Content::q()->with('media')->find_many();
 ```
 
-will return a `TreeResultSet` with instances of `Content` each with a `property $media` containing `Granada\ResultSet` (the default resultSet if none if defined on the Model)
+## Granada and Paris
 
-## Basic Documentation comes from Paris
-
-### Paris
-
-### Feature complete
-
-Paris is now considered to be feature complete as of version 1.4.0. Whilst it will continue to be maintained with bug fixes there will be no further new features added.
-
-A lightweight Active Record implementation for PHP5.
-
-Built on top of [Idiorm](http://github.com/j4mie/idiorm/).
-
-Tested on PHP 5.2.0+ - may work on earlier versions with PDO and the correct database drivers.
-
-Released under a [BSD license](http://en.wikipedia.org/wiki/BSD_licenses).
+Granada began as a fork of Idiorm and Paris and retains their query language and
+Active Record approach. It adds eager and lazy loading.
 
 ### Features
 
-- Extremely simple configuration.
-- Exposes the full power of [Idiorm](http://github.com/j4mie/idiorm/)'s fluent query API.
-- Supports associations.
-- Simple mechanism to encapsulate common queries in filter methods.
-- Built on top of [PDO](http://php.net/pdo).
-- Uses [prepared statements](http://uk.php.net/manual/en/pdo.prepared-statements.php) throughout to protect against [SQL injection](http://en.wikipedia.org/wiki/SQL_injection) attacks.
-- Database agnostic. Currently supports SQLite, MySQL, Firebird and PostgreSQL. May support others, please give it a try!
-- Supports collections of models with method chaining to filter or apply actions to multiple results at once.
-- Multiple connections are supported
+- Configuration is one connection string plus its settings.
+- The fluent query API comes from [Idiorm](http://github.com/j4mie/idiorm/), and
+  relationships come from Paris.
+- The junction writes `attach()`, `detach()` and `sync()` manage related models
+  through a link table, and `sync()` updates a `has_many`'s children.
+- Eager loading and lazy finds make large results manageable.
+- Granada binds values as query parameters, so the database treats them as data.
+- Several connections are supported, and you can call model methods on a whole
+  result set.
 
 ### History
 
-Granada was originally developed by [Erik Wiesenthal](https://github.com/surt), up to version 1.5.
-Further development started by [Josh Marshall](https://github.com/joshbmarshall) to release version 2.0
+Granada was originally developed by
+[Erik Wiesenthal](https://github.com/surt), up to version 1.5. Further
+development started by [Josh Marshall](https://github.com/joshbmarshall) to
+release version 2.0.

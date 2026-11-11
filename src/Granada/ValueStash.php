@@ -3,13 +3,12 @@
 namespace Granada;
 
 /**
- * A stash of values held for the request, so the model does not repeat
- * database work.
+ * The values stored for the request.
  *
- * Computed values are ones the model worked out, so a later read of the
- * property is free. Set values were put in from outside the model:
- * eager-load results, set() values and direct writes.
- * clear_computed_values() drops the computed ones; set values stay.
+ * Computed values are ones the model computes and stores, so a later read of
+ * the property returns the stored value. Set values were added from outside
+ * the model: eager-load results, set() values and direct writes.
+ * clear_computed_values() removes the computed ones; set values remain.
  *
  * @internal
  */
@@ -27,7 +26,7 @@ final class ValueStash
 
     /**
      * Which array each property name belongs to: 'computed' or 'set'.
-     * The first write of the name decides.
+     * The first write of the name sets the type.
      *
      * @var array<string, 'computed'|'set'>
      */
@@ -64,7 +63,7 @@ final class ValueStash
     }
 
     /**
-     * Set a value the model worked out, so the next read is free.
+     * Set a value that the model computed, so the next read returns it.
      *
      * @return mixed The value that was set.
      */
@@ -82,8 +81,8 @@ final class ValueStash
     }
 
     /**
-     * Drop the computed values, so the next read works them out again.
-     * Set values stay.
+     * Remove the computed values, so the next read computes them again.
+     * Set values remain.
      */
     public function clear_computed_values(): void
     {

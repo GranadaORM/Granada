@@ -82,7 +82,7 @@ class RelatedCountTest extends \PHPUnit\Framework\TestCase
         $this->assertArrayNotHasKey('widgets_count', $gadget->as_array());
         $this->assertArrayHasKey('widgets_count', $gadget->relationships);
 
-        // Set values survive clearing computed values.
+        // Set values remain after clearing computed values.
         $gadget->clear_computed_values();
         $this->assertSame(2, $gadget->widgets_count);
     }
@@ -133,7 +133,7 @@ class RelatedCountTest extends \PHPUnit\Framework\TestCase
         );
 
         // Car5 is soft-deleted and Car6 is disabled, so only Car3 and
-        // Car4 count under the relation's own enabled = 1 filter.
+        // Car4 count with the relation's enabled = 1 filter.
         $this->assertSame(
             [
                 'Manufactor1' => 2,

@@ -7,7 +7,7 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
     protected function setUp(): void
     {
         // The counter tests need a real database.
-        // Fresh connections: no handle or setting leaks between tests
+        // Fresh connections: no handle or setting is shared between tests
         ORM::reset_db();
         ORM::reset_config();
 
@@ -41,11 +41,11 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(8, $first->increment('views'));
         $this->assertSame(9, $second->increment('views'));
 
-        // Each model holds the value its own call read back
+        // Each model contains the value that its own call read back
         $this->assertSame(8, $first->views);
         $this->assertSame(9, $second->views);
 
-        // The counter column is left clean
+        // The counter column is left unchanged
         $this->assertFalse($first->is_dirty('views'));
         $this->assertFalse($second->is_dirty('views'));
 
@@ -116,7 +116,7 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
 
         $counter->increment('views');
 
-        // The counter column is clean; the name change is still pending
+        // The counter column is unchanged; the name change is still pending
         $this->assertFalse($counter->is_dirty('views'));
         $this->assertTrue($counter->is_dirty('name'));
 
@@ -140,7 +140,7 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
 
         $this->assertSame(8, $counter->increment('views'));
 
-        // The database adds to the value it holds, not the pending 101
+        // The database adds to the stored value, not the pending 101
         $this->assertSame(8, $counter->views);
         $this->assertFalse($counter->is_dirty('views'));
         $this->assertSame(8, Counter::q()

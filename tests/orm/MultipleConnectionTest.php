@@ -13,7 +13,7 @@ class MultipleConnectionTest extends \PHPUnit\Framework\TestCase
         $manager = new ConnectionManager('sqlite::memory:');
 
         // Two real databases with the same schema. Every widget in the
-        // alternate is renamed, so a result says which one ran the query.
+        // alternate is renamed, so a result shows which one ran the query.
         $default   = $this->seeded_connection();
         $alternate = $this->seeded_connection();
         $alternate->exec("UPDATE widget SET name = 'Alternate1'");
@@ -25,7 +25,7 @@ class MultipleConnectionTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * A handle holding the shared schema and its rows.
+     * A handle that contains the shared schema and its rows.
      */
     private function seeded_connection(): PDO
     {

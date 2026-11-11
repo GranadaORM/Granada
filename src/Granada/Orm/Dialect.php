@@ -9,7 +9,7 @@ use PDOStatement;
 /**
  * Everything driver-specific about the database in one place, so the
  * renderer, save() and Query ask a dialect object instead of
- * comparing driver names or querying a live database connection.
+ * comparing driver names or querying an open database connection.
  *
  * @internal
  */
@@ -130,7 +130,7 @@ abstract class Dialect
 
     /**
      * Quote a string that is used as an identifier
-     * (table names, column names etc). This method can
+     * (table names, column names, and so on). This method can
      * also deal with dot-separated identifiers eg table.column
      */
     public function quote_identifier(string $identifier): string

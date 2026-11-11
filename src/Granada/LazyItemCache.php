@@ -37,7 +37,7 @@ final class LazyItemCache
     }
 
     /**
-     * Drop a row's cached entries, under every column it is cached by.
+     * Remove a row's cached entries, under every column it is cached by.
      */
     public static function remove(string $class, mixed $id): void
     {

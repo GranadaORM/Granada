@@ -11,15 +11,15 @@ use Granada\Orm\Term;
 use PDO;
 
 /**
- * The query. Holds the where/join/group/order conditions, the
- * where_* and order_by_* suffix magic, the camelCase aliases, the
- * aggregates, and the finds. It holds no row data and performs no
+ * The query. Contains the where/join/group/order conditions, the
+ * where_* and order_by_* suffix methods, the camelCase aliases, the
+ * aggregates, and the finds. It contains no row data and performs no
  * row writes.
  */
 class Query extends Orm\Db
 {
     /**
-     * Ids per reorder statement: three binds per id stays under every
+     * Ids per reorder statement: three binds per id remain under every
      * dialect's bind-parameter cap.
      */
     private const REORDER_CHUNK = 250;
@@ -103,8 +103,8 @@ class Query extends Orm\Db
                 continue;
             }
 
-            // The condition can also sit inside a group, so the
-            // group's contents are searched.
+            // The condition can also be inside a group, so the group's
+            // contents are searched.
             if ($existing->type === Orm\Condition::GROUP) {
                 $pruned = self::without_condition($existing->conditions, $condition);
                 $kept[] = $pruned === $existing->conditions
@@ -362,7 +362,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * With $apply_model_filter, the soft-delete hiding goes on before
+     * With $apply_model_filter, Granada applies the soft-delete hiding before
      * the model's defaultFilter(), so the filter adds only its own
      * conditions.
      */
@@ -520,13 +520,9 @@ class Query extends Orm\Db
     }
 
     /**
-     * Tell the query that you are expecting a single result
-     * back from your query, and execute it. Will return
-     * a single instance of the model class, or null if no
-     * rows were returned.
-     * As a shortcut, you may supply an ID as a parameter
-     * to this method. This will perform a primary key
-     * lookup on the table.
+     * Run the query as a single-result lookup. Returns one model
+     * instance, or null when no rows match. Pass an id to look the row up
+     * by primary key.
      */
     public function find_one(mixed $id = null)
     {
@@ -547,9 +543,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * Tell the query that you are expecting multiple results
-     * from your query, and execute it. Will return an array
-     * or ResultSet of instances of the model class
+     * Run the query and return an array or ResultSet of model instances.
      * @return array|ResultSet
      */
     public function find_many()
@@ -626,7 +620,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * The class to hold results in: the given class when it extends
+     * The class to store results in: the given class when it extends
      * Granada\ResultSet, Granada\ResultSet otherwise.
      */
     public static function _result_set_class(string $resultSetClass): string
@@ -639,9 +633,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * Tell the query that you are expecting multiple results
-     * from your query, and execute it. Will return a result set object
-     * containing instances of the model class.
+     * Run the query and return a ResultSet of model instances.
      */
     public function find_result_set(): ResultSet
     {
@@ -651,9 +643,8 @@ class Query extends Orm\Db
     }
 
     /**
-     * Tell the query that you are expecting multiple results
-     * from your query, and execute it. Will return an array,
-     * or an empty array if no rows were returned.
+     * Run the query and return the raw rows as an array, or an empty array
+     * when no rows match.
      * @return array
      */
     public function find_array(): array
@@ -662,10 +653,10 @@ class Query extends Orm\Db
     }
 
     /**
-     * Return a generator that retrieves the records on demand, one
-     * model at a time, with identical results as find_many(). The
-     * rows load in chunks of $chunk_size (default 1000); only the
-     * list of row ids stays in memory.
+     * Return a generator that retrieves records one model at a time with
+     * the same results as find_many(). The rows load in chunks of
+     * $chunk_size (default 1000); only the list of row ids is stored in
+     * memory.
      *
      * The generator is single use: to loop again, call
      * find_many_lazy() again, and every query runs again.
@@ -702,16 +693,16 @@ class Query extends Orm\Db
 
     /**
      * Generate the records: the first query fetches the ids of all
-     * the rows, then the rows load in chunks on demand.
+     * the rows, then the rows load in chunks as the caller iterates.
      * @return \Generator<int|string, ORM|Granada>
      */
     private function lazy_walk(int $chunk_size): \Generator
     {
         $id_column = $this->_get_id_column_name();
 
-        // The id pass keeps every clause of the caller's query and
+        // The id pass preserves every clause of the caller's query and
         // narrows the select to the id column. With joins on the
-        // query, a bare id column is ambiguous, so it is qualified,
+        // query, an unqualified id column is ambiguous, so it is qualified,
         // as where() does.
         $id_query = clone $this;
         $id_query->clear_select();
@@ -723,9 +714,9 @@ class Query extends Orm\Db
         $id_query->select($id_pass_column);
         $ids = array_column($id_query->find_array(), $id_column);
 
-        // The id column is fetched for matching and dropped again
+        // The id column is fetched for matching and removed again
         // when the caller's select() did not include it, so the
-        // models come back as find_many() would build them.
+        // models are returned as find_many() would build them.
         $id_hidden = !$this->using_default_result_columns
             && !in_array($this->_quote_identifier($id_column), $this->result_columns, true);
 
@@ -778,16 +769,16 @@ class Query extends Orm\Db
             }
 
             // The query's with() eager loads run here, once per
-            // chunk against the chunk's parents. The walk yields
+            // chunk against the chunk's parents. The lazy find yields
             // one model at a time, so return_result_sets does
-            // not apply and the chunk stays an array.
+            // not apply and the chunk remains an array.
             $instances = $hydrator->many($this, $instances, false);
 
             foreach ($instances as $index => $instance) {
                 // The yielded key is the instance's id, the way
                 // find_many keys its results. When the caller's
-                // select() left the id out - or the id is zero -
-                // the key falls back to the position.
+                // select() left the id out (or the id is zero),
+                // the key uses the position.
                 $id  = $instance->id();
                 $key = ($keyed_by_id && $id) ? $id : $chunk_start + $index;
 
@@ -883,9 +874,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * Tell the query that you wish to execute a COUNT query.
-     * Will return an integer representing the number of
-     * rows returned.
+     * Run a COUNT query and return the number of matching rows.
      */
     public function count(string $column = '*'): int
     {
@@ -893,8 +882,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * Tell the query that you wish to execute a MAX query.
-     * Will return the max value of the choosen column.
+     * Run a MAX query and return the largest value in $column.
      * @param string $column
      */
     public function max(string $column): float|int|string
@@ -903,8 +891,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * Tell the query that you wish to execute a MIN query.
-     * Will return the min value of the choosen column.
+     * Run a MIN query and return the smallest value in $column.
      * @param string $column
      */
     public function min(string $column): float|int|string
@@ -913,8 +900,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * Tell the query that you wish to execute a AVG query.
-     * Will return the average value of the choosen column.
+     * Run an AVG query and return the average value of $column.
      * @param string $column
      */
     public function avg(string $column): float|int
@@ -923,8 +909,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * Tell the query that you wish to execute a SUM query.
-     * Will return the sum of the choosen column.
+     * Run a SUM query and return the sum of $column.
      * @param string $column
      */
     public function sum(string $column): float|int
@@ -935,7 +920,7 @@ class Query extends Orm\Db
     /**
      * Execute an aggregate query and return its value.
      * The query is never modified.
-     * @param string $sql_function The aggregate function to call eg. MIN, COUNT, etc
+     * @param string $sql_function The aggregate function to call, such as MIN or COUNT
      * @param string $column The column to execute the aggregate query against
      */
     private function call_aggregate_db_function(string $sql_function, string $column): float|int|string
@@ -1010,7 +995,7 @@ class Query extends Orm\Db
     /**
      * Write the same values to every row the query matches, in one
      * UPDATE. True when the statement runs, false when the write fails.
-     * An empty array is a no-op; a query with a join throws.
+     * An empty array does nothing; a query with a join throws.
      * @param array<string, mixed> $values
      */
     public function update_many(array $values): bool
@@ -1039,8 +1024,8 @@ class Query extends Orm\Db
 
     /**
      * Number the listed rows 1..n on the model's auto-order column, in the order given.
-     * Rows not listed keep their position, and the write never changes `updated_at`.
-     * True when the statements ran; an empty list is a no-op.
+     * Rows not listed are unchanged, and the write does not change `updated_at`.
+     * True when the statements ran; an empty list does nothing.
      * A joined query throws, as does a model that declares no auto-order column.
      *
      * @param (int|string)[] $ids
@@ -1058,7 +1043,7 @@ class Query extends Orm\Db
             return true;
         }
 
-        // A repeated id keeps its last position
+        // A repeated id uses its last position
         $positions = [];
         $position  = 0;
         foreach ($ids as $id) {
@@ -1238,8 +1223,8 @@ class Query extends Orm\Db
      * query. This defaults to '*'. Many columns can be supplied
      * as either an array or as a list of parameters to the method.
      *
-     * Note that the alias must not be numeric - if you want a
-     * numeric alias then prepend it with some alpha chars. eg. a1
+     * The alias cannot be numeric. For a numeric alias, add letters in
+     * front of it, for example a1.
      *
      * @example select_many(array('alias' => 'column', 'column2', 'alias2' => 'column3'), 'column4', 'column5');
      * @example select_many('column', 'column2', 'column3');
@@ -1269,8 +1254,8 @@ class Query extends Orm\Db
      * by the SELECT query. Many columns can be supplied as either
      * an array or as a list of parameters to the method.
      *
-     * Note that the alias must not be numeric - if you want a
-     * numeric alias then prepend it with some alpha chars. eg. a1
+     * The alias cannot be numeric. For a numeric alias, add letters in
+     * front of it, for example a1.
      *
      * @example select_many_expr(array('alias' => 'column', 'column2', 'alias2' => 'column3'), 'column4', 'column5')
      * @example select_many_expr('column', 'column2', 'column3')
@@ -1350,7 +1335,7 @@ class Query extends Orm\Db
     /**
      * Internal method to add a JOIN source to the query.
      *
-     * The join_operator should be one of INNER, LEFT OUTER, CROSS etc - this
+     * The join_operator should be one of INNER, LEFT OUTER, CROSS, and so on. This
      * will be prepended to JOIN.
      *
      * The table should be the name of the table to join to.
@@ -1427,7 +1412,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * The having-side builder behind the having_* comparison methods.
+     * The builder for the having_* comparison methods.
      */
     private function add_simple_having(string $column_name, string $separator, mixed $value): static
     {
@@ -1438,35 +1423,35 @@ class Query extends Orm\Db
 
     /**
      * A condition connected by OR joins the condition before it, so
-     * an or_where_* groups with the condition it ORs against instead
-     * of leaking past an AND into the rest of the query.
-     * @param Orm\Condition[] $pile
+     * an `or_where_*` groups with the condition it ORs against instead
+     * of applying past an AND to the rest of the query.
+     * @param Orm\Condition[] $conditions
      */
-    private function append_connected_by(array &$pile, Orm\Condition $condition): void
+    private function append_connected_by(array &$conditions, Orm\Condition $condition): void
     {
         if (
             $condition->connected_by !== Orm\ConnectedBy::Or
             || $condition->type === Orm\Condition::GROUP
-            || $pile === []
+            || $conditions === []
         ) {
-            $pile[] = $condition;
+            $conditions[] = $condition;
 
             return;
         }
 
-        $previous = array_pop($pile);
+        $previous = array_pop($conditions);
 
         if (
             $previous->type === Orm\Condition::GROUP
             && $previous->connected_by === Orm\ConnectedBy::Or
             && !$previous->negate
         ) {
-            $pile[] = Orm\Condition::group([...$previous->conditions, $condition], Orm\ConnectedBy::Or);
+            $conditions[] = Orm\Condition::group([...$previous->conditions, $condition], Orm\ConnectedBy::Or);
 
             return;
         }
 
-        $pile[] = Orm\Condition::group([$previous, $condition], $previous->connected_by);
+        $conditions[] = Orm\Condition::group([$previous, $condition], $previous->connected_by);
     }
 
     private function add_where_condition(Orm\Condition $condition): static
@@ -1603,7 +1588,7 @@ class Query extends Orm\Db
 
     /**
      * Adds one condition to the WHERE or HAVING list: the closure's
-     * group, or a column compare. The connected_by value says
+     * group, or a column compare. The connected_by value states
      * whether it ANDs or ORs against the conditions before it;
      * negate renders it with NOT.
      * @param callable(Orm\Condition): static $add_condition
@@ -1747,7 +1732,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * Add where WHERE ... NOT LIKE clause to your query.
+     * Add a WHERE ... NOT LIKE clause to your query.
      * @param string $column_name
      * @param string $value
      */
@@ -1911,7 +1896,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * Adds the condition a suffix stands for, connected as asked.
+     * Adds the condition that a suffix represents, connected as asked.
      */
     private function add_suffix_condition(string $suffix, string $column_name, mixed $value, Orm\ConnectedBy $connected_by): static
     {
@@ -2013,8 +1998,8 @@ class Query extends Orm\Db
     }
 
     /**
-     * Keep only the rows with a related row matching the conditions.
-     * The paired relationship is matched by EXISTS, so each row stays
+     * Select only the rows with a related row matching the conditions.
+     * The paired relationship is matched by EXISTS, so each row remains
      * one row.
      *
      * $conditions is one of:
@@ -2023,7 +2008,7 @@ class Query extends Orm\Db
      *   value becomes IS NULL the way where() treats it;
      * - a closure receiving the related model's query.
      *
-     * $count keeps only rows with at least that many matching related
+     * $count selects only rows with at least that many matching related
      * rows.
      *
      * @param array<string, mixed>|Closure|null $conditions
@@ -2047,7 +2032,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * Keep only the rows with no related row matching the conditions.
+     * Select only the rows with no related row matching the conditions.
      * $conditions takes the same three forms as where_has().
      *
      * @param array<string, mixed>|Closure|null $conditions
@@ -2103,8 +2088,8 @@ class Query extends Orm\Db
 
     /**
      * A related query as a scalar subquery: its select list becomes the
-     * one expression, so a relationship's own select() does not leak a
-     * second column into it.
+     * single expression, so a relationship's own select() does not add a
+     * second column to it.
      *
      * @return array{string, mixed[]}
      */
@@ -2149,7 +2134,7 @@ class Query extends Orm\Db
     private function correlated_relationship_query(Relationship $relationship, null|array|Closure $conditions): Query
     {
         $related = $relationship->query();
-        // A scalar subquery needs no ordering, and a relation's own
+        // A scalar subquery has no ordering, and a relation's own
         // order_by would make SQL Server reject it.
         $related->order_by_clear();
 
@@ -2345,7 +2330,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * Add where HAVING ... NOT LIKE clause to your query.
+     * Add a HAVING ... NOT LIKE clause to your query.
      * @param string $column_name
      * @param string $value
      */
@@ -2520,7 +2505,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * An aggregate returns one value: the spec holds the one
+     * An aggregate returns one value: the spec contains one
      * aggregate column, no related counts, a limit of 1.
      */
     private function aggregate_spec(string $sql_function, string $column, string $alias): Orm\SelectSpec
@@ -2632,7 +2617,7 @@ class Query extends Orm\Db
     // --------------------- //
 
     /**
-     * Dispatches the where_*, order_by_* and with_* magic, then the
+     * Handles the where_*, order_by_* and with_* suffix methods, then the
      * camelCase aliases. Anything else is an unknown query method.
      */
     public function __call(string $method, array $parameters): mixed
@@ -2682,7 +2667,7 @@ class Query extends Orm\Db
             return $this->handle_order_by_method($method, $parameters);
         }
 
-        // Fallback: convert camelCase to snake_case and check if method exists
+        // Otherwise, convert camelCase to snake_case and check if the method exists
         $underscore_method = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $method));
         if (method_exists($this, $underscore_method)) {
             return call_user_func_array([$this, $underscore_method], $parameters);
