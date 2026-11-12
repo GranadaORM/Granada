@@ -85,7 +85,7 @@ class Relationship
 
     /**
      * The column on the associated model this relation matches. The
-     * lazy item cache keys each entry by it.
+     * lazy item cache includes it in each entry's key.
      */
     public function cache_column(): string
     {
@@ -213,13 +213,14 @@ class Relationship
                 return null;
             }
 
-            $cache_column = $this->cache_column();
+            $cache_column   = $this->cache_column();
+            $cache_relation = $this->query()->_cache_key();
 
-            $related_item = LazyItemCache::get($this->class, $cache_column, $related_id);
+            $related_item = LazyItemCache::get($this->class, $cache_column, $related_id, $cache_relation);
             if ($related_item === null) {
                 $related_item = $this->query->find_one();
                 if ($related_item) {
-                    LazyItemCache::set($this->class, $cache_column, $related_id, $related_item);
+                    LazyItemCache::set($this->class, $cache_column, $related_id, $related_item, $cache_relation);
                 }
             }
 
