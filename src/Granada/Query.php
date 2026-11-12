@@ -663,9 +663,9 @@ class Query extends Orm\Db
 
     /**
      * Return a generator that retrieves records one model at a time with
-     * the same results as find_many(). The rows load in chunks of
-     * $chunk_size (default 1000); only the list of row ids is stored in
-     * memory.
+     * the same results as find_many(). The ids load in one streaming
+     * pass and stay in memory; the rows load in chunks of $chunk_size
+     * (default 1000).
      *
      * The generator is single use: to loop again, call
      * find_many_lazy() again, and every query runs again.
@@ -754,7 +754,14 @@ class Query extends Orm\Db
             $id_pass_column = ($this->table_alias ?? $this->_table_name) . '.' . $id_column;
         }
         $id_query->select($id_pass_column);
-        $ids = array_column($id_query->find_array(), $id_column);
+        $statement = Orm\Renderer::select($id_query->select_spec());
+        self::_execute($statement->query, $statement->values, $this->_connection_name);
+        $result = self::get_last_statement();
+
+        $ids = [];
+        while (($id = $result->fetchColumn()) !== false) {
+            $ids[] = $id;
+        }
 
         // The id column is fetched for matching and removed again
         // when the caller's select() did not include it, so the

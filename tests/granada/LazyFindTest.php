@@ -107,6 +107,31 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
         }
     }
 
+    public function testTheIdPassStreamsTheColumnInsteadOfBuildingEveryRow()
+    {
+        $db = ORM::get_db();
+        $db->exec('CREATE TABLE big (id INTEGER PRIMARY KEY, name TEXT)');
+        $db->beginTransaction();
+        $insert = $db->prepare('INSERT INTO big (id, name) VALUES (?, ?)');
+        for ($i = 1; $i <= 10000; $i++) {
+            $insert->execute([$i, 'n' . $i]);
+        }
+        $db->commit();
+
+        $before = memory_get_usage();
+        memory_reset_peak_usage();
+
+        $count = 0;
+        foreach (Granada::for_table('big')->find_many_lazy(100) as $row) {
+            $count++;
+        }
+
+        $peak = memory_get_peak_usage() - $before;
+
+        $this->assertSame(10000, $count);
+        $this->assertLessThan(2 * 1024 * 1024, $peak, 'The id pass must stream the column, not build the rows');
+    }
+
     public function testEagerLoadsRunOncePerChunkAgainstThatChunksParents()
     {
         $lazy = Car::q()
