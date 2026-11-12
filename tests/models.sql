@@ -109,6 +109,13 @@ CREATE TABLE crate_item (
     FOREIGN KEY (crate_id) REFERENCES crate (id)
 );
 
+CREATE TABLE custom_crate_item (
+    custom_id INTEGER,
+    crate_id INTEGER,
+    name TEXT,
+    FOREIGN KEY (crate_id) REFERENCES crate (id)
+);
+
 CREATE TABLE crate_extra (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     crate_id INTEGER,
@@ -294,6 +301,10 @@ INSERT INTO keyed_row_custom(custom_id,name) VALUES (7, 'seven');
 
 INSERT INTO crate(id,name) VALUES (1, 'Crate1');
 INSERT INTO crate(id,name) VALUES (2, 'Crate2');
+
+INSERT INTO custom_crate_item(custom_id,crate_id,name) VALUES (7, 1, 'Custom1');
+INSERT INTO custom_crate_item(custom_id,crate_id,name) VALUES (8, 1, 'Custom2');
+INSERT INTO custom_crate_item(custom_id,crate_id,name) VALUES (9, 2, 'Custom3');
 
 INSERT INTO test(test,age) VALUES ('a', 1);
 INSERT INTO test(test,age) VALUES ('b', 2);

@@ -654,7 +654,7 @@ class Relationship
     {
         foreach ($children as $child) {
             foreach ($parents_by_key[$child[$this->key]] ?? [] as $parent) {
-                $parent->relationships[$name][$child->id] = $child;
+                $parent->relationships[$name][$child->id()] = $child;
             }
         }
     }

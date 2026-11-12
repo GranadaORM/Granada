@@ -1101,6 +1101,27 @@ class EagerTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
+     * The child's id column is custom_id, so the eager list must key the
+     * children by that column the way lazy loading does.
+     */
+    public function testEagerHasManyWithCustomChildIdColumnMatchesLazyLoading()
+    {
+        $lazyParent  = Crate::q()->find_one(1);
+        $eagerParent = Crate::q()
+            ->with('custom_items')
+            ->find_one(1);
+
+        $lazy  = $lazyParent->custom_items;
+        $eager = $eagerParent->custom_items;
+
+        $this->assertSame($lazy->keys(), $eager->keys());
+        $this->assertSame(
+            array_map(fn($item) => $item->name, $lazy->as_array()),
+            array_map(fn($item) => $item->name, $eager->as_array())
+        );
+    }
+
+    /**
      * The titled_items relation filters on qty 1, selects the id column,
      * and orders by sort position.
      */
