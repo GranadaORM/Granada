@@ -589,6 +589,20 @@ class Query extends Orm\Db
     }
 
     /**
+     * Returns the query's shape as a cache key. The spec is the
+     * renderer's input, so a new field joins the key automatically.
+     *
+     * @internal
+     */
+    public function _cache_key(): string
+    {
+        $state = get_object_vars($this->select_spec());
+        unset($state['dialect']);
+
+        return sha1(serialize([$this->_connection_name, $state, $this->relationships]));
+    }
+
+    /**
      * Instead of running the query, get the query that would be run for a find_many() call.
      * @param string $connection_name
      * @return string
