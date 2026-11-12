@@ -149,6 +149,12 @@ class Granada implements ArrayAccess
     }
 
     /**
+     * Public static properties, by class.
+     * @var array<string, array<string, mixed>>
+     */
+    private static array $_class_vars = [];
+
+    /**
      * Retrieve the value of a static property on a class. If the
      * class or the property does not exist, returns the default
      * value supplied as the third argument (which defaults to null).
@@ -159,7 +165,7 @@ class Granada implements ArrayAccess
         if (!class_exists($class_name) || !property_exists($class_name, $property)) {
             return $default;
         }
-        $properties = get_class_vars($class_name);
+        $properties = self::$_class_vars[$class_name] ??= get_class_vars($class_name);
 
         return $properties[$property];
     }
@@ -422,7 +428,10 @@ class Granada implements ArrayAccess
      */
     public static function _write_rules(): Orm\WriteRules
     {
-        return new Orm\WriteRules(
+        /** @var array<string, Orm\WriteRules> $rules */
+        static $rules = [];
+
+        return $rules[static::class] ??= new Orm\WriteRules(
             soft_delete_column: static::$_soft_delete_column,
             created: static::$_auto_timestamps ? static::$_auto_timestamp_columns['created'] : null,
             updated: static::$_auto_timestamps ? static::$_auto_timestamp_columns['updated'] : null,
