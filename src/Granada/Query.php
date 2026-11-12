@@ -385,11 +385,20 @@ class Query extends Orm\Db
     }
 
     /**
-     * The query class for a model: Query<Model> when one exists, then
-     * BaseQuery<Model>, then Granada\Query, each in the model's
-     * namespace.
+     * Query classes, by model class.
+     * @var array<string, string>
+     */
+    private static array $_query_classes = [];
+
+    /**
+     * The query class for a model.
      */
     private static function model_query_class(string $model_class): string
+    {
+        return self::$_query_classes[$model_class] ??= self::resolve_model_query_class($model_class);
+    }
+
+    private static function resolve_model_query_class(string $model_class): string
     {
         $namespace = ($pos = strrpos($model_class, '\\')) === false
             ? ''
