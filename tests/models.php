@@ -528,6 +528,11 @@ class Crate extends Model
         return $this->has_many('CrateExtra', 'crate_id');
     }
 
+    public function custom_items()
+    {
+        return $this->has_many('CustomCrateItem', 'crate_id');
+    }
+
     /**
      * A relation chaining a where, a select, an order_by and an
      * ordered_by, so eager and lazy loading must return the same rows.
@@ -552,6 +557,16 @@ class Crate extends Model
 }
 
 class CrateItem extends Model {}
+
+/**
+ * Its id column is custom_id, so eager loading must key the children by
+ * that column rather than read an id property.
+ */
+class CustomCrateItem extends Model
+{
+    public static $_table     = 'custom_crate_item';
+    public static $_id_column = 'custom_id';
+}
 
 class CrateExtra extends Model
 {
