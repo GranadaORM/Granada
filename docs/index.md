@@ -711,12 +711,14 @@ Car::q()->set_order_many([5, 2, 9]);
 
 A `has_many_through` relationship loads its models through a link table. The
 same declaration provides the junction writes `attach()`, `detach()` and `sync()`.
+A relationship method is named `related_` plus the relationship's name, and
+application code names the relationship without the prefix.
 In the declaration, name the model for the link table and its two key columns:
 
 ```php
 class User extends Model
 {
-    public function roles()
+    public function related_roles()
     {
         return $this->has_many_through(
             associated_class_name: 'Role',
@@ -764,7 +766,7 @@ $user->roles()->attach(2, ['enabled' => 1]);
 order:
 
 ```php
-public function steps()
+public function related_steps()
 {
     return $this->has_many_through(
         associated_class_name: 'Step',
@@ -796,7 +798,7 @@ without one to create it:
 ```php
 class EventEntry extends Model
 {
-    public function extras()
+    public function related_extras()
     {
         return $this->has_many('EntryExtra', 'entry_id');
     }
@@ -834,7 +836,7 @@ without loading the related rows.
 ### Filtering by related rows
 
 An existence filter selects only the parents with at least one matching related
-row. `where_has()` accepts the relationship method's name, and it must declare a
+row. `where_has()` accepts the relationship's name, and the method must declare a
 `has_one`, `has_many` or `belongs_to`:
 
 ```php
@@ -923,9 +925,9 @@ Existence filters and related counts cover `has_one`, `has_many` and
 ## Property access methods
 
 `$model->property` works like a column. When the column has no value, Granada
-checks the model's methods in this order: `missing_`, `missingonce_`, then a method
-with the property's name. A `get_` method changes a column value when it reads it.
-The sections below describe each form.
+checks the model's methods in this order: `missing_`, `missingonce_`, then a
+`related_` method named for the property. A `get_` method changes a column value
+when it reads it. The sections below describe each form.
 
 ### `get_` transforms an existing value
 
@@ -990,13 +992,14 @@ Do not define both a `missing_` and a `missingonce_` method for the same propert
 
 ### Relationships as properties
 
-When a method with the property's name returns a relationship, Granada loads the
-related model or models on the first read and stores them:
+A relationship method is named `related_` plus the relationship's name, and it
+returns the relationship. Granada loads the related model or models on the first
+property read and stores them:
 
 ```php
 class Car extends Model
 {
-    public function manufactor()
+    public function related_manufactor()
     {
         return $this->belongs_to('Manufactor');
     }
@@ -1005,6 +1008,13 @@ class Car extends Model
 $car = Car::q()->find_one(1);
 echo $car->manufactor->name; // lazy-loaded on first read
 echo $car->manufactor->name; // no database query
+```
+
+A direct call uses the same bare name, so the prefix never appears in application
+code:
+
+```php
+echo $car->manufactor()->sum('id');
 ```
 
 ### Clearing computed values

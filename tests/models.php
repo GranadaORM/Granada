@@ -11,7 +11,7 @@ use Granada\ResultSet;
  */
 class Manufactor extends Model
 {
-    public function cars()
+    public function related_cars()
     {
         return $this->has_many('Car')->where('enabled', 1);
     }
@@ -19,12 +19,12 @@ class Manufactor extends Model
 
 class Owner extends Model
 {
-    public function car()
+    public function related_car()
     {
         return $this->has_one('Car');
     }
 
-    public function made_car()
+    public function related_made_car()
     {
         return $this->has_one('Car', 'manufactor_id');
     }
@@ -33,7 +33,7 @@ class Owner extends Model
      * The car matched by this model's name column rather than its id,
      * so eager loading must use the declared key columns.
      */
-    public function car_by_name()
+    public function related_car_by_name()
     {
         return $this->has_one('Car', 'name', 'name');
     }
@@ -42,7 +42,7 @@ class Owner extends Model
      * The cars matched by this model's name column rather than its id,
      * so eager loading must use the declared key columns.
      */
-    public function cars_by_name()
+    public function related_cars_by_name()
     {
         return $this->has_many('Car', 'name', 'name');
     }
@@ -50,7 +50,7 @@ class Owner extends Model
 
 class Part extends Model
 {
-    public function cars()
+    public function related_cars()
     {
         return $this->has_many_through('Car');
     }
@@ -83,29 +83,29 @@ class Money
  */
 class Car extends Model
 {
-    public function manufactor()
+    public function related_manufactor()
     {
         return $this->belongs_to('Manufactor')->where('enabled', 1);
     }
 
-    public function manufactor_by_name(string $name)
+    public function related_manufactor_by_name(string $name)
     {
         return $this->belongs_to('Manufactor')
             ->where('enabled', 1)
             ->where('name', $name);
     }
 
-    public function owner()
+    public function related_owner()
     {
         return $this->belongs_to('Owner');
     }
 
-    public function hand_built_manufactor()
+    public function related_hand_built_manufactor()
     {
         return new Relationship($this, 'belongs_to', 'Manufactor', 'manufactor_id');
     }
 
-    public function parts()
+    public function related_parts()
     {
         return $this->has_many_through('Part');
     }
@@ -150,6 +150,19 @@ class Car extends Model
         return 'test';
     }
 
+    /**
+     * Counts calls to name(), so a test can check that a property read
+     * never calls it.
+     */
+    public int $nameMethodCalls = 0;
+
+    public function name()
+    {
+        $this->nameMethodCalls++;
+
+        return 'from the name method';
+    }
+
     public function set_manufacture_date($value)
     {
         if ($value instanceof DateTimeInterface) {
@@ -175,7 +188,7 @@ class QueryCar extends \Granada\Query
 
 class CarPart extends Model
 {
-    public function car()
+    public function related_car()
     {
         return $this->belongs_to('Car', 'car_id');
     }
@@ -229,28 +242,28 @@ class ModelWithCustomConnection extends Model
 
 class Profile extends Model
 {
-    public function user()
+    public function related_user()
     {
         return $this->belongs_to('User');
     }
 }
 class User extends Model
 {
-    public function profile()
+    public function related_profile()
     {
         return $this->has_one('Profile');
     }
 }
 class UserTwo extends Model
 {
-    public function profile()
+    public function related_profile()
     {
         return $this->has_one('Profile', 'my_custom_fk_column');
     }
 }
 class ProfileTwo extends Model
 {
-    public function user()
+    public function related_user()
     {
         return $this->belongs_to('User', 'custom_user_fk_column');
     }
@@ -258,14 +271,14 @@ class ProfileTwo extends Model
 class Post extends Model {}
 class UserThree extends Model
 {
-    public function posts()
+    public function related_posts()
     {
         return $this->has_many('Post');
     }
 }
 class UserFour extends Model
 {
-    public function posts()
+    public function related_posts()
     {
         return $this->has_many('Post', 'my_custom_fk_column');
     }
@@ -275,14 +288,14 @@ class Author extends Model {}
 class AuthorBook extends Model {}
 class Book extends Model
 {
-    public function authors()
+    public function related_authors()
     {
         return $this->has_many_through('Author');
     }
 }
 class BookTwo extends Model
 {
-    public function authors()
+    public function related_authors()
     {
         return $this->has_many_through('Author', 'AuthorBook', 'custom_book_id', 'custom_author_id');
     }
@@ -290,7 +303,7 @@ class BookTwo extends Model
 
 class BookThree extends Model
 {
-    public function authors()
+    public function related_authors()
     {
         return $this->has_many_through('Author', null, null, null, 'id', 'id');
     }
@@ -303,17 +316,17 @@ class Gadget extends Model
 {
     protected static ?string $_soft_delete_column = 'hidden';
 
-    public function widgets()
+    public function related_widgets()
     {
         return $this->has_many('Widget');
     }
 
-    public function named_widgets()
+    public function related_named_widgets()
     {
         return $this->has_many('Widget')->where('name', 'Widget1');
     }
 
-    public function featured()
+    public function related_featured()
     {
         return $this->has_one('Widget');
     }
@@ -322,7 +335,7 @@ class Gadget extends Model
      * A relation with a select(), so a related-count subquery
      * must ignore that select list.
      */
-    public function picked_widgets()
+    public function related_picked_widgets()
     {
         return $this->has_many('Widget')->select('widget.id');
     }
@@ -331,7 +344,7 @@ class Gadget extends Model
      * A relation into a model whose query resolves past the base,
      * for asserting query-class resolution through a relation method.
      */
-    public function base_resolutions()
+    public function related_base_resolutions()
     {
         return $this->has_many('ResolutionBaseOnly', 'gadget_id');
     }
@@ -347,17 +360,17 @@ class QueryGadget extends \Granada\Query
 
 class Widget extends Model
 {
-    public function gadget()
+    public function related_gadget()
     {
         return $this->belongs_to('Gadget');
     }
 
-    public function gadget_by_name()
+    public function related_gadget_by_name()
     {
         return $this->belongs_to('Gadget', 'gadget_id', 'name');
     }
 
-    public function kits()
+    public function related_kits()
     {
         return $this->has_many_through('Kit');
     }
@@ -383,7 +396,7 @@ class GadgetWithCustomResultSet extends Model
 {
     public static $_table = 'gadget';
 
-    public function custom_widgets()
+    public function related_custom_widgets()
     {
         return $this->has_many('WidgetWithCustomResultSet');
     }
@@ -453,17 +466,17 @@ class ResolutionNone extends Model {}
 
 class Machine extends Model
 {
-    public function bolts()
+    public function related_bolts()
     {
         return $this->has_many_through('Bolt', 'MachineBolt', 'machine_id', 'bolt_id');
     }
 
-    public function direct_parts()
+    public function related_direct_parts()
     {
         return $this->has_many('Part', 'machine_id');
     }
 
-    public function ordered_bolts()
+    public function related_ordered_bolts()
     {
         return $this->has_many_through('Bolt', 'MachineBolt', 'machine_id', 'bolt_id')
             ->ordered_by('sort_order');
@@ -473,7 +486,7 @@ class Machine extends Model
      * A link column that stores a string key, joined through another
      * table's column rather than its id.
      */
-    public function bolt_codes()
+    public function related_bolt_codes()
     {
         return $this->has_many_through('Bolt', 'MachineBoltCode', 'machine_id', 'bolt_code', other_table_key: 'code');
     }
@@ -482,7 +495,7 @@ class Machine extends Model
      * The same links matched by this model's name column rather than
      * its id, so eager loading must use the declared key columns.
      */
-    public function bolt_codes_by_name()
+    public function related_bolt_codes_by_name()
     {
         return $this->has_many_through(
             'Bolt',
@@ -497,7 +510,7 @@ class Machine extends Model
 
 class Bolt extends Model
 {
-    public function machines()
+    public function related_machines()
     {
         return $this->has_many_through('Machine', 'MachineBolt', 'bolt_id', 'machine_id');
     }
@@ -513,22 +526,22 @@ class MachineBoltCode extends Model {}
  */
 class Crate extends Model
 {
-    public function items()
+    public function related_items()
     {
         return $this->has_many('CrateItem', 'crate_id');
     }
 
-    public function ordered_items()
+    public function related_ordered_items()
     {
         return $this->has_many('CrateItem', 'crate_id')->ordered_by('sort_order');
     }
 
-    public function extras()
+    public function related_extras()
     {
         return $this->has_many('CrateExtra', 'crate_id');
     }
 
-    public function custom_items()
+    public function related_custom_items()
     {
         return $this->has_many('CustomCrateItem', 'crate_id');
     }
@@ -537,7 +550,7 @@ class Crate extends Model
      * A relation chaining a where, a select, an order_by and an
      * ordered_by, so eager and lazy loading must return the same rows.
      */
-    public function titled_items()
+    public function related_titled_items()
     {
         return $this->has_many('CrateItem', 'crate_id')
             ->ordered_by('sort_order')
@@ -550,7 +563,7 @@ class Crate extends Model
      * A relation with a filter, so sync operates on the same
      * filtered subset as the read.
      */
-    public function named_items()
+    public function related_named_items()
     {
         return $this->has_many('CrateItem', 'crate_id')->where('name', 'Item1');
     }

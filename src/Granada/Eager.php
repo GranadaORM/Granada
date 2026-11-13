@@ -45,13 +45,14 @@ class Eager
         }
 
         foreach ($orm->relationships as $entry) {
-            $mark = self::relationship_mark($entry);
+            $mark   = self::relationship_mark($entry);
+            $method = Granada::RELATIONSHIP_METHOD_PREFIX . $mark['name'];
 
-            if (!method_exists($model, $mark['name'])) {
+            if (!method_exists($model, $method)) {
                 throw new Exception("Attempting to eager load [{$mark['name']}], but the relationship is not defined.", 500);
             }
 
-            $relationship = $model->{$mark['name']}(...$mark['args']);
+            $relationship = $model->$method(...$mark['args']);
 
             if ($relationship instanceof Query) {
                 // Chained calls return the query, with the relationship attached
