@@ -317,6 +317,37 @@ class RowKeyingTest extends \PHPUnit\Framework\TestCase
         ], $positional);
     }
 
+    public function testFindMapKeepsTheKeyingFindManyWouldUseWhenResultSetsAreOff()
+    {
+        ORM::configure('return_result_sets', false);
+
+        $keyed = KeyedRow::q()->find_map(fn($row) => $row->name);
+
+        $this->assertSame([
+            1 => 'a-dup',
+            2 => 'null-id',
+            3 => 'c',
+            4 => 'zero',
+        ], $keyed);
+    }
+
+    public function testFindMapNumbersNonAssociativeRowsPositionallyWhenResultSetsAreOff()
+    {
+        ORM::configure('return_result_sets', false);
+
+        $positional = KeyedRow::q()
+            ->non_associative()
+            ->find_map(fn($row) => $row->name);
+
+        $this->assertSame([
+            0 => 'a',
+            1 => 'a-dup',
+            2 => 'null-id',
+            3 => 'c',
+            4 => 'zero',
+        ], $positional);
+    }
+
     public function testFindPairsOutputDoesNotDependOnTheToggle()
     {
         $pairs = KeyedRow::q()->find_pairs('id', 'name');
