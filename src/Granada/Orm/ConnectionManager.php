@@ -325,7 +325,8 @@ class ConnectionManager
     /**
      * Executes a query as a wrapper for PDOStatement::execute. Logs the
      * query and stores the statement object, accessible publicly through
-     * get_last_statement().
+     * get_last_statement(). Returns false when the connection cannot
+     * prepare the query.
      * @param mixed[] $parameters An array of parameters to be bound in to the query
      * @param string $connection_name Which connection to use
      * @return bool Response of PDOStatement::execute()
@@ -336,6 +337,11 @@ class ConnectionManager
 
         $this->log_query($query, $parameters, $connection_name);
         $statement = $this->get_db($connection_name)->prepare($query);
+
+        // A silent or warning error mode returns false from prepare()
+        if ($statement === false) {
+            return false;
+        }
 
         $this->last_statement = $statement;
 

@@ -192,6 +192,17 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
             ->tag);
     }
 
+    public function testFailedPrepareKeepsRecordNewAndDirtySoRetryWorks()
+    {
+        $db = ORM::get_db();
+        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+
+        $car = Car::create(['no_such_column' => 1]);
+        $this->assertFalse($car->save());
+        $this->assertTrue($car->is_new());
+        $this->assertTrue($car->is_dirty('no_such_column'));
+    }
+
     public function testFailedInsertThrowsAndKeepsStateInExceptionMode()
     {
         ORM::get_db()->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -209,6 +220,16 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
 
         $this->assertTrue($car->is_new());
         $this->assertTrue($car->is_dirty('name'));
+    }
+
+    public function testFailedPrepareThrowsInExceptionMode()
+    {
+        ORM::get_db()->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        $car = Car::create(['no_such_column' => 1]);
+
+        $this->expectException(\PDOException::class);
+        $car->save();
     }
 
     public function testCreateFloatZeroWritesColumnNotDefault()
