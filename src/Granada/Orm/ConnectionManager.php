@@ -289,11 +289,19 @@ class ConnectionManager
     }
 
     /**
-     * Clear the query cache for every connection.
+     * Clear the query cache for one connection, or for every connection
+     * when no connection name is given.
+     * @param string $connection_name Which connection to use
      */
-    public function clear_cache(): void
+    public function clear_cache(?string $connection_name = null): void
     {
-        $this->query_cache = [];
+        if ($connection_name === null) {
+            $this->query_cache = [];
+
+            return;
+        }
+
+        unset($this->query_cache[$connection_name]);
     }
 
     /**

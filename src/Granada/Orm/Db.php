@@ -244,6 +244,8 @@ abstract class Db
     {
         $result = self::_execute($query, $parameters, $connection_name);
 
+        self::clear_cache($connection_name);
+
         foreach (self::$_on_write as $callback) {
             $callback();
         }
@@ -336,11 +338,13 @@ abstract class Db
     }
 
     /**
-     * Clear the query cache
+     * Clear the query cache for one connection, or for every connection
+     * when no connection name is given.
+     * @param string $connection_name Which connection to use
      */
-    public static function clear_cache(): void
+    public static function clear_cache(?string $connection_name = null): void
     {
-        self::_manager()->clear_cache();
+        self::_manager()->clear_cache($connection_name);
     }
 
     /**

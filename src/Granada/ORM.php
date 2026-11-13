@@ -400,7 +400,7 @@ class ORM extends Orm\Db implements ArrayAccess
                 );
             }
         }
-        $this->clear_cache();
+        self::clear_cache($this->_connection_name);
         $this->_expr_fields  = [];
         $this->_dirty_fields = [];
         $this->_clean_data   = [];
