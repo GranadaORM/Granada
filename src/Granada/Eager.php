@@ -71,7 +71,7 @@ class Eager
             }
 
             $relationship->load(
-                $results instanceof ResultSet ? $results->as_array() : $results,
+                is_array($results) ? $results : $results->as_array(),
                 $mark['name'],
                 $return_result_set
             );
