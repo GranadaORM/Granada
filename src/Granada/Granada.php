@@ -61,6 +61,9 @@ class Granada implements ArrayAccess
     // Default foreign key suffix used by relationship methods
     public const DEFAULT_FOREIGN_KEY_SUFFIX = '_id';
 
+    // Prefix that marks a model method as a relationship loader
+    public const RELATIONSHIP_METHOD_PREFIX = 'related_';
+
     /**
      * Set _soft_delete_column to enable soft deletes.
      */
@@ -456,7 +459,7 @@ class Granada implements ArrayAccess
      *      2. A value kept from an earlier read of the same property
      *      3. missing_{property_name} method (computed on each access)
      *      4. missingonce_{property_name} method (computed once, then kept)
-     *      5. Lazy-loaded relationship if a method matching the property name exists
+     *      5. Lazy-loaded relationship from a related_{property_name} method
      */
     protected function _resolve_property(string $property): mixed
     {
@@ -490,25 +493,23 @@ class Granada implements ArrayAccess
                 ->set_computed_value($property, $this->$method());
         }
 
-        $method = $property;
+        $method = self::RELATIONSHIP_METHOD_PREFIX . $property;
         if ($_has_method[$class][$method] ??= method_exists($this, $method)) {
-            if ($property !== self::_get_id_column_name($class)) {
-                $result = $this->$method();
+            $result = $this->$method();
 
-                if ($result instanceof Relationship) {
+            if ($result instanceof Relationship) {
+                return $this
+                    ->value_stash()
+                    ->set_computed_value($property, $result->load_one());
+            }
+
+            if ($result instanceof Query) {
+                $relationship = $result->_relationship();
+
+                if ($relationship) {
                     return $this
                         ->value_stash()
-                        ->set_computed_value($property, $result->load_one());
-                }
-
-                if ($result instanceof Query) {
-                    $relationship = $result->_relationship();
-
-                    if ($relationship) {
-                        return $this
-                            ->value_stash()
-                            ->set_computed_value($property, $relationship->load_one());
-                    }
+                        ->set_computed_value($property, $relationship->load_one());
                 }
 
                 // A method returning a plain query is loaded as a many relation
@@ -553,14 +554,14 @@ class Granada implements ArrayAccess
             return true;
         }
 
-        $prefix_methods = ['get_', 'missing_', 'missingonce_', ''];
+        $prefix_methods = ['get_', 'missing_', 'missingonce_'];
         foreach ($prefix_methods as $prefix) {
             if (method_exists($this, $prefix . $property)) {
                 return true;
             }
         }
 
-        return false;
+        return method_exists($this, self::RELATIONSHIP_METHOD_PREFIX . $property);
     }
 
     /**
@@ -584,7 +585,7 @@ class Granada implements ArrayAccess
             if (method_exists($this, $method = 'set_' . $field)) {
                 $property[$field] = $this->$method($val);
                 $value            = null;
-            } elseif (method_exists($this, $field)) {
+            } elseif (method_exists($this, self::RELATIONSHIP_METHOD_PREFIX . $field)) {
                 $this->value_stash()->set_value($field, $val);
             }
         }
@@ -869,8 +870,8 @@ class Granada implements ArrayAccess
     }
 
     /**
-     * A call that is not a model method names a relationship write,
-     * such as attach_roles.
+     * Handles a call that is not a model method: a relationship write such as
+     * attach_roles, or a relationship loader by its bare name such as widgets.
      */
     public function __call(string $method, array $parameters): mixed
     {
@@ -879,23 +880,29 @@ class Granada implements ArrayAccess
             return $relationship->$write(...$parameters);
         }
 
+        $relationship_method = self::RELATIONSHIP_METHOD_PREFIX . $method;
+        if (method_exists($this, $relationship_method)) {
+            return $this->$relationship_method(...$parameters);
+        }
+
         throw new \Error('Call to undefined method ' . static::class . "::{$method}()");
     }
 
     /**
-     * The relationship a relation method such as widgets() declares, or
-     * null when the method is absent or does not return one. Chained
-     * calls return the query, with the relationship attached.
+     * The relationship a related_{relation} method declares, or null
+     * when the method is absent or does not return one. Chained calls
+     * return the query, with the relationship attached.
      *
      * @internal
      */
     public function _relationship(string $relation): ?Relationship
     {
-        if (!method_exists($this, $relation)) {
+        $method = self::RELATIONSHIP_METHOD_PREFIX . $relation;
+        if (!method_exists($this, $method)) {
             return null;
         }
 
-        $result = $this->$relation();
+        $result = $this->$method();
         if ($result instanceof Query) {
             $result = $result->_relationship();
         }
