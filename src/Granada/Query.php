@@ -572,7 +572,9 @@ class Query extends Orm\Db
      */
     public function find_map(callable $func): array
     {
-        return array_map($func, $this->find_many()->as_array());
+        $results = $this->find_many();
+
+        return array_map($func, is_array($results) ? $results : $results->as_array());
     }
 
     /**
