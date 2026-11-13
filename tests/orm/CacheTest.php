@@ -84,6 +84,55 @@ class CacheTest extends \PHPUnit\Framework\TestCase
         $this->assertCount($statements, ORM::get_query_log());
     }
 
+    public function testAnEmptyStringAndNullParameterDoNotShareACacheEntry()
+    {
+        Widget::create(['name' => ''])->save();
+
+        $empty = Granada::for_table('widget')
+            ->where_raw('name = ?', [''])
+            ->find_array();
+        $null = Granada::for_table('widget')
+            ->where_raw('name = ?', [null])
+            ->find_array();
+
+        $statements = count(ORM::get_query_log());
+
+        $empty_again = Granada::for_table('widget')
+            ->where_raw('name = ?', [''])
+            ->find_array(); // this call reads the cache
+
+        $this->assertCount(1, $empty);
+        $this->assertSame([], $null);
+        $this->assertCount($statements, ORM::get_query_log());
+        $this->assertSame($empty, $empty_again);
+    }
+
+    public function testParameterValuesContainingCommasDoNotShareACacheEntry()
+    {
+        Widget::create([
+            'name'    => 'a,b',
+            'enabled' => 1,
+        ])->save();
+
+        $first = Granada::for_table('widget')
+            ->where_raw('name = ? AND enabled = ?', ['a,b', 1])
+            ->find_array();
+        $second = Granada::for_table('widget')
+            ->where_raw('name = ? AND enabled = ?', ['a', 'b,1'])
+            ->find_array();
+
+        $statements = count(ORM::get_query_log());
+
+        $first_again = Granada::for_table('widget')
+            ->where_raw('name = ? AND enabled = ?', ['a,b', 1])
+            ->find_array(); // this call reads the cache
+
+        $this->assertCount(1, $first);
+        $this->assertSame([], $second);
+        $this->assertCount($statements, ORM::get_query_log());
+        $this->assertSame($first, $first_again);
+    }
+
     public function testDeleteManyInvalidatesTheQueryCache()
     {
         $this->assertCount(5, Car::q()->find_many());

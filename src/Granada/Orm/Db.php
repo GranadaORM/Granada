@@ -317,13 +317,11 @@ abstract class Db
 
     /**
      * Create a cache key for the given query and parameters.
+     * Two statements with different bound values get different keys.
      */
     protected static function _create_cache_key(string $query, array $parameters): string
     {
-        $parameter_string = implode(',', $parameters);
-        $key              = $query . ':' . $parameter_string;
-
-        return sha1($key);
+        return sha1(serialize([$query, $parameters]));
     }
 
     /**
