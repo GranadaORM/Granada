@@ -365,11 +365,11 @@ class Relationship
                 unset($existing[$id]);
             }
 
-            foreach (array_keys($existing) as $id) {
+            if ($existing !== []) {
                 $this
                     ->link_query($link_table)
                     ->where($this->key, $this->parent_key())
-                    ->where($this->other_key, $id)
+                    ->where_in($this->other_key, array_keys($existing))
                     ->delete_many();
             }
         });
@@ -422,8 +422,11 @@ class Relationship
                 $child->save();
             }
 
-            foreach ($existing as $child) {
-                $child->delete();
+            if ($existing !== []) {
+                $this
+                    ->query_including_soft_deleted()
+                    ->where_in($id_column, array_keys($existing))
+                    ->delete_many();
             }
         });
     }
