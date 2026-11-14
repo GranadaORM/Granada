@@ -110,6 +110,48 @@ class JunctionWriteTest extends \PHPUnit\Framework\TestCase
         $this->assertSame([], $this->linkedBoltIds(1));
     }
 
+    /** @return int[] the number of DELETE statements logged after $offset */
+    private function deleteCountFrom(int $offset): int
+    {
+        $deletes = 0;
+        foreach (array_slice(\Granada\ORM::get_query_log(), $offset) as $query) {
+            if (preg_match('/^\s*DELETE\b/i', $query)) {
+                $deletes++;
+            }
+        }
+
+        return $deletes;
+    }
+
+    public function testSyncRemovesUnlistedLinksWithOneStatement()
+    {
+        $machine = Machine::q()->find_one(1);
+        $machine->attach_bolts(1);
+        $machine->attach_bolts(2);
+        $machine->attach_bolts(3);
+        $machine->attach_bolts(4);
+
+        $offset = count(\Granada\ORM::get_query_log());
+        $machine->sync_bolts([1]);
+
+        $this->assertSame([1], $this->linkedBoltIds(1));
+        $this->assertSame(1, $this->deleteCountFrom($offset));
+    }
+
+    public function testSyncWithAnEmptyListRemovesEveryLinkWithOneStatement()
+    {
+        $machine = Machine::q()->find_one(1);
+        $machine->attach_bolts(1);
+        $machine->attach_bolts(2);
+        $machine->attach_bolts(3);
+
+        $offset = count(\Granada\ORM::get_query_log());
+        $machine->sync_bolts([]);
+
+        $this->assertSame([], $this->linkedBoltIds(1));
+        $this->assertSame(1, $this->deleteCountFrom($offset));
+    }
+
     public function testSyncCreatesDeletesAndKeeps()
     {
         $machine = Machine::q()->find_one(1);

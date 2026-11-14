@@ -145,6 +145,73 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(2, CrateItem::q()->count());
     }
 
+    /** @return int the number of statements logged after $offset matching $pattern */
+    private function statementCountFrom(int $offset, string $pattern): int
+    {
+        $matches = 0;
+        foreach (array_slice(\Granada\ORM::get_query_log(), $offset) as $query) {
+            if (preg_match($pattern, $query)) {
+                $matches++;
+            }
+        }
+
+        return $matches;
+    }
+
+    public function testSyncRemovesUnlistedChildrenWithOneStatement()
+    {
+        $crate = Crate::q()->find_one(1);
+        $crate->sync_items([
+            ['name' => 'Item1'],
+            ['name' => 'Item2'],
+            ['name' => 'Item3'],
+            ['name' => 'Item4'],
+        ]);
+        [$kept] = $this->itemIds(1);
+
+        $offset = count(\Granada\ORM::get_query_log());
+        $crate->sync_items([
+            [
+                'id'   => $kept,
+                'name' => 'Item1',
+            ],
+        ]);
+
+        $this->assertSame(['Item1'], $this->itemNames(1));
+        $this->assertSame(1, $this->statementCountFrom($offset, '/^\s*DELETE\b/i'));
+    }
+
+    public function testSyncSoftDeletesUnlistedChildrenWithOneStatement()
+    {
+        $crate = Crate::q()->find_one(1);
+        $crate->sync_extras([
+            ['name' => 'Extra1'],
+            ['name' => 'Extra2'],
+            ['name' => 'Extra3'],
+            ['name' => 'Extra4'],
+        ]);
+        [$kept] = $this->extraIds(1);
+
+        $offset = count(\Granada\ORM::get_query_log());
+        $crate->sync_extras([
+            [
+                'id'   => $kept,
+                'name' => 'Extra1',
+            ],
+        ]);
+
+        // One bulk write flags the three unlisted extras.
+        $this->assertSame(1, $this->statementCountFrom(
+            $offset,
+            "/^\s*UPDATE\b.*`?is_deleted`?\s*=\s*'1'/is"
+        ));
+        $this->assertSame(['Extra1'], $this->extraNames(1));
+        $this->assertSame(3, CrateExtra::q()
+            ->clear_where()
+            ->where('is_deleted', 1)
+            ->count());
+    }
+
     public function testSyncWithAnEmptyListRemovesEveryChild()
     {
         $crate = Crate::q()->find_one(1);
