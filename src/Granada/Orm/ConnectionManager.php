@@ -289,17 +289,25 @@ class ConnectionManager
     }
 
     /**
-     * Clear the query cache for every connection.
+     * Clear the query cache for one connection, or for every connection
+     * when no connection name is given.
+     * @param string $connection_name Which connection to use
      */
-    public function clear_cache(): void
+    public function clear_cache(?string $connection_name = null): void
     {
-        $this->query_cache = [];
+        if ($connection_name === null) {
+            $this->query_cache = [];
+
+            return;
+        }
+
+        unset($this->query_cache[$connection_name]);
     }
 
     /**
      * The Dialect for a connection: every driver-specific fact the
-     * renderer, save() and Query need. Uses the mysql/sqlite
-     * dialect when the driver name is unknown or not yet detected.
+     * renderer, save() and Query need. Uses the mysql dialect when the
+     * driver name is unknown or not yet detected.
      * @param string $connection_name Which connection to use
      */
     public function dialect(string $connection_name = self::DEFAULT_CONNECTION): Dialect
@@ -317,7 +325,8 @@ class ConnectionManager
     /**
      * Executes a query as a wrapper for PDOStatement::execute. Logs the
      * query and stores the statement object, accessible publicly through
-     * get_last_statement().
+     * get_last_statement(). Returns false when the connection cannot
+     * prepare the query.
      * @param mixed[] $parameters An array of parameters to be bound in to the query
      * @param string $connection_name Which connection to use
      * @return bool Response of PDOStatement::execute()
@@ -328,6 +337,11 @@ class ConnectionManager
 
         $this->log_query($query, $parameters, $connection_name);
         $statement = $this->get_db($connection_name)->prepare($query);
+
+        // A silent or warning error mode returns false from prepare()
+        if ($statement === false) {
+            return false;
+        }
 
         $this->last_statement = $statement;
 

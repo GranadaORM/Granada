@@ -316,7 +316,38 @@ class RendererTest extends \PHPUnit\Framework\TestCase
         $this->assertSame('SELECT TOP 5 * FROM "person"', $statement->query);
     }
 
-    public function testFirebirdUsesRowsAndTo()
+    public function testTopStyleLimitPlacesDistinctBeforeTop()
+    {
+        $statement = Renderer::select($this->selectSpec([
+            'dialect'  => Dialect::for_driver('sqlsrv'),
+            'distinct' => true,
+            'limit'    => 5,
+        ]));
+
+        $this->assertSame('SELECT DISTINCT TOP 5 * FROM "person"', $statement->query);
+    }
+
+    public function testDistinctWithLimitOnALimitStyleDialectKeepsPagingAfterTheColumns()
+    {
+        $statement = Renderer::select($this->selectSpec([
+            'distinct' => true,
+            'limit'    => 5,
+        ]));
+
+        $this->assertSame('SELECT DISTINCT * FROM `person` LIMIT 5', $statement->query);
+    }
+
+    public function testFirebirdLimitOnlyRendersRows()
+    {
+        $statement = Renderer::select($this->selectSpec([
+            'dialect' => Dialect::for_driver('firebird'),
+            'limit'   => 5,
+        ]));
+
+        $this->assertSame('SELECT * FROM "person" ROWS 5', $statement->query);
+    }
+
+    public function testFirebirdRendersRowsRangeFromLimitAndOffset()
     {
         $statement = Renderer::select($this->selectSpec([
             'dialect' => Dialect::for_driver('firebird'),
@@ -324,7 +355,46 @@ class RendererTest extends \PHPUnit\Framework\TestCase
             'offset'  => 10,
         ]));
 
-        $this->assertSame('SELECT * FROM "person" ROWS 5 TO 10', $statement->query);
+        $this->assertSame('SELECT * FROM "person" ROWS 11 TO 15', $statement->query);
+    }
+
+    public function testFirebirdRendersRowsRangeForOffsetWithoutLimit()
+    {
+        $statement = Renderer::select($this->selectSpec([
+            'dialect' => Dialect::for_driver('firebird'),
+            'offset'  => 10,
+        ]));
+
+        $this->assertSame('SELECT * FROM "person" ROWS 11 TO 9223372036854775807', $statement->query);
+    }
+
+    public function testSqlsrvRendersOffsetFetchUnderTheCallersOrdering()
+    {
+        $statement = Renderer::select($this->selectSpec([
+            'dialect'  => Dialect::for_driver('sqlsrv'),
+            'order_by' => [Term::column('name', 'ASC')],
+            'limit'    => 5,
+            'offset'   => 10,
+        ]));
+
+        $this->assertSame(
+            'SELECT * FROM "person" ORDER BY "name" ASC OFFSET 10 ROWS FETCH NEXT 5 ROWS ONLY',
+            $statement->query
+        );
+    }
+
+    public function testSqlsrvSuppliesAnOrderingForPaginationWithoutOne()
+    {
+        $statement = Renderer::select($this->selectSpec([
+            'dialect' => Dialect::for_driver('sqlsrv'),
+            'limit'   => 5,
+            'offset'  => 10,
+        ]));
+
+        $this->assertSame(
+            'SELECT * FROM "person" ORDER BY (SELECT NULL) OFFSET 10 ROWS FETCH NEXT 5 ROWS ONLY',
+            $statement->query
+        );
     }
 
     public function testInsertReturningIdForPgsql()

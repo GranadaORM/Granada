@@ -24,8 +24,7 @@ class Renderer
             self::group_by($spec),
             $having->fragment,
             self::order_by($spec),
-            self::limit($spec),
-            self::offset($spec),
+            $spec->dialect->pagination_fragment($spec->limit, $spec->offset, count($spec->order_by) > 0),
         ]);
 
         return new Statement($sql, array_merge(
@@ -46,11 +45,11 @@ class Renderer
 
         $result_columns = implode(', ', $result_columns);
 
-        $fragment .= $spec->dialect->select_top_fragment($spec->limit);
-
         if ($spec->distinct) {
-            $result_columns = 'DISTINCT ' . $result_columns;
+            $fragment .= 'DISTINCT ';
         }
+
+        $fragment .= $spec->dialect->select_top_fragment($spec->limit, $spec->offset);
 
         $fragment .= "{$result_columns} FROM " . $spec->dialect->quote_identifier($spec->table_name);
 
@@ -181,16 +180,6 @@ class Renderer
         }
 
         return "{$column} {$term->direction}";
-    }
-
-    private static function limit(SelectSpec $spec): string
-    {
-        return $spec->dialect->limit_fragment($spec->limit);
-    }
-
-    private static function offset(SelectSpec $spec): string
-    {
-        return $spec->dialect->offset_fragment($spec->offset);
     }
 
     /**

@@ -572,7 +572,9 @@ class Query extends Orm\Db
      */
     public function find_map(callable $func): array
     {
-        return array_map($func, $this->find_many()->as_array());
+        $results = $this->find_many();
+
+        return array_map($func, is_array($results) ? $results : $results->as_array());
     }
 
     /**
@@ -586,6 +588,20 @@ class Query extends Orm\Db
         }
 
         return Orm\Renderer::select($this->select_spec());
+    }
+
+    /**
+     * Returns the query's shape as a cache key. The spec is the
+     * renderer's input, so a new field joins the key automatically.
+     *
+     * @internal
+     */
+    public function _cache_key(): string
+    {
+        $state = get_object_vars($this->select_spec());
+        unset($state['dialect']);
+
+        return sha1(serialize([$this->_connection_name, $state, $this->relationships]));
     }
 
     /**
@@ -2645,7 +2661,7 @@ class Query extends Orm\Db
     {
         // Handle special order_by methods
         if ($method === 'order_by_rand') {
-            return $this->order_by_expr('RAND()');
+            return $this->order_by_expr(self::_dialect($this->_connection_name)->order_by_random_expression());
         }
 
         if ($method === 'order_by_list') {

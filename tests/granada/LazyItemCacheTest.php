@@ -75,6 +75,45 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
         $this->assertNotSame($owned, $made);
     }
 
+    public function testTwoBelongsToRelationsWithDifferentConditionsReturnTheirOwnRows()
+    {
+        $manufactor          = Manufactor::q()->find_one(2);
+        $manufactor->enabled = 0;
+        $manufactor->save();
+
+        // The unfiltered relation caches the row first.
+        $car        = Car::q()->find_one(3);
+        $unfiltered = $car->hand_built_manufactor;
+        $this->assertEquals(2, $unfiltered->id);
+
+        $car = Car::q()->find_one(3);
+        $this->assertNull($car->manufactor);
+
+        LazyItemCache::clear();
+
+        // The filtered relation runs first.
+        $car = Car::q()->find_one(3);
+        $this->assertNull($car->manufactor);
+
+        $car        = Car::q()->find_one(3);
+        $unfiltered = $car->hand_built_manufactor;
+        $this->assertEquals(2, $unfiltered->id);
+    }
+
+    public function testEachRelationKeepsItsOwnCacheEntryAndSharesItAcrossParents()
+    {
+        // Cars 1 and 2 both point at manufactor 1, whose enabled is 1.
+        $car        = Car::q()->find_one(1);
+        $filtered   = $car->manufactor;
+        $unfiltered = $car->hand_built_manufactor;
+        $this->assertSame(2, LazyItemCache::size());
+        $this->assertNotSame($filtered, $unfiltered);
+
+        $car = Car::q()->find_one(2);
+        $this->assertSame($filtered, $car->manufactor);
+        $this->assertSame($unfiltered, $car->hand_built_manufactor);
+    }
+
     public function testBelongsToKeyedOnNonIdColumnReturnsItsOwnQueryResult()
     {
         Gadget::create([

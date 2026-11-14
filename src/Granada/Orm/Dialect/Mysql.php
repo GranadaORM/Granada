@@ -5,7 +5,7 @@ namespace Granada\Orm\Dialect;
 use Granada\Orm\Dialect;
 
 /**
- * The MySQL dialect: MySQL and SQLite, plus unknown drivers so that
+ * The MySQL dialect: MySQL, plus unknown drivers so that
  * rendering works before any connection exists. Backtick identifier
  * quoting, FIELD() list ordering.
  *
