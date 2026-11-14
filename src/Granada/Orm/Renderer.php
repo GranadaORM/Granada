@@ -45,11 +45,11 @@ class Renderer
 
         $result_columns = implode(', ', $result_columns);
 
-        $fragment .= $spec->dialect->select_top_fragment($spec->limit, $spec->offset);
-
         if ($spec->distinct) {
-            $result_columns = 'DISTINCT ' . $result_columns;
+            $fragment .= 'DISTINCT ';
         }
+
+        $fragment .= $spec->dialect->select_top_fragment($spec->limit, $spec->offset);
 
         $fragment .= "{$result_columns} FROM " . $spec->dialect->quote_identifier($spec->table_name);
 

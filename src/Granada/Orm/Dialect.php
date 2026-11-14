@@ -44,8 +44,8 @@ abstract class Dialect
     }
 
     /**
-     * SELECT-list prefix reserving rows, eg "TOP 5 " - placed right
-     * after SELECT, before the result columns. Returns '' when an
+     * SELECT-list prefix reserving rows, eg "TOP 5 " - placed after
+     * SELECT and DISTINCT, before the result columns. Returns '' when an
      * offset is specified, as that is handled by pagination.
      */
     public function select_top_fragment(?int $limit, ?int $offset = null): string

@@ -316,6 +316,27 @@ class RendererTest extends \PHPUnit\Framework\TestCase
         $this->assertSame('SELECT TOP 5 * FROM "person"', $statement->query);
     }
 
+    public function testTopStyleLimitPlacesDistinctBeforeTop()
+    {
+        $statement = Renderer::select($this->selectSpec([
+            'dialect'  => Dialect::for_driver('sqlsrv'),
+            'distinct' => true,
+            'limit'    => 5,
+        ]));
+
+        $this->assertSame('SELECT DISTINCT TOP 5 * FROM "person"', $statement->query);
+    }
+
+    public function testDistinctWithLimitOnALimitStyleDialectKeepsPagingAfterTheColumns()
+    {
+        $statement = Renderer::select($this->selectSpec([
+            'distinct' => true,
+            'limit'    => 5,
+        ]));
+
+        $this->assertSame('SELECT DISTINCT * FROM `person` LIMIT 5', $statement->query);
+    }
+
     public function testFirebirdLimitOnlyRendersRows()
     {
         $statement = Renderer::select($this->selectSpec([
