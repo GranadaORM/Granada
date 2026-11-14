@@ -43,4 +43,14 @@ class QueryBuilderMssqlTest extends \PHPUnit\Framework\TestCase
 
         $this->assertSame('SELECT TOP 5 * FROM "widget"', $query->get_select_query());
     }
+
+    public function testDistinctWithLimit()
+    {
+        $statement = Granada::for_table('widget')
+            ->distinct()
+            ->limit(5)
+            ->to_statement();
+
+        $this->assertSame('SELECT DISTINCT TOP 5 * FROM "widget"', $statement->query);
+    }
 }
