@@ -31,11 +31,12 @@ abstract class Dialect
 
     /**
      * Build the dialect for a stored driver name. Unknown or unspecified drivers
-     * get the mysql/sqlite dialect
+     * get the mysql dialect
      */
     public static function for_driver(?string $driver_name, ?string $quote_character = null, ?string $limit_clause_style = null): self
     {
         return match ($driver_name) {
+            'sqlite'                             => new Dialect\Sqlite($quote_character, $limit_clause_style),
             'pgsql'                              => new Dialect\Pgsql($quote_character, $limit_clause_style),
             'sqlsrv', 'dblib', 'mssql', 'sybase' => new Dialect\Sqlsrv($quote_character, $limit_clause_style),
             'firebird'                           => new Dialect\Firebird($quote_character, $limit_clause_style),
@@ -109,6 +110,14 @@ abstract class Dialect
         }
 
         return 'CASE ' . $quoted_column . $cases . ' ELSE 0 END';
+    }
+
+    /**
+     * The expression that orders rows randomly
+     */
+    public function order_by_random_expression(): string
+    {
+        return 'RAND()';
     }
 
     public function quote_identifier(string $identifier): string

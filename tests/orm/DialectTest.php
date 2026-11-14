@@ -139,6 +139,30 @@ class DialectTest extends \PHPUnit\Framework\TestCase
         );
     }
 
+    public function testOrderByListEmulatesFieldSemanticsOnSqlite()
+    {
+        $this->assertSame(
+            'CASE `x` WHEN 1 THEN 1 WHEN 2 THEN 2 ELSE 0 END',
+            Dialect::for_driver('sqlite')->order_by_field_expression('`x`', [1, 2])
+        );
+    }
+
+    public function testOrderByRandUsesRandomOnSqlite()
+    {
+        $this->assertSame(
+            'RANDOM()',
+            Dialect::for_driver('sqlite')->order_by_random_expression()
+        );
+    }
+
+    public function testOrderByRandKeepsRandElsewhere()
+    {
+        $this->assertSame('RAND()', Dialect::for_driver('mysql')->order_by_random_expression());
+        $this->assertSame('RAND()', Dialect::for_driver('pgsql')->order_by_random_expression());
+        $this->assertSame('RAND()', Dialect::for_driver('sqlsrv')->order_by_random_expression());
+        $this->assertSame('RAND()', Dialect::for_driver('firebird')->order_by_random_expression());
+    }
+
     public function testQuotingEscapesEmbeddedQuoteCharacters()
     {
         $this->assertSame('`we``ird`', Dialect::for_driver('mysql')->quote_identifier('we`ird'));
