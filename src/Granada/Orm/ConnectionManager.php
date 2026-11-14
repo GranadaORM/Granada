@@ -306,8 +306,8 @@ class ConnectionManager
 
     /**
      * The Dialect for a connection: every driver-specific fact the
-     * renderer, save() and Query need. Uses the mysql/sqlite
-     * dialect when the driver name is unknown or not yet detected.
+     * renderer, save() and Query need. Uses the mysql dialect when the
+     * driver name is unknown or not yet detected.
      * @param string $connection_name Which connection to use
      */
     public function dialect(string $connection_name = self::DEFAULT_CONNECTION): Dialect

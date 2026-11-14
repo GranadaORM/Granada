@@ -2661,7 +2661,7 @@ class Query extends Orm\Db
     {
         // Handle special order_by methods
         if ($method === 'order_by_rand') {
-            return $this->order_by_expr('RAND()');
+            return $this->order_by_expr(self::_dialect($this->_connection_name)->order_by_random_expression());
         }
 
         if ($method === 'order_by_list') {
