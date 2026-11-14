@@ -7,9 +7,7 @@ use PDO;
 use PDOStatement;
 
 /**
- * Everything driver-specific about the database in one place, so the
- * renderer, save() and Query ask a dialect object instead of
- * comparing driver names or querying an open database connection.
+ * Everything driver-specific for different SQL engines
  *
  * @internal
  */
@@ -32,9 +30,8 @@ abstract class Dialect
     }
 
     /**
-     * Build the dialect for a stored driver name. Unknown drivers
-     * (including no connection at all) get the mysql/sqlite dialect,
-     * so statements can be rendered before any connection exists.
+     * Build the dialect for a stored driver name. Unknown or unspecified drivers
+     * get the mysql/sqlite dialect
      */
     public static function for_driver(?string $driver_name, ?string $quote_character = null, ?string $limit_clause_style = null): self
     {
@@ -48,11 +45,12 @@ abstract class Dialect
 
     /**
      * SELECT-list prefix reserving rows, eg "TOP 5 " - placed right
-     * after SELECT, before the result columns.
+     * after SELECT, before the result columns. Returns '' when an
+     * offset is specified, as that is handled by pagination.
      */
-    public function select_top_fragment(?int $limit): string
+    public function select_top_fragment(?int $limit, ?int $offset = null): string
     {
-        if ($limit === null) {
+        if ($limit === null || $offset !== null) {
             return '';
         }
 
@@ -64,38 +62,26 @@ abstract class Dialect
     }
 
     /**
-     * Trailing row-limit clause, eg "LIMIT 5" / "ROWS 5".
-     * Empty when this dialect reserves rows via select_top_fragment().
+     * The pagination fragment for a limit and an offset
+     * set $ordered if the query has an ORDER BY
      */
-    public function limit_fragment(?int $limit): string
+    public function pagination_fragment(?int $limit, ?int $offset, bool $ordered): string
     {
-        if ($limit === null) {
-            return '';
+        $fragments = [];
+
+        if ($limit !== null && $this->limit_clause_style === ORM::LIMIT_STYLE_LIMIT) {
+            $fragments[] = static::LIMIT_KEYWORD . " {$limit}";
         }
 
-        if ($this->limit_clause_style !== ORM::LIMIT_STYLE_LIMIT) {
-            return '';
+        if ($offset !== null) {
+            $fragments[] = static::OFFSET_KEYWORD . ' ' . $offset;
         }
 
-        return static::LIMIT_KEYWORD . " {$limit}";
+        return implode(' ', $fragments);
     }
 
     /**
-     * Trailing row-offset clause, eg "OFFSET 10" / "TO 10".
-     */
-    public function offset_fragment(?int $offset): string
-    {
-        if ($offset === null) {
-            return '';
-        }
-
-        return static::OFFSET_KEYWORD . ' ' . $offset;
-    }
-
-    /**
-     * Clause reporting the new row's id from an INSERT, or '' when
-     * the dialect reads it via lastInsertId instead. Meant to be
-     * overridden by subclasses (Pgsql returns RETURNING).
+     * Fragment reporting the last inserted row's id - if required by the dialect
      */
     public function insert_returning_fragment(string $id_column): string
     {
@@ -103,9 +89,7 @@ abstract class Dialect
     }
 
     /**
-     * Get the id of a freshly inserted row. Meant to be overridden by
-     * subclasses: dialects whose INSERT reports the id (RETURNING)
-     * read it from the executed statement instead of the connection.
+     * Get the id of the last inserted row
      */
     public function fetch_new_id(PDO $db, PDOStatement $statement): false|string
     {
@@ -113,9 +97,8 @@ abstract class Dialect
     }
 
     /**
-     * Expression ordering rows by position in $values: the first
-     * value sorts first, values absent from the list before all of
-     * them. Meant to be overridden by subclasses (Mysql returns FIELD()).
+     * How to order rows by a list of values
+     *
      * @param (string|int)[] $values raw SQL fragments
      */
     public function order_by_field_expression(string $quoted_column, array $values): string
@@ -128,11 +111,6 @@ abstract class Dialect
         return 'CASE ' . $quoted_column . $cases . ' ELSE 0 END';
     }
 
-    /**
-     * Quote a string that is used as an identifier
-     * (table names, column names, and so on). This method can
-     * also deal with dot-separated identifiers eg table.column
-     */
     public function quote_identifier(string $identifier): string
     {
         $parts = explode('.', $identifier);
@@ -141,11 +119,6 @@ abstract class Dialect
         return implode('.', $parts);
     }
 
-    /**
-     * Perform the actual quoting of a single part of an
-     * identifier, doubling up any quote characters to escape
-     * them.
-     */
     private function quote_identifier_part(string $part): string
     {
         if ($part === '*') {
