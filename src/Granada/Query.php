@@ -1008,19 +1008,32 @@ class Query extends Orm\Db
     }
 
     /**
-     * To create and save multiple elements, easy way
-     * Using an array with rows array(array('name'=>'value',...), array('name2'=>'value2',...),..)
-     * or a array multiple
+     * Save every row in one transaction.
+     * Returns the last row's id, or false when a row's write fails.
+     * A failure rolls back every row.
      */
     /** @param array<int, array<string, mixed>> $rows */
     public function insert(array $rows): false|string
     {
         $class = $this->class_name;
-        ORM::transaction(function () use ($rows, $class): void {
-            foreach ($rows as $row) {
-                $class::create($row)->save();
+
+        try {
+            ORM::transaction(function () use ($rows, $class): void {
+                foreach ($rows as $row) {
+                    if (!$class::create($row)->save()) {
+                        throw new \RuntimeException('A row failed to save');
+                    }
+                }
+            }, $this->_connection_name);
+        } catch (\RuntimeException $e) {
+            // A PDOException is a RuntimeException too; only a write
+            // that failed silently returns false
+            if ($e instanceof \PDOException) {
+                throw $e;
             }
-        }, $this->_connection_name);
+
+            return false;
+        }
 
         return ORM::get_db($this->_connection_name)->lastInsertId();
     }
