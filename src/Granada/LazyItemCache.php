@@ -48,23 +48,6 @@ final class LazyItemCache
         self::$_keys[]                                 = [$class, $column, $id, $relation];
     }
 
-    /**
-     * Remove a row's cached entries from every column and relation.
-     */
-    public static function remove(string $class, mixed $id): void
-    {
-        foreach (array_keys(self::$_cache[$class] ?? []) as $column) {
-            unset(self::$_cache[$class][$column][$id]);
-        }
-
-        foreach (self::$_keys as $idx => $key) {
-            if ($key[0] === $class && $key[2] === $id) {
-                unset(self::$_keys[$idx]);
-            }
-        }
-        self::$_keys = array_values(self::$_keys);
-    }
-
     public static function clear(): void
     {
         self::$_cache = [];
