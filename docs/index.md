@@ -1114,6 +1114,7 @@ ORM::transaction(function () {
 
 `insert()` uses the same mechanism: every row you pass it is saved in one
 transaction, so a failure on any row rolls back every row.
+It returns the last row's id, or `false` when a row fails.
 
 ## Increment and decrement
 

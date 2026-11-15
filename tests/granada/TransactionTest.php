@@ -265,4 +265,22 @@ class TransactionTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(1, $db->rollbacks);
         $this->assertFalse($db->inTransaction());
     }
+
+    public function testInsertReturnsFalseAndWritesNoRowsWhenARowFailsSilently()
+    {
+        $db = ORM::get_db();
+        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+
+        $result = Tag::q()->insert([
+            ['name' => 'red'],
+            ['name' => 'red'],
+        ]);
+
+        $this->assertFalse($result);
+        $this->assertSame(0, Tag::q()->count());
+        $this->assertSame(1, $db->begins);
+        $this->assertSame(0, $db->commits);
+        $this->assertSame(1, $db->rollbacks);
+        $this->assertFalse($db->inTransaction());
+    }
 }
