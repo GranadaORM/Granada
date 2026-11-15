@@ -871,21 +871,24 @@ class Query extends Orm\Db
     /**
      * Return pairs as result array('keyrecord_value'=>'valuerecord_value',.....)
      */
-    public function find_pairs(false|string $key = false, false|string $value = false): array
+    public function find_pairs(?string $key = null, ?string $value = null): array
     {
-        $key   = ($key) ? $key : 'id';
-        $value = ($value) ? $value : 'name';
+        $key ??= 'id';
+        $value ??= 'name';
         if (count($this->result_columns) === 2) {
             // The select fields have already been set
             return self::assoc_to_keyval($this->find_array(), $key, $value);
         }
 
+        // The aliases are fixed, so the pair lookup does not depend
+        // on the column names the caller passes.
         return self::assoc_to_keyval(
-            $this->select_raw($key . ',' . $value)
+            $this->select_raw($this->_quote_identifier($key), 'key_field')
+                ->select_raw($this->_quote_identifier($value), 'val_field')
                 ->order_by_asc($value)
                 ->find_array(),
-            $key,
-            $value
+            'key_field',
+            'val_field'
         );
     }
 

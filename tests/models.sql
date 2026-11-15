@@ -197,7 +197,8 @@ CREATE TABLE stamped_soft_ignored (
 
 CREATE TABLE simple (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT
+    name TEXT,
+    "order" TEXT
 );
 
 CREATE TABLE model_with_custom_connection (

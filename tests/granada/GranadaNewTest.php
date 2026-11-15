@@ -549,6 +549,43 @@ class GranadaNewTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals([], $pairs);
     }
 
+    public function testFindPairsWithReservedWordColumn()
+    {
+        Simple::create([
+            'id'    => 2,
+            'name'  => 'Simple2',
+            'order' => 'first',
+        ])->save();
+        Simple::create([
+            'id'    => 3,
+            'name'  => 'Simple3',
+            'order' => 'second',
+        ])->save();
+
+        $pairs    = Simple::q()->find_pairs('id', 'order');
+        $expected = [
+            '1' => null,
+            '2' => 'first',
+            '3' => 'second',
+        ];
+        $this->assertEquals($expected, $pairs);
+    }
+
+    public function testFindPairsWithQualifiedColumnNames()
+    {
+        $pairs = Car::q()
+            ->join('manufactor', 'manufactor.id=car.manufactor_id')
+            ->find_pairs('car.id', 'car.name');
+        $expected = [
+            '1' => 'Car1',
+            '2' => 'Car2',
+            '3' => 'Car3',
+            '4' => 'Car4',
+            '6' => 'Car6',
+        ];
+        $this->assertEquals($expected, $pairs);
+    }
+
     public function testfindManySelect()
     {
         $cars = Car::q()
