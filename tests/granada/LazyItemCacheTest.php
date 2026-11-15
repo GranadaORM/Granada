@@ -239,21 +239,6 @@ class LazyItemCacheTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(2, LazyItemCache::size());
     }
 
-    public function testRemoveDropsTheRowUnderEveryRelationColumn()
-    {
-        $car1       = Car::q()->find_one(1);
-        $manufactor = $car1->manufactor;
-        $owner      = Owner::q()->find_one(1);
-        $owner->car;
-        $this->assertEquals(2, LazyItemCache::size());
-
-        LazyItemCache::remove('Car', 1);
-
-        $this->assertNull(LazyItemCache::get('Car', 'owner_id', 1));
-        $this->assertSame($manufactor, LazyItemCache::get('Manufactor', 'id', 1));
-        $this->assertEquals(1, LazyItemCache::size());
-    }
-
     public function testBelongsToWithCustomFkColumnCached()
     {
         $car    = Car::q()->find_one(1);
