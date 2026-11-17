@@ -789,6 +789,59 @@ $recipe->sync_steps([9, 4, 7]); // numbered 1, 2, 3 in the order given
 column can have gaps. A model's `save()` writes only its own row; use
 `attach()`, `detach()` and `sync()` for link rows.
 
+## Filtering by a junction
+
+A junction filter is a method on your query class. The two methods below add
+`where_role_in()` and `where_role_not_in()`:
+
+```php
+class QueryUser extends \Granada\Query
+{
+    public function where_role_in(array|\Granada\Query|int $ids): static
+    {
+        if (is_int($ids)) {
+            $ids = [$ids];
+        }
+
+        return $this->where_id_in(
+            UserRole::q()
+                ->where_role_id_in($ids)
+                ->select('user_id')
+        );
+    }
+
+    public function where_role_not_in(array|\Granada\Query|int $ids): static
+    {
+        if (is_int($ids)) {
+            $ids = [$ids];
+        }
+
+        return $this->where_id_not_in(
+            UserRole::q()
+                ->where_role_id_in($ids)
+                ->select('user_id')
+        );
+    }
+}
+```
+
+`where_role_in()` returns the users that have the roles in your list.
+`where_role_not_in()` returns the users that don't have those roles.
+`where_role_not_in()` also returns the users with no roles at all.
+Both take one id, a list of ids, or a query of roles.
+Granada runs the query inside the `IN`:
+
+```php
+$users = User::q()->where_role_in([1, 2])->find_many();
+// SELECT * FROM `user` WHERE `user`.`id` IN (SELECT `user_id` FROM `user_role` WHERE `user_role`.`role_id` IN ('1', '2'))
+
+$users = User::q()
+    ->where_role_not_in(Role::q()
+        ->where_enabled(true)
+        ->select('id'))
+    ->find_many();
+```
+
 ## Syncing children
 
 A `has_many` relationship loads a parent's children, and `sync()` makes them match
