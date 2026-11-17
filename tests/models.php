@@ -184,6 +184,32 @@ class QueryCar extends \Granada\Query
     {
         return $this->where('name', $name);
     }
+
+    public function where_part_in(array|\Granada\Query|int $ids): static
+    {
+        if (is_int($ids)) {
+            $ids = [$ids];
+        }
+
+        return $this->where_id_in(
+            CarPart::q()
+                ->where_part_id_in($ids)
+                ->select('car_id')
+        );
+    }
+
+    public function where_part_not_in(array|\Granada\Query|int $ids): static
+    {
+        if (is_int($ids)) {
+            $ids = [$ids];
+        }
+
+        return $this->where_id_not_in(
+            CarPart::q()
+                ->where_part_id_in($ids)
+                ->select('car_id')
+        );
+    }
 }
 
 class CarPart extends Model
