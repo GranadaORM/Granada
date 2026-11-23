@@ -298,9 +298,8 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
     public function testRowsWithANullIdAreSkipped()
     {
         // keyed_row contains a duplicated id, a null id and a zero id.
-        // The null id has no row to fetch by, so that row is
-        // skipped; the duplicated id appears once per
-        // occurrence, in row order.
+        // The null id has no row to fetch by, so it is skipped; the
+        // duplicated id appears once per occurrence, in row order.
         $lazy = KeyedRow::q()->find_many_lazy();
 
         $this->assertSame(['a', 'a-dup', 'c', 'zero'], $this->names($lazy));

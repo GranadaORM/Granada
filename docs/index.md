@@ -147,8 +147,8 @@ The method throws when the query has one of these:
 
 - `group_by()`, since a grouped row has no single id
 - `raw_query()`
-- a `join()` plus a custom `select()`, since the select may only name the table's
-  own columns
+- a `join()` plus a custom `select()`, since the select can only list the table's
+  columns
 
 `return_result_sets` does not apply here: the method always returns a generator.
 For small results, use `find_many()`.
@@ -563,7 +563,7 @@ $count = Car::q()->count();
 
 ## Soft deletes
 
-A model opts into soft deletes by naming `$_soft_delete_column`. Its `delete()` then
+A model opts into soft deletes by declaring `$_soft_delete_column`. Its `delete()` then
 marks the row instead of removing it, and marked rows are left out of finds,
 counts, and relationship queries for that model:
 
@@ -602,7 +602,7 @@ $count = Car::q()->clear_where()->where('car.is_deleted', 1)->count();
 
 ## Automatic timestamps
 
-A model opts into automatic timestamps by naming `$_auto_timestamps`. Granada then
+A model opts into automatic timestamps by declaring `$_auto_timestamps`. Granada then
 writes its `created_at` and `updated_at` columns, in UTC, on every write:
 
 ```php
@@ -633,7 +633,7 @@ $car->increment('views');   // updated_at is written with the count
 ```
 
 The columns are `created_at` and `updated_at` unless `$_auto_timestamp_columns`
-names others:
+lists others:
 
 ```php
 class Car extends Model
@@ -670,7 +670,7 @@ class Car extends Model
 
 ## Auto order
 
-An auto-order column gives a model's rows a position. Name it with
+An auto-order column gives a model's rows a position. Declare it with
 `$_auto_order_column`:
 
 ```php
@@ -712,8 +712,8 @@ Car::q()->set_order_many([5, 2, 9]);
 A `has_many_through` relationship loads its models through a link table. The
 same declaration provides the junction writes `attach()`, `detach()` and `sync()`.
 A relationship method is named `related_` plus the relationship's name, and
-application code names the relationship without the prefix.
-In the declaration, name the model for the link table and its two key columns:
+application code calls the relationship without the prefix.
+In the declaration, pass the model for the link table and its two key columns:
 
 ```php
 class User extends Model
@@ -762,7 +762,7 @@ $user->roles()->attach(2, ['enabled' => 1]);
 
 ### Ordering the related models
 
-`ordered_by()` names the order column on the link table. Reads return in that
+`ordered_by()` sets the order column on the link table. Reads return in that
 order:
 
 ```php
@@ -871,7 +871,7 @@ Granada fills in the foreign key from the parent, so you do not set it yourself,
 and every write runs inside one transaction. The call takes effect after the
 parent is saved.
 
-`ordered_by()` names the order column on the child table, just as it does on a
+`ordered_by()` sets the order column on the child table, just as it does on a
 `has_many_through`. `sync()` numbers the rows in the order you list them, and reads
 return in that order:
 
@@ -921,7 +921,7 @@ $users = User::q()->where_not_has('invoices')->find_many();
 // SELECT * FROM `user` WHERE NOT EXISTS ( SELECT 1 FROM `invoice` WHERE `invoice`.`user_id` = `user`.`id` )
 ```
 
-Name the relationship in the method instead, and you get
+Declare the relationship in the method instead, and you get
 `where_has_{relation}()` and `where_not_has_{relation}()`:
 
 ```php

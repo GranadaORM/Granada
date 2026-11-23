@@ -64,7 +64,7 @@ class ConnectionManager
     /** @var array<string, Dialect> */
     private array $dialect_cache = [];
 
-    // Only a depth of one touches the database
+    // Only a depth of one affects the database
     /** @var array<string, int> */
     private array $transaction_depth = [];
 

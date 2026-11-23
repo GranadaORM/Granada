@@ -763,7 +763,7 @@ class Granada implements ArrayAccess
 
     /**
      * Delete the database row associated with this model instance.
-     * On a model that names $_soft_delete_column, writes the flag and
+     * On a model that declares $_soft_delete_column, writes the flag and
      * marks the row; delete_forced() removes it.
      */
     public function delete(): ?bool
@@ -911,9 +911,6 @@ class Granada implements ArrayAccess
     }
 
     /**
-     * The relationship and write a method such as attach_roles names.
-     * Any other name gives [null, null].
-     *
      * @return array{Relationship|null, string|null}
      */
     private function resolve_junction_write(string $method): array

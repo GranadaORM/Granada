@@ -167,7 +167,7 @@ $owner = Owner::q()->with_car(fn($q) => $q->select('id, manufactor_id')
 You do not have to select the key that ties the two models together. Granada
 adds it for you, and selecting it yourself is also fine.
 
-Limit a relationship query to the columns you name: `select('id, name')`. On a
+Limit a relationship query to certain columns: `select('id, name')`. On a
 `has_many_through`, qualify each column with the table name:
 
 ```php
@@ -215,7 +215,7 @@ class QueryCar extends \Granada\Query
 {
     public function is_expensive(): static
     {
-        return $this->where_gt('price', 1000);
+        return $this->where_gt('price', 100000);
     }
 }
 
@@ -263,8 +263,8 @@ $content_instance->title = 'A title';
 
 ### Mass assignment
 
-`create()` and `set()` write every key you give them. There is no fillable or
-guarded list, and Granada does not filter the keys.
+`create()` and `set()` write what you give them.
+Granada does not filter the keys.
 
 If the array comes from a request, pass only the fields that the form offered
 before the array reaches the model:
@@ -275,12 +275,12 @@ $enquiry = Enquiry::create(array_intersect_key($data, array_flip($allowed)));
 ```
 
 Granada does not remove unknown keys: the save fails with a database error if the
-column does not exist. Filter the keys yourself, based on what the form offered.
+column does not exist. Filter the keys yourself, or better, use a whitelist of fields that can be changed from user data.
 
 ### Getters and computed values
 
 A `get_{column}()` getter transforms a column value before you read it, and a
-`missing_{name}()` method computes a value that the database does not have:
+`missing_{name}()` method computes a value that is not from the database:
 
 ```php
 // In the Model
@@ -308,7 +308,7 @@ A method named after the property runs last, and it can return a relationship.
 ### Use your own result set class
 
 Turn on `return_result_sets`, and a find returns a `Granada\ResultSet` instead
-of an array. A model can name its own subclass, as long as it extends
+of an array. A model can specify its own subclass, as long as it extends
 `Granada\ResultSet` and is loaded:
 
 ```php
@@ -321,7 +321,7 @@ public static string $resultSetClass = 'TreeResultSet';
 echo get_class(Content::q()->find_many()); // TreeResultSet
 ```
 
-An eager load returns the same class: a `Content` model that names
+An eager load returns the same class: a `Content` model that sets
 `TreeResultSet` and has a `media` relationship returns a `TreeResultSet` of
 `Content` models, with `media` as a plain `Granada\ResultSet`:
 

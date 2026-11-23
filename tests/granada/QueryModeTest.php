@@ -142,7 +142,7 @@ class QueryModeTest extends \PHPUnit\Framework\TestCase
 
     public function testAQueryContainsNoRowData()
     {
-        // The warning names the class and property; no row data comes out.
+        // The warning has the class and property. The row data is empty.
         $reported = null;
         set_error_handler(function (int $number, string $message) use (&$reported): bool {
             $reported = $message;
