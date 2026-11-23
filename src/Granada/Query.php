@@ -703,7 +703,7 @@ class Query extends Orm\Db
             throw new \InvalidArgumentException('find_many_lazy cannot run a raw query: build the query with the chain methods');
         }
 
-        // The rows load from the table alone, so a select() naming
+        // The rows load from the table alone, so a select() that lists
         // another table's columns cannot run.
         if ($this->join_sources !== [] && !$this->using_default_result_columns) {
             throw new \InvalidArgumentException('find_many_lazy cannot run a query with a join and a custom select()');
@@ -823,8 +823,8 @@ class Query extends Orm\Db
 
         // The row query returns the rows in database order. Grouping
         // them by id lets the caller yield them in $chunk_ids order
-        // instead. A chunk id with no row was deleted between the two
-        // queries.
+        // instead. A chunk id with no row means the row was deleted
+        // between the two queries.
         $rows_by_id = [];
         foreach ($query->find_array() as $row) {
             $rows_by_id[$row[$id_column]][] = $row;
@@ -1043,7 +1043,7 @@ class Query extends Orm\Db
 
     /**
      * Remove every row the query matches, or flag them instead on a model
-     * that names $_soft_delete_column. True when the statement runs, false
+     * that declares $_soft_delete_column. True when the statement runs, false
      * when the write fails. A query with a join throws InvalidArgumentException.
      */
     public function delete_many(): ?bool
@@ -1631,7 +1631,7 @@ class Query extends Orm\Db
 
     /**
      * The column name qualified with the table, or its alias, unless it
-     * already names a table.
+     * already has a table prefix.
      */
     private function qualified_column(string $column_name): string
     {
@@ -1726,7 +1726,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * More explicitly named version of for the where() method.
+     * A more explicit version of the where() method.
      * Can be used if preferred.
      */
     public function where_equal(string $column_name, mixed $value): static
@@ -2181,7 +2181,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * The relationship an existence filter or related count names,
+     * The relationship that an existence filter or related count refers to,
      * read from a fresh instance of this query's model.
      */
     private function existence_relationship(string $relation, string $method): Relationship
@@ -2371,7 +2371,7 @@ class Query extends Orm\Db
     }
 
     /**
-     * More explicitly named version of for the having() method.
+     * A more explicit version of the having() method.
      * Can be used if preferred.
      */
     public function having_equal(string $column_name, mixed $value): static

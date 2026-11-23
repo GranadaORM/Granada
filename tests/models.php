@@ -613,7 +613,7 @@ class CrateExtra extends Model
 }
 
 /**
- * Turns automatic timestamps on, with the default columns, and names
+ * Turns automatic timestamps on, with the default columns, and declares
  * position as its auto-order column.
  */
 class Stamped extends Model
@@ -701,7 +701,7 @@ class StampedSoft extends Model
 }
 
 /**
- * Its ignore list names the soft-delete flag, so marking a row writes
+ * Its ignore list includes the soft-delete flag, so marking a row writes
  * no timestamp.
  */
 class StampedSoftIgnored extends Model

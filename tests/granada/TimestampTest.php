@@ -203,7 +203,7 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
         ]);
         $row->save();
 
-        // The subclass's list names last_login, so sort_order is no
+        // The subclass's list includes last_login, so sort_order is no
         // longer ignored, and changing it writes changed_on.
         $row             = StampedChildOverride::q()->find_one($row->id);
         $row->sort_order = 9;
