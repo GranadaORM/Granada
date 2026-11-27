@@ -6,7 +6,7 @@ use Granada\ORM;
 use Granada\Orm\Dialect;
 
 /**
- * Firebird: double-quote identifiers; pagination is a one-based
+ * Firebird: double-quote identifiers. Pagination is a one-based
  * ROWS range.
  *
  * @internal
@@ -19,7 +19,7 @@ class Firebird extends Dialect
 
     /**
      * Firebird paginates with a one-based ROWS range: ROWS m takes
-     * the first m rows, and ROWS m TO n takes rows m through n. An
+     * the first m rows. ROWS m TO n takes rows m through n. An
      * offset without a limit has no last row, so the range ends at
      * PHP_INT_MAX, the way the Firebird manual suggests for SKIP
      * without FIRST.

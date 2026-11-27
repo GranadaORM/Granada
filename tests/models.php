@@ -624,7 +624,7 @@ class Stamped extends Model
 }
 
 /**
- * A model that does not turn timestamps on.
+ * A model that doesn't turn timestamps on.
  */
 class Unstamped extends Model {}
 

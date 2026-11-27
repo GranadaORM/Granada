@@ -72,7 +72,7 @@ final class Condition
     }
 
     /**
-     * The subquery's placeholders remain bound; its values merge into
+     * The subquery's placeholders remain bound. Its values merge into
      * the outer statement.
      * @param mixed[] $values
      */

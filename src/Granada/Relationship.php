@@ -6,7 +6,7 @@ namespace Granada;
  * Contains what a relationship method specified: the kind, the related class,
  * the key columns, and for has_many_through the link table.
  *
- * A relationship method attaches it to the query it returns, and loading
+ * A relationship method attaches it to the query it returns. Loading
  * reads it to fetch the related models. The relationship builds every
  * query that loading runs: the lazy query for one parent row, the
  * eager query for many parents, and the query with no parent
@@ -44,9 +44,9 @@ class Relationship
      *                                 model, for has_many_through.
      * @param string|null $table       The link table, for has_many_through.
      * @param string|null $local_key   The column on this model the query
-     *                                 matches; empty means the id column.
+     *                                 matches. Empty means the id column.
      * @param string|null $related_key The column on the associated model the
-     *                                 query matches; empty means its id
+     *                                 query matches. Empty means its id
      *                                 column for the kinds that read it.
      * @param string|null $connection  The connection of the associated model.
      */
@@ -69,7 +69,7 @@ class Relationship
 
     /**
      * Set the link table column that stores each link's position.
-     * Reads order by it, and the writes update it.
+     * Reads order by it. The writes update it.
      */
     public function ordered_by(string $column): static
     {
@@ -146,7 +146,7 @@ class Relationship
     /**
      * The related query restricted to the parents whose key values
      * are in $keys. Every condition the chain added remains on it: a
-     * query the chain built is cloned, and the clone contains those
+     * query the chain built is cloned. The clone contains those
      * conditions.
      *
      * @param mixed[] $keys
@@ -157,7 +157,7 @@ class Relationship
 
         if ($this->table === null && !$query->_select_is_default()) {
             // The children match their parents by this column, and
-            // the chain's select list does not include it, so it is
+            // the chain's select list doesn't include it, so it is
             // added here.
             $query->select($this->cache_column());
         }
@@ -174,7 +174,7 @@ class Relationship
     /**
      * Run the with() constraint closure on the relationship's query.
      * The select list is cleared first, so the closure's own select()
-     * sets the columns, and loading adds the match columns to the
+     * sets the columns. Loading adds the match columns to the
      * select again.
      */
     public function constrain(\Closure $constraint): void
@@ -234,7 +234,7 @@ class Relationship
      * Eager-load this relationship for every parent row and store each
      * parent's set value under $name, the property the models read.
      * With $return_result_sets on, a "many" relationship's set value
-     * is a result set; a "one" relationship's is null until the load
+     * is a result set. A "one" relationship's is null until the load
      * finds a row.
      *
      * @param Granada[] $parents
@@ -316,8 +316,8 @@ class Relationship
     }
 
     /**
-     * Set the links to match $members: missing links are created, unlisted
-     * ones are removed, and the rest remain. $members contains ids, or ids mapped
+     * Set the links to match $members: missing links are created. Unlisted
+     * ones are removed. The rest remain. $members contains ids, or ids mapped
      * to data for each link.
      *
      * Through a has_many, $members syncs the children to the rows
@@ -377,7 +377,7 @@ class Relationship
 
     /**
      * Syncs the list of children to the rows given, adding, updating,
-     * and deleting when needed, and sets each child's data from its row.
+     * and deleting when needed. It sets each child's data from its row.
      *
      * @param mixed[] $rows
      */
@@ -502,10 +502,10 @@ class Relationship
     }
 
     /**
-     * The column on the related side this relation matches by: for
-     * belongs_to, the declared key column on the associated model; the
-     * qualified link column for a has_many_through; the foreign key
-     * otherwise.
+     * The column on the related side this relation matches by. For
+     * belongs_to it is the declared key column on the associated model. For
+     * a has_many_through it is the qualified link column. Otherwise it is the
+     * foreign key.
      */
     private function restrict_column(): string
     {
@@ -517,9 +517,9 @@ class Relationship
     }
 
     /**
-     * The value of the lazy query's parent condition: for belongs_to,
-     * this row's foreign key; the declared local key column's value
-     * when one is set, the id otherwise.
+     * The value of the lazy query's parent condition. For belongs_to
+     * it is this row's foreign key. For the other kinds it is the declared
+     * local key column's value when one is set, or the id.
      */
     private function parent_condition_value(): mixed
     {
@@ -554,9 +554,9 @@ class Relationship
     }
 
     /**
-     * The column each parent is matched by: for belongs_to, this
-     * model's foreign key; the declared local key column when one is
-     * set, the id otherwise.
+     * The column each parent is matched by. For belongs_to it is this
+     * model's foreign key. For the other kinds it is the declared local key
+     * column when one is set, or the id.
      */
     private function parent_key_column(): string
     {
@@ -627,7 +627,7 @@ class Relationship
     }
 
     /**
-     * The first matching child becomes the parent's value; later
+     * The first matching child becomes the parent's value. Later
      * children for the same parent are skipped.
      *
      * @param array<mixed, non-empty-list<Granada>> $parents_by_key
@@ -699,8 +699,8 @@ class Relationship
 
     /**
      * The link column is added to the select so each child matches
-     * back to its parents, and removed from the returned rows: it
-     * does not belong to the related model. Every link row becomes a
+     * back to its parents. It is removed from the returned rows: it
+     * doesn't belong to the related model. Every link row becomes a
      * list entry, so repeated rows are kept.
      *
      * @param array<mixed, non-empty-list<Granada>> $parents_by_key
@@ -786,7 +786,7 @@ class Relationship
 
     /**
      * Run the write in a transaction on the link table's connection.
-     * A model with no link value yet has nothing to write, so it is skipped.
+     * When a model has no link value yet, it has nothing to write, so it is skipped.
      */
     private function in_transaction(callable $writes): void
     {

@@ -6,7 +6,7 @@ use PDO;
 
 /**
  * The connection code shared by the row class (ORM) and the query
- * class (Granada\Query): the connection manager that serves the static
+ * class (Granada\Query): the connection manager that handles the static
  * calls, the execute paths, the query cache, and the dialect.
  *
  * @internal
@@ -99,7 +99,7 @@ abstract class Db
      * This is public in case the ORM should use a ready-instantiated
      * PDO object as its database connection. Accepts an optional string key
      * to identify the connection if multiple connections are used. Passing
-     * null removes the handle; the next use reconnects from the settings.
+     * null removes the handle. The next use reconnects from the settings.
      * @param PDO|null $db
      * @param string $connection_name Which connection to use
      */
@@ -141,7 +141,7 @@ abstract class Db
 
     /**
      * Run the callable inside one transaction on the connection:
-     * success commits and returns the callable's return value; a
+     * success commits and returns the callable's return value. A
      * thrown exception rolls the transaction back and rethrows. A call
      * inside an open transaction joins the outermost one.
      * @param callable $fn
@@ -236,7 +236,7 @@ abstract class Db
 
     /**
      * Execute a mutating statement, then run the write callbacks.
-     * Every write path uses this method; the read path does not.
+     * Every write path uses this method. The read path doesn't.
      * @param string $query
      * @param mixed[] $parameters
      */

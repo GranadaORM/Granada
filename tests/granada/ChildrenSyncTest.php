@@ -4,8 +4,8 @@ use Granada\ORM;
 
 /**
  * Children sync: sync through a has_many relation replaces the child set
- * in one call - a row with an id updates that child, a row without one
- * creates a child, and an unlisted child is deleted.
+ * in one call - a row with an id updates that child. A row without one
+ * creates a child. An unlisted child is deleted.
  */
 class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
 {
@@ -280,7 +280,7 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
         [$item1, $item2] = $this->itemIds(1);
 
         // The relation reads only Item1, so sync operates on that subset: Item1
-        // is kept, and Item2 - outside the filter - is left untouched.
+        // is kept. Item2 - outside the filter - is left untouched.
         $crate->sync_named_items([
             [
                 'id'   => $item1,
@@ -304,7 +304,7 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
             ],
         ]);
 
-        // The unlisted extra retains its row, flagged, and is left out of reads.
+        // The unlisted extra retains its row, flagged. It is left out of reads.
         $this->assertSame(2, CrateExtra::q()
             ->clear_where()
             ->count());
@@ -326,7 +326,7 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
         $crate->sync_extras([['name' => 'Extra1'], ['name' => 'Extra2']]);
         [$kept, $flagged] = $this->extraIds(1);
 
-        // Extra2 is unlisted, so it is flagged; only Extra1 remains visible.
+        // Extra2 is unlisted, so it is flagged. Only Extra1 remains visible.
         $crate->sync_extras([
             [
                 'id'   => $kept,
@@ -416,7 +416,7 @@ class ChildrenSyncTest extends \PHPUnit\Framework\TestCase
                 ['name' => 'Item3'],
             ]);
 
-        // Reverse the set; the reads return in the new order.
+        // Reverse the set. The reads return in the new order.
         $crate = Crate::q()->find_one(1);
         $ids   = $this->itemIds(1);
         $crate->ordered_items()->sync([

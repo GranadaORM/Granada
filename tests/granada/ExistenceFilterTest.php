@@ -58,7 +58,7 @@ class ExistenceFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testWhereHasStaysOneRowPerParent()
     {
-        // Gadget1 has two matching widgets; it is still one row.
+        // Gadget1 has two matching widgets. It is still one row.
         $query = Gadget::q()->where_has('widgets');
 
         $this->assertSame(2, $query->count());
@@ -164,7 +164,7 @@ class ExistenceFilterTest extends \PHPUnit\Framework\TestCase
     public function testWhereHasHonoursTheRelationsOwnFilter()
     {
         // Manufactor::cars() applies enabled = 1, so Car6 (disabled)
-        // does not match its manufactor.
+        // doesn't match its manufactor.
         $manufactors = Manufactor::q()
             ->where_has('cars', ['name' => 'Car6'])
             ->find_many();

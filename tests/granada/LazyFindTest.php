@@ -174,7 +174,7 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
             $owners[] = $car->owner->name;
         }
 
-        // Five reads; the Owner4 read repeats, and LazyItemCache returns
+        // Five reads. The Owner4 read repeats, and LazyItemCache returns
         // the cached value, so four queries in all. No chunk prefetches
         // owners.
         $this->assertSame(4, $this->queriesContaining($this->log(), 'FROM `owner`'));
@@ -224,7 +224,7 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
 
         $results = iterator_to_array($lazy);
 
-        // The join narrows and orders the id pass; the row pass
+        // The join narrows and orders the id pass. The row pass
         // returns unmodified car rows, whatever the join matched.
         $this->assertSame([3, 4, 6], array_keys($results));
         $this->assertSame(['Car3', 'Car4', 'Car6'], $this->names($results));
@@ -298,7 +298,7 @@ class LazyFindTest extends \PHPUnit\Framework\TestCase
     public function testRowsWithANullIdAreSkipped()
     {
         // keyed_row contains a duplicated id, a null id and a zero id.
-        // The null id has no row to fetch by, so it is skipped; the
+        // A null id matches no row, so it is skipped. The
         // duplicated id appears once per occurrence, in row order.
         $lazy = KeyedRow::q()->find_many_lazy();
 

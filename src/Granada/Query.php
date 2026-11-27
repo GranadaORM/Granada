@@ -684,8 +684,8 @@ class Query extends Orm\Db
      * (default 1000).
      *
      * The generator is single use: to loop again, call
-     * find_many_lazy() again, and every query runs again.
-     * return_result_sets does not apply.
+     * find_many_lazy() again. Every query runs again.
+     * return_result_sets doesn't apply.
      *
      * group_by, raw_query() and a join with a custom select() throw
      * before any query runs.
@@ -704,7 +704,7 @@ class Query extends Orm\Db
         }
 
         // The rows load from the table alone, so a select() that lists
-        // another table's columns cannot run.
+        // another table's columns can't run.
         if ($this->join_sources !== [] && !$this->using_default_result_columns) {
             throw new \InvalidArgumentException('find_many_lazy cannot run a query with a join and a custom select()');
         }
@@ -780,7 +780,7 @@ class Query extends Orm\Db
         }
 
         // The id column is fetched for matching and removed again
-        // when the caller's select() did not include it, so the
+        // when the caller's select() didn't include it, so the
         // models are returned as find_many() would build them.
         $id_hidden = !$this->using_default_result_columns
             && !in_array($this->_quote_identifier($id_column), $this->result_columns, true);
@@ -823,7 +823,7 @@ class Query extends Orm\Db
 
         // The row query returns the rows in database order. Grouping
         // them by id lets the caller yield them in $chunk_ids order
-        // instead. A chunk id with no row means the row was deleted
+        // instead. When a chunk id has no row, the row was deleted
         // between the two queries.
         $rows_by_id = [];
         foreach ($query->find_array() as $row) {
@@ -847,7 +847,7 @@ class Query extends Orm\Db
 
         // The query's with() eager loads run here, once per chunk
         // against the chunk's parents. The chunk stays an array because
-        // return_result_sets does not apply.
+        // return_result_sets doesn't apply.
         return $hydrator->many($this, $instances, false);
     }
 
@@ -880,7 +880,7 @@ class Query extends Orm\Db
             return self::assoc_to_keyval($this->find_array(), $key, $value);
         }
 
-        // The aliases are fixed, so the pair lookup does not depend
+        // The aliases are fixed, so the pair lookup doesn't depend
         // on the column names the caller passes.
         return self::assoc_to_keyval(
             $this->select_raw($this->_quote_identifier($key), 'key_field')
@@ -1029,7 +1029,7 @@ class Query extends Orm\Db
                 }
             }, $this->_connection_name);
         } catch (\RuntimeException $e) {
-            // A PDOException is a RuntimeException too; only a write
+            // A PDOException is a RuntimeException too. Only a write
             // that failed silently returns false
             if ($e instanceof \PDOException) {
                 throw $e;
@@ -1073,7 +1073,7 @@ class Query extends Orm\Db
     /**
      * Write the same values to every row the query matches, in one
      * UPDATE. True when the statement runs, false when the write fails.
-     * An empty array does nothing; a query with a join throws.
+     * An empty array does nothing. A query with a join throws.
      * @param array<string, mixed> $values
      */
     public function update_many(array $values): bool
@@ -1102,8 +1102,8 @@ class Query extends Orm\Db
 
     /**
      * Number the listed rows 1..n on the model's auto-order column, in the order given.
-     * Rows not listed are unchanged, and the write does not change `updated_at`.
-     * True when the statements ran; an empty list does nothing.
+     * Rows not listed are unchanged. The write doesn't change `updated_at`.
+     * True when the statements ran. An empty list does nothing.
      * A joined query throws, as does a model that declares no auto-order column.
      *
      * @param (int|string)[] $ids
@@ -1301,7 +1301,7 @@ class Query extends Orm\Db
      * query. This defaults to '*'. Many columns can be supplied
      * as either an array or as a list of parameters to the method.
      *
-     * The alias cannot be numeric. For a numeric alias, add letters in
+     * The alias can't be numeric. For a numeric alias, add letters in
      * front of it, for example a1.
      *
      * @example select_many(array('alias' => 'column', 'column2', 'alias2' => 'column3'), 'column4', 'column5');
@@ -1312,19 +1312,7 @@ class Query extends Orm\Db
      */
     public function select_many(...$columns): static
     {
-        if (!$columns) {
-            return $this;
-        }
-
-        $columns = $this->normalise_select_many_columns($columns);
-        foreach ($columns as $alias => $column) {
-            if (is_numeric($alias)) {
-                $alias = null;
-            }
-            $this->select($column, $alias);
-        }
-
-        return $this;
+        return $this->add_select_many($columns, 'select');
     }
 
     /**
@@ -1332,7 +1320,7 @@ class Query extends Orm\Db
      * by the SELECT query. Many columns can be supplied as either
      * an array or as a list of parameters to the method.
      *
-     * The alias cannot be numeric. For a numeric alias, add letters in
+     * The alias can't be numeric. For a numeric alias, add letters in
      * front of it, for example a1.
      *
      * @example select_many_expr(array('alias' => 'column', 'column2', 'alias2' => 'column3'), 'column4', 'column5')
@@ -1343,7 +1331,12 @@ class Query extends Orm\Db
      */
     public function select_many_expr(...$columns): static
     {
-        if (empty($columns)) {
+        return $this->add_select_many($columns, 'select_expr');
+    }
+
+    private function add_select_many(array $columns, string $select_function): static
+    {
+        if (!$columns) {
             return $this;
         }
 
@@ -1352,7 +1345,7 @@ class Query extends Orm\Db
             if (is_numeric($alias)) {
                 $alias = null;
             }
-            $this->select_expr($column, $alias);
+            $this->$select_function($column, $alias);
         }
 
         return $this;
@@ -1364,12 +1357,11 @@ class Query extends Orm\Db
      *
      * It is designed to turn the following styles into a normalised array:
      *
-     * array(array('alias' => 'column', 'column2', 'alias2' => 'column3'), 'column4', 'column5'))
+     * array(array('alias' => 'column', 'column2', 'alias2' => 'column3'), 'column4', 'column5')
      *
      * @param array<int, string|array>  $columns
-     * @return array
+     * @return array<string|int, string>
      */
-    /** @return array<string|int, string> */
     private function normalise_select_many_columns(array $columns): array
     {
         $return = [];
@@ -1535,7 +1527,7 @@ class Query extends Orm\Db
     private function add_where_condition(Orm\Condition $condition): static
     {
         if (in_array($condition, $this->where_conditions)) {
-            return $this; // already present, do not duplicate
+            return $this; // already present, don't duplicate
         }
         $this->append_connected_by($this->where_conditions, $condition);
 
@@ -1545,7 +1537,7 @@ class Query extends Orm\Db
     private function add_having_condition(Orm\Condition $condition): static
     {
         if (in_array($condition, $this->having_conditions)) {
-            return $this; // already present, do not duplicate
+            return $this; // already present, don't duplicate
         }
         $this->append_connected_by($this->having_conditions, $condition);
 
@@ -1645,7 +1637,7 @@ class Query extends Orm\Db
     /**
      * Add a WHERE column = value clause to your query. Each time
      * this is called in the chain, an additional WHERE will be
-     * added, and these will be ANDed together when the final query
+     * added. These will be ANDed together when the final query
      * is built.
      *
      * With a closure, the closure's conditions collected on a fresh
@@ -1691,7 +1683,7 @@ class Query extends Orm\Db
     /**
      * Runs the closure on a fresh query for the same table and
      * collects the conditions it built into one group. A closure
-     * that builds no conditions adds no group.
+     * that doesn't build any conditions doesn't add a group.
      * @param callable(Orm\Condition): static $add_condition
      */
     private function add_group(Closure $closure, Orm\ConnectedBy $connected_by, bool $negate, callable $add_condition, string $list = 'where'): static
@@ -1919,8 +1911,8 @@ class Query extends Orm\Db
 
     /**
      * One IN condition over a list or a subquery. A subquery renders
-     * with bound placeholders; its values merge into this query's
-     * statement. An empty list matches no rows; with NOT, it adds no
+     * with bound placeholders. Its values merge into this query's
+     * statement. An empty list matches no rows. With NOT, the method doesn't add a
      * condition, so every row matches.
      * @param mixed[]|self $values
      */
@@ -2049,7 +2041,7 @@ class Query extends Orm\Db
 
     /**
      * Add an EXISTS ( subquery ) condition. The subquery is a query
-     * for another table; correlation is spelled inside it with
+     * for another table. Correlation is spelled inside it with
      * where_raw. Its bound values merge into this query.
      */
     public function where_exists(self $subquery): static
@@ -2166,7 +2158,7 @@ class Query extends Orm\Db
 
     /**
      * A related query as a scalar subquery: its select list becomes the
-     * single expression, so a relationship's own select() does not add a
+     * single expression, so a relationship's own select() doesn't add a
      * second column to it.
      *
      * @return array{string, mixed[]}
@@ -2212,7 +2204,7 @@ class Query extends Orm\Db
     private function correlated_relationship_query(Relationship $relationship, null|array|Closure $conditions): Query
     {
         $related = $relationship->query();
-        // A scalar subquery has no ordering, and a relation's own
+        // A scalar subquery has no ordering. A relation's own
         // order_by would make SQL Server reject it.
         $related->order_by_clear();
 
@@ -2355,7 +2347,7 @@ class Query extends Orm\Db
     /**
      * Add a HAVING column = value clause to your query. Each time
      * this is called in the chain, an additional HAVING will be
-     * added, and these will be ANDed together when the final query
+     * added. These will be ANDed together when the final query
      * is built.
      *
      * With a closure, the closure's conditions collected on a fresh

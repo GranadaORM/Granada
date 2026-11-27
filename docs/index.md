@@ -3,7 +3,7 @@
 ## Documentation
 
 Most of the query language comes from Idiorm and Paris, so start with their docs
-for anything this page does not cover. The sections here explain the rest, with
+for anything this page doesn't cover. The sections here explain the rest, with
 an example for each.
 
 The comments in the examples give the SQL that Granada sends. Granada escapes
@@ -34,11 +34,11 @@ $cars = Car::q()->is_expensive()->find_many();
 ```
 
 To create a model, use `Car::create($data)`. It returns the model unsaved, with
-the data you passed, and `save()` writes it to the database.
+the data you passed. `save()` writes it to the database.
 
 ## Table-first queries
 
-A table-first query starts at `Granada::for_table()` on a table that has no model
+A table-first query starts at `Granada::for_table()` on a table that doesn't have a model
 class. You add conditions and ordering, then call a find, as with a model query:
 
 ```php
@@ -122,12 +122,12 @@ fetch:
 foreach (User::q()->find_many_lazy(200) as $user) { ... }
 ```
 
-A smaller chunk uses less memory and runs more queries; a bigger chunk uses more
+A smaller chunk uses less memory and runs more queries. A bigger chunk uses more
 memory and runs fewer queries. The results are identical either way.
 
 ### Eager loading
 
-`with()` works as usual, and the relationship query runs once per chunk rather
+`with()` works as usual. The relationship query runs once per chunk rather
 than once per model:
 
 ```php
@@ -145,12 +145,12 @@ call runs the queries again, so the data may have changed.
 
 The method throws when the query has one of these:
 
-- `group_by()`, since a grouped row has no single id
+- `group_by()`, since a grouped row doesn't have a single id
 - `raw_query()`
 - a `join()` plus a custom `select()`, since the select can only list the table's
   columns
 
-`return_result_sets` does not apply here: the method always returns a generator.
+`return_result_sets` doesn't apply here: the method always returns a generator.
 For small results, use `find_many()`.
 
 ## Limiting results
@@ -197,7 +197,7 @@ $items = User::q()->where('class', 'Test')
 ```
 
 A suffix method puts the column in the method name: `where_class('Test')` does the
-same as `where('class', 'Test')`, and the calls below match the list above:
+same as `where('class', 'Test')`. The calls below match the list above:
 
 ```php
 $items = User::q()->where_class('Test')
@@ -213,7 +213,7 @@ $items = User::q()->where_class('Test')
     ->find_many();
 ```
 
-Your IDE cannot detect the suffix methods that Granada adds at runtime, so list
+Your IDE can't detect the suffix methods that Granada adds at runtime, so list
 the ones you use in a `@method` docblock on the query class:
 
 ```php
@@ -231,7 +231,7 @@ the ones you use in a `@method` docblock on the query class:
 
 ### Subselects for in and not in
 
-Pass a query where you would pass an array, and Granada runs it as a subselect, so
+Pass a query where you would pass an array. Granada runs it as a subselect, so
 one query replaces two:
 
 ```php
@@ -244,7 +244,7 @@ $items = User::q()->where_id_in(
 
 ### OR filters that match NULL
 
-These filters match a range or a list and also match NULL, so a row with no value
+These filters match a range or a list and also match NULL, so a row whose value is NULL
 still matches:
 
 ```php
@@ -286,7 +286,7 @@ $items = User::q()->where_any_is(
     // SELECT * FROM `user` WHERE (`name` != 'Joe' OR `name` != 'Fred' ) AND `enabled` = 1
 ```
 
-One group can contain more than one comparison, and the comparisons in a group
+One group can contain more than one comparison. The comparisons in a group
 combine with AND:
 
 ```php
@@ -432,7 +432,7 @@ $items = User::q()->where_exists(
 // SELECT * FROM `user` WHERE EXISTS ( SELECT * FROM `invoice` WHERE invoice.user_id = user.id AND `is_paid` = 0 )
 ```
 
-HAVING has the same methods. `having()` takes a group closure, and `or_having()`,
+HAVING has the same methods. `having()` takes a group closure. `or_having()`,
 `having_not()` and `or_having_not()` mirror their `where` equivalents.
 `having_exists()` and `having_not_exists()` test in HAVING.
 
@@ -477,7 +477,7 @@ $items = User::q()->order_by_desc('name')
 
 ### Clearing where and having conditions
 
-`clear_where()` removes every where condition, and `clear_having()` removes every
+`clear_where()` removes every where condition. `clear_having()` removes every
 having condition, including conditions that a filter added:
 
 ```php
@@ -507,7 +507,7 @@ $items = User::q()->where('name', 'Fred')
 
 ### Selecting all fields
 
-`select('*')` selects every column, and Granada places it at the front of the
+`select('*')` selects every column. Granada places it at the front of the
 list:
 
 ```php
@@ -564,7 +564,7 @@ $count = Car::q()->count();
 ## Soft deletes
 
 A model opts into soft deletes by declaring `$_soft_delete_column`. Its `delete()` then
-marks the row instead of removing it, and marked rows are left out of finds,
+marks the row instead of removing it. Marked rows are left out of finds,
 counts, and relationship queries for that model:
 
 ```php
@@ -612,8 +612,8 @@ class Car extends Model
 }
 ```
 
-An insert writes both columns, an update writes `updated_at`, and a save that
-changes nothing writes neither:
+An insert writes both columns. An update writes `updated_at`. Data is not
+written if nothing has changed:
 
 ```php
 $car = Car::create(['name' => 'Car1']);
@@ -657,7 +657,7 @@ $car = Car::create([
 $car->save();   // created_at is written as given, updated_at is written
 ```
 
-`$_auto_timestamps_ignore` lists the fields that do not update `updated_at` when
+`$_auto_timestamps_ignore` lists the fields that don't update `updated_at` when
 they change, such as `sort_order`:
 
 ```php
@@ -697,7 +697,7 @@ $car->sort_order = 7;
 $car->save();   // sort_order is 7
 ```
 
-The numbering covers the whole table, and it does not change `updated_at`. Two
+The numbering covers the whole table. It doesn't change `updated_at`. Two
 concurrent writes can store the same number.
 
 `set_order_many()` sets the listed rows to positions 1..n in the order of their
@@ -738,7 +738,7 @@ $user->attach_roles(2);                   // adds role 2
 $user->attach_roles(2, ['enabled' => 1]); // adds role 2, with values
 ```
 
-`detach()` removes a role from the user. With no argument it removes every role
+`detach()` removes a role from the user. Without an argument, it removes every role
 the user has:
 
 ```php
@@ -777,7 +777,7 @@ public function related_steps()
 }
 ```
 
-`attach()` adds a new step at the end, and `sync()` numbers the steps in the order
+`attach()` adds a new step at the end. `sync()` numbers the steps in the order
 you list them:
 
 ```php
@@ -785,8 +785,8 @@ $recipe->attach_steps(3);      // placed last
 $recipe->sync_steps([9, 4, 7]); // numbered 1, 2, 3 in the order given
 ```
 
-`detach()` removes a step and does not change the other positions, so the order
-column can have gaps. A model's `save()` writes only its own row; use
+`detach()` removes a step and doesn't change the other positions, so the order
+column can have gaps. A model's `save()` writes only its own row. Use
 `attach()`, `detach()` and `sync()` for link rows.
 
 ## Filtering by a junction
@@ -827,8 +827,8 @@ class QueryUser extends \Granada\Query
 
 `where_role_in()` returns the users that have the roles in your list.
 `where_role_not_in()` returns the users that don't have those roles.
-`where_role_not_in()` also returns the users with no roles at all.
-Both take one id, a list of ids, or a query of roles.
+`where_role_not_in()` also returns the users that don't have a role.
+Both filters take one id, a list of ids, or a roles query.
 Granada runs the query inside the `IN`:
 
 ```php
@@ -844,7 +844,7 @@ $users = User::q()
 
 ## Syncing children
 
-A `has_many` relationship loads a parent's children, and `sync()` makes them match
+A `has_many` relationship loads a parent's children. `sync()` makes them match
 the rows you send in one call. Send an entry with the child's id to update it, or
 without one to create it:
 
@@ -863,16 +863,16 @@ $entry->sync_extras([
 ]);
 ```
 
-An id that matches none of the parent's children is ignored. On a child model with
-soft deletes, a child you leave out is soft-deleted rather than removed, and it
+An id that isn't among the parent's children is ignored. On a child model with
+soft deletes, a child you leave out is soft-deleted rather than removed. It
 appears again when you list it again.
 
-Granada fills in the foreign key from the parent, so you do not set it yourself,
+Granada fills in the foreign key from the parent, so you don't set it yourself,
 and every write runs inside one transaction. The call takes effect after the
 parent is saved.
 
 `ordered_by()` sets the order column on the child table, just as it does on a
-`has_many_through`. `sync()` numbers the rows in the order you list them, and reads
+`has_many_through`. `sync()` numbers the rows in the order you list them. Reads
 return in that order:
 
 ```php
@@ -889,7 +889,7 @@ without loading the related rows.
 ### Filtering by related rows
 
 An existence filter selects only the parents with at least one matching related
-row. `where_has()` accepts the relationship's name, and the method must declare a
+row. `where_has()` accepts the relationship's name. The method must declare a
 `has_one`, `has_many` or `belongs_to`:
 
 ```php
@@ -914,14 +914,15 @@ $users = User::q()->where_has('invoices', function (QueryInvoice $query) {
 })->find_many();
 ```
 
-`where_not_has()` is the negated form and selects the parents with none:
+`where_not_has()` is the negated form and selects the parents with no matching
+related row:
 
 ```php
 $users = User::q()->where_not_has('invoices')->find_many();
 // SELECT * FROM `user` WHERE NOT EXISTS ( SELECT 1 FROM `invoice` WHERE `invoice`.`user_id` = `user`.`id` )
 ```
 
-Declare the relationship in the method instead, and you get
+Declare the relationship in the method instead. You get
 `where_has_{relation}()` and `where_not_has_{relation}()`:
 
 ```php
@@ -977,7 +978,7 @@ Existence filters and related counts cover `has_one`, `has_many` and
 
 ## Property access methods
 
-`$model->property` works like a column. When the column has no value, Granada
+`$model->property` works like a column. When the column doesn't have a value, Granada
 checks the model's methods in this order: `missing_`, `missingonce_`, then a
 `related_` method named for the property. A `get_` method changes a column value
 when it reads it. The sections below describe each form.
@@ -1002,10 +1003,10 @@ echo $car->brand; // for example Toyota
 
 The method runs on every read, so the property always reflects the stored value.
 
-### `missing_` computes a value the database does not have
+### `missing_` computes the value on every read
 
-When no column contains the property and the model defines `missing_{property}()`,
-Granada calls it on every read, so the value always reflects the current state:
+When the model defines `missing_{property}()` and the property is not a column, Granada
+calls it on every read, so the value always reflects the current state:
 
 ```php
 class Car extends Model
@@ -1024,7 +1025,7 @@ echo $car->nameNow; // a different value
 
 ### `missingonce_` computes a value once and stores it
 
-A `missingonce_{property}()` method runs on the first read only, and every later
+A `missingonce_{property}()` method runs on the first read only. Every later
 read returns the same value, which suits a slow call such as a query:
 
 ```php
@@ -1038,14 +1039,14 @@ class User extends Model
 
 $user = User::q()->find_one(1);
 echo $user->orderCount; // queries the database
-echo $user->orderCount; // returns the stored value, with no query
+echo $user->orderCount; // returns the stored value, without running a query
 ```
 
-Do not define both a `missing_` and a `missingonce_` method for the same property.
+Don't define both a `missing_` and a `missingonce_` method for the same property.
 
 ### Relationships as properties
 
-A relationship method is named `related_` plus the relationship's name, and it
+A relationship method is named `related_` plus the relationship's name. It
 returns the relationship. Granada loads the related model or models on the first
 property read and stores them:
 
@@ -1104,7 +1105,7 @@ foreach ($items as $item) {
 
 `ORM::transaction()` runs several writes as one transaction, so they commit
 together or roll back together. The callable runs inside the transaction, Granada
-returns its return value, and a thrown exception rolls the transaction back and
+returns its return value. A thrown exception rolls the transaction back and
 rethrows it:
 
 ```php
@@ -1160,7 +1161,7 @@ transaction:
 ORM::transaction(function () {
     ORM::beginTransaction(); // joins the transaction already open
     // writes ...
-    ORM::commit();           // ends this call only; nothing is committed yet
+    ORM::commit().           // ends this call only; nothing is committed yet
 });
 // the commit on the database happens here, with the outer call
 ```
@@ -1172,7 +1173,7 @@ It returns the last row's id, or `false` when a row fails.
 ## Increment and decrement
 
 `increment()` adds an amount to a column and `decrement()` subtracts an amount.
-Each changes only its column, so two calls running at once do not lose a count:
+Each changes only its column, so two calls running at once don't lose a count:
 
 ```php
 $widget->increment('views');               // UPDATE widget SET views = views + 1
@@ -1182,7 +1183,7 @@ $new_total = $widget->increment('views');  // reads the value back from the row
 ```
 
 The model stores the new value. On a newly created model, `increment()` changes
-only the model in memory; call `save()` to write it. If the write fails, both
+only the model in memory. Call `save()` to write it. If the write fails, both
 methods return `false`.
 
 ## Mass updates
@@ -1196,16 +1197,16 @@ Car::q()
     ->update_many(['name' => 'Sold']);
 ```
 
-It returns `true` when the write succeeds and `false` when it fails, and an empty
-array writes nothing. The where conditions select the rows, so a query with no
-where conditions updates every row in the table:
+It returns `true` when the write succeeds and `false` when it fails.
+An empty array writes nothing. The where conditions select the rows. A query without where
+conditions updates every row in the table:
 
 ```php
 Part::q()->update_many(['price' => 0]);
 // Updates every part
 ```
 
-A query with a join throws on both `update_many()` and `delete_many()`, and a
+A query with a join throws on both `update_many()` and `delete_many()`. A
 soft-delete model's hidden rows remain hidden until `clear_where()` clears the
 filter. An `Expression` value writes raw SQL, for an adjustment such as
 `sort_order + 1`.

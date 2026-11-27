@@ -116,7 +116,7 @@ class IncrementDecrementTest extends \PHPUnit\Framework\TestCase
 
         $counter->increment('views');
 
-        // The counter column is unchanged; the name change is still pending
+        // The counter column is unchanged. The name change is still pending
         $this->assertFalse($counter->is_dirty('views'));
         $this->assertTrue($counter->is_dirty('name'));
 

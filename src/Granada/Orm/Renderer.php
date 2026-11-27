@@ -63,7 +63,7 @@ class Renderer
     /**
      * The correlated subquery for a related count or exists column.
      * The subquery is already quoted and correlated when this method
-     * receives it; only the alias is quoted here.
+     * receives it. Only the alias is quoted here.
      */
     private static function related_count_column(RelatedCount $related_count, Dialect $dialect): string
     {
@@ -267,7 +267,7 @@ class Renderer
     }
 
     /**
-     * The subquery's placeholders remain bound; its values merge into
+     * The subquery's placeholders remain bound. Its values merge into
      * the outer statement.
      * @return array{string, mixed[]}
      */
@@ -387,7 +387,7 @@ class Renderer
 
     /**
      * UPDATE every row matching the where conditions with the same values.
-     * An Expression value renders raw; every other value binds.
+     * An Expression value renders raw. Every other value binds.
      */
     public static function update_many(BulkUpdateSpec $spec): Statement
     {

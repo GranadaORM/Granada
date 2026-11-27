@@ -618,7 +618,7 @@ class ORM extends Orm\Db implements ArrayAccess
         $method = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $name));
 
         // A snake_case name maps to itself here, so an unknown name
-        // would call this method again; reject it instead.
+        // would call this method again. Reject it instead.
         if (!method_exists(static::class, $method)) {
             throw new \BadMethodCallException("Method {$name} does not exist");
         }

@@ -36,7 +36,7 @@ class JunctionFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testWherePartInKeepsCarsLinkedToAnyListedPart()
     {
-        // Car1 links parts 1, 2; Car2 links parts 1, 3.
+        // Car1 links parts 1, 2. Car2 links parts 1, 3.
         $cars = Car::q()
             ->where_part_in([2, 3])
             ->find_many();
@@ -55,7 +55,7 @@ class JunctionFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testWherePartInAcceptsASubquery()
     {
-        // Parts priced 15 and up are Part2 and Part4; Car1 links Part2,
+        // Parts priced 15 and up are Part2 and Part4. Car1 links Part2,
         // Car3 links Part4.
         $cars = Car::q()
             ->where_part_in(Part::q()
@@ -79,7 +79,7 @@ class JunctionFilterTest extends \PHPUnit\Framework\TestCase
 
     public function testWherePartNotInAcceptsASubquery()
     {
-        // Parts priced 15 and up are Part2 and Part4; Car1 links Part2
+        // Parts priced 15 and up are Part2 and Part4. Car1 links Part2
         // and Car3 links Part4, so both drop out.
         $cars = Car::q()
             ->where_part_not_in(Part::q()
