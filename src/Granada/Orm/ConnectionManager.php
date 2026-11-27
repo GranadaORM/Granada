@@ -13,7 +13,7 @@ use Pdo\Mysql;
  * settings, the PDO handle (opened lazily on first use), the driver facts
  * detected from that handle (driver name, quote character, limit style),
  * the query log and the query cache. The last statement and last query
- * cover all its connections. One default instance serves the ORM's static
+ * cover all its connections. One default instance handles the ORM's static
  * calls.
  *
  * @internal
@@ -90,7 +90,7 @@ class ConnectionManager
      * The operation ORM::configure forwards to: pass configuration
      * settings in the form of key/value pairs. As a shortcut, if the
      * second argument is omitted and the key is a string, the setting
-     * is assumed to be the connection string; an array is a batch of
+     * is assumed to be the connection string. An array is a batch of
      * settings.
      * @param array|string $key
      * @param string $connection_name Which connection to use
@@ -141,7 +141,7 @@ class ConnectionManager
     /**
      * Set the PDO object used to communicate with the database, taking
      * it ready-made instead of connecting from the settings. Passing
-     * null removes the handle; the next use reconnects from the settings
+     * null removes the handle. The next use reconnects from the settings
      * and re-detects the driver facts.
      * @param string $connection_name Which connection to use
      */
@@ -199,7 +199,7 @@ class ConnectionManager
 
     /**
      * Run the callable inside one transaction on the connection.
-     * Success commits and returns the callable's return value; a
+     * Success commits and returns the callable's return value. A
      * thrown exception rolls the transaction back and rethrows. A call
      * inside an open transaction joins the outermost one.
      * @param callable $fn
@@ -325,7 +325,7 @@ class ConnectionManager
     /**
      * Executes a query as a wrapper for PDOStatement::execute. Logs the
      * query and stores the statement object, accessible publicly through
-     * get_last_statement(). Returns false when the connection cannot
+     * get_last_statement(). Returns false when the connection can't
      * prepare the query.
      * @param mixed[] $parameters An array of parameters to be bound in to the query
      * @param string $connection_name Which connection to use
@@ -451,7 +451,7 @@ class ConnectionManager
     }
 
     /**
-     * The connection's settings with detected values merged in; a
+     * The connection's settings with detected values merged in. A
      * connection not yet configured starts at SETTINGS.
      *
      * @return array{

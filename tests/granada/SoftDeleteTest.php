@@ -6,7 +6,7 @@ use Granada\ORM;
 
 /**
  * Soft deletes: a model that declares $_soft_delete_column makes delete() mark
- * the row and hide it, and its queries leave soft-deleted rows out.
+ * the row and hide it. Its queries leave soft-deleted rows out.
  */
 class SoftDeleteTest extends \PHPUnit\Framework\TestCase
 {
@@ -34,7 +34,7 @@ class SoftDeleteTest extends \PHPUnit\Framework\TestCase
             $names[] = $gadget->name;
         }
 
-        // Gadget3 has hidden = 1; Gadget2 is excluded by the model's
+        // Gadget3 has hidden = 1. Gadget2 is excluded by the model's
         // own filter (enabled = 1) in addition to the hiding.
         $this->assertSame(['Gadget1', 'Gadget4'], $names);
         $this->assertSame(2, Gadget::q()->count());
@@ -94,7 +94,7 @@ class SoftDeleteTest extends \PHPUnit\Framework\TestCase
             ->delete_many());
         $this->assertStringStartsWith('UPDATE `gadget` SET', ORM::get_last_query());
 
-        // Every gadget still exists; 1 and 4 were soft-deleted by the
+        // Every gadget still exists. 1 and 4 were soft-deleted by the
         // call, 3 already was.
         $this->assertSame(4, Granada::for_table('gadget')->count());
         $this->assertSame(3, Granada::for_table('gadget')

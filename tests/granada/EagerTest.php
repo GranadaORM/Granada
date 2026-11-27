@@ -27,7 +27,7 @@ class EagerTest extends \PHPUnit\Framework\TestCase
         ));
 
         // Restore the default config so a test that turns a setting off
-        // does not leak it into the next test
+        // doesn't leak it into the next test
         ORM::configure('return_result_sets', true);
 
         // Enable logging

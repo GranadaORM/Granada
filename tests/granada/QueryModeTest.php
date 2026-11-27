@@ -7,7 +7,7 @@ use Granada\Query;
 /**
  * The query/data split: q() and the other entry points return a
  * Query, the per-model query class resolves and applies its
- * defaultFilter(), and a query rejects row writes.
+ * defaultFilter(). A query rejects row writes.
  */
 class QueryModeTest extends \PHPUnit\Framework\TestCase
 {
@@ -79,7 +79,7 @@ class QueryModeTest extends \PHPUnit\Framework\TestCase
     {
         $gadget = Gadget::q()->find_one(1);
 
-        // A chained relation method resolves the query class, and the
+        // A chained relation method resolves the query class. The
         // eager load hydrates its rows into that model.
         $query = $gadget->base_resolutions()
             ->where('name', 'Res1');
@@ -175,7 +175,7 @@ class QueryModeTest extends \PHPUnit\Framework\TestCase
 
         $car->save();
         // The new row has no soft-delete flag yet, so the model's
-        // filter hides it; model-less finds return it.
+        // filter hides it. Model-less finds return it.
         $this->assertSame(5, Car::q()->count());
         $this->assertSame(7, Granada::for_table('car')->count());
     }

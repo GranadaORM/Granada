@@ -38,7 +38,7 @@ foreach ($posts as $post) {
 }
 ```
 
-Granada grew out of Idiorm and Paris, and their documentation still covers most
+Granada grew out of Idiorm and Paris. Their documentation still covers most
 of the query language. Granada needs PHP 8.4, so use
 [docs/index.md](docs/index.md) when their documentation differs from
 Granada's behavior.
@@ -109,7 +109,7 @@ foreach ($results as $result) {
 }
 ```
 
-If there is no avatar, the property is `null`, and reading `->img` on it raises
+If there is no avatar, the property is `null`. Reading `->img` on it raises
 a warning. Check first when a relationship can be empty:
 
 ```php
@@ -121,7 +121,7 @@ if ($result->avatar) {
 ### Lazy finds
 
 `find_many_lazy()` is `find_many()` for large tables. It returns a generator
-that yields one model at a time, so a report over thousands of rows does not
+that yields one model at a time, so a report over thousands of rows doesn't
 retain the whole result set in memory:
 
 ```php
@@ -164,8 +164,8 @@ $owner = Owner::q()->with_car(fn($q) => $q->select('id, manufactor_id')
 )->find_one(1);
 ```
 
-You do not have to select the key that ties the two models together. Granada
-adds it for you, and selecting it yourself is also fine.
+You don't have to select the key that ties the two models together. Granada
+adds it for you. Selecting it yourself is also fine.
 
 Limit a relationship query to certain columns: `select('id, name')`. On a
 `has_many_through`, qualify each column with the table name:
@@ -207,7 +207,7 @@ $results = User::q()->with(['posts' => ['arg1']])->find_many(); // posts(arg1)
 ### Custom query actions
 
 A custom query action is a real method on the model's query class. The class is
-named `Query` plus the model name, extends `\Granada\Query`, and any method you
+named `Query` plus the model name and extends `\Granada\Query`. Any method you
 add is available through `q()`:
 
 ```php
@@ -226,7 +226,7 @@ $cars = Car::q()->is_expensive()->find_many();
 
 Some methods take SQL that you write: `select_raw()`, `group_by_raw()`,
 `order_by_raw()` and `raw_join()`. `insert()` saves a list of rows in one
-transaction, `pluck()` returns one column's value, and `find_pairs()` returns a
+transaction. `pluck()` returns one column's value. `find_pairs()` returns a
 key => value array. `delete_many()` and `update_many()` change every row that
 the query matches.
 
@@ -264,7 +264,7 @@ $content_instance->title = 'A title';
 ### Mass assignment
 
 `create()` and `set()` write what you give them.
-Granada does not filter the keys.
+Granada doesn't filter the keys.
 
 If the array comes from a request, pass only the fields that the form offered
 before the array reaches the model:
@@ -274,12 +274,12 @@ $allowed = ['name', 'email', 'phone'];
 $enquiry = Enquiry::create(array_intersect_key($data, array_flip($allowed)));
 ```
 
-Granada does not remove unknown keys: the save fails with a database error if the
-column does not exist. Filter the keys yourself, or better, use a whitelist of fields that can be changed from user data.
+Granada doesn't remove unknown keys: the save fails with a database error if the
+column doesn't exist. Filter the keys yourself, or better, use a whitelist of fields that can be changed from user data.
 
 ### Getters and computed values
 
-A `get_{column}()` getter transforms a column value before you read it, and a
+A `get_{column}()` getter transforms a column value before you read it. A
 `missing_{name}()` method computes a value that is not from the database:
 
 ```php
@@ -291,7 +291,7 @@ protected function get_path($value)
     return strtolower($value);
 }
 
-// Compute a value that no column stores.
+// Computed value.
 protected function missing_testing()
 {
     return 'whatever';
@@ -303,11 +303,11 @@ echo $content_instance->path;    // returns the lowercase path value of $content
 echo $content_instance->testing; // returns 'whatever', from missing_testing()
 ```
 
-A method named after the property runs last, and it can return a relationship.
+A method named after the property runs last. It can return a relationship.
 
 ### Use your own result set class
 
-Turn on `return_result_sets`, and a find returns a `Granada\ResultSet` instead
+Turn on `return_result_sets`. A find returns a `Granada\ResultSet` instead
 of an array. A model can specify its own subclass, as long as it extends
 `Granada\ResultSet` and is loaded:
 
@@ -340,10 +340,10 @@ Active Record approach. It adds eager and lazy loading.
 - The fluent query API comes from [Idiorm](http://github.com/j4mie/idiorm/), and
   relationships come from Paris.
 - The junction writes `attach()`, `detach()` and `sync()` manage related models
-  through a link table, and `sync()` updates a `has_many`'s children.
+  through a link table. `sync()` updates a `has_many`'s children.
 - Eager loading and lazy finds make large results manageable.
 - Granada binds values as query parameters, so the database treats them as data.
-- Several connections are supported, and you can call model methods on a whole
+- Several connections are supported. You can call model methods on a whole
   result set.
 
 ### History

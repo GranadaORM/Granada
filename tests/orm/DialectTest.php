@@ -50,7 +50,7 @@ class DialectTest extends \PHPUnit\Framework\TestCase
             'mssql'  => ['mssql', '', 'OFFSET 10 ROWS', 'OFFSET 10 ROWS FETCH NEXT 5 ROWS ONLY'],
             'sybase' => ['sybase', '', 'OFFSET 10 ROWS', 'OFFSET 10 ROWS FETCH NEXT 5 ROWS ONLY'],
             // Firebird renders a one-based ROWS range: a limit of 5
-            // with an offset of 10 is rows 11 through 15, and an
+            // with an offset of 10 is rows 11 through 15. An
             // offset alone ends the range at PHP_INT_MAX.
             'firebird' => ['firebird', 'ROWS 5', 'ROWS 11 TO 9223372036854775807', 'ROWS 11 TO 15'],
         ];

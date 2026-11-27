@@ -17,7 +17,7 @@ final class LazyItemCache
 
     /**
      * The row's cached entry, or null. With $relation given, only
-     * that relation's entry matches; otherwise any relation's does.
+     * that relation's entry matches. Otherwise any relation's does.
      */
     public static function get(string $class, string $column, mixed $id, ?string $relation = null): mixed
     {

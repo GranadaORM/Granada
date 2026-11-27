@@ -85,7 +85,7 @@ class Granada implements ArrayAccess
     ];
 
     /**
-     * Fields whose change does not write updated_at.
+     * Fields whose change doesn't write updated_at.
      * @var string[]
      */
     protected static array $_auto_timestamps_ignore = [];
@@ -122,7 +122,7 @@ class Granada implements ArrayAccess
     /**
      * The model's $relationships attributes.
      *
-     * $relationships attributes will not be saved to the database, and are
+     * $relationships attributes will not be saved to the database. They are
      * primarily used to store relationships.
      * __set and __get need the relationship method defined on the model to determine if the relationship exists.
      */
@@ -159,7 +159,7 @@ class Granada implements ArrayAccess
 
     /**
      * Retrieve the value of a static property on a class. If the
-     * class or the property does not exist, returns the default
+     * class or the property doesn't exist, returns the default
      * value supplied as the third argument (which defaults to null).
      * @param string $property
      */
@@ -238,8 +238,8 @@ class Granada implements ArrayAccess
 
     /**
      * The table-first entry point: build a query on a table without a
-     * model class. Finds return ORM rows, not models, and the default
-     * filter does not apply.
+     * model class. Finds return ORM rows, not models. The default
+     * filter doesn't apply.
      */
     public static function for_table(string $table_name, ?string $connection_name = null): Query
     {
@@ -287,7 +287,7 @@ class Granada implements ArrayAccess
 
     /**
      * A new, unsaved row for an already-resolved model class name,
-     * with its ORM attached. Unlike create(), it does not re-apply
+     * with its ORM attached. Unlike create(), it doesn't re-apply
      * $auto_prefix_models.
      *
      * @internal
@@ -768,7 +768,7 @@ class Granada implements ArrayAccess
      */
     public function delete(): ?bool
     {
-        // If the model has no soft delete, we force delete
+        // If the model doesn't use soft deletes, we force delete
         return $this->write_soft_delete_flag(true) ?? $this->delete_forced();
     }
 
@@ -790,7 +790,7 @@ class Granada implements ArrayAccess
 
     /**
      * Set or clear the soft-delete flag on this row and save.
-     * Returns null when the model has no soft deletes, so delete() can
+     * Returns null when the model doesn't use soft deletes, so delete() can
      * perform a real delete.
      */
     private function write_soft_delete_flag(bool $deleted): ?bool
@@ -853,7 +853,7 @@ class Granada implements ArrayAccess
      * Hydrate this model instance with an associative array of data.
      * WARNING: The keys in the array MUST match with columns in the
      * corresponding database table. If any keys are supplied which
-     * do not match up with columns, the database will throw an error.
+     * don't match up with columns, the database will throw an error.
      */
     public function hydrate(array $data): static
     {
@@ -890,7 +890,7 @@ class Granada implements ArrayAccess
 
     /**
      * The relationship a related_{relation} method declares, or null
-     * when the method is absent or does not return one. Chained calls
+     * when the method is absent or doesn't return one. Chained calls
      * return the query, with the relationship attached.
      *
      * @internal

@@ -20,7 +20,7 @@ class Sqlsrv extends Dialect
     /**
      * SQL Server paginates with ORDER BY ... OFFSET ... FETCH. The
      * OFFSET requires an ORDER BY, so a query without one gets the
-     * neutral ORDER BY (SELECT NULL), and a statement cannot combine
+     * neutral ORDER BY (SELECT NULL). A statement can't combine
      * TOP with the OFFSET.
      */
     public function pagination_fragment(?int $limit, ?int $offset, bool $ordered): string

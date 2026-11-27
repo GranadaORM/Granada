@@ -75,7 +75,7 @@ class UpdateManyTest extends \PHPUnit\Framework\TestCase
         $this->assertTrue($result);
         $this->assertSame(6.01, (float) $this->raw('part', 1)['price']);
         $this->assertSame(11.95, (float) $this->raw('part', 3)['price']);
-        // The row the query did not match remains as it was
+        // The row the query didn't match remains as it was
         $this->assertSame(15.0, (float) $this->raw('part', 2)['price']);
     }
 
@@ -203,7 +203,7 @@ class UpdateManyTest extends \PHPUnit\Framework\TestCase
             ->update_many(['manufacture_date' => 'Mar 15, 2026']);
 
         $this->assertTrue($result);
-        // No model, so set_manufacture_date() does not reformat the value
+        // No model, so set_manufacture_date() doesn't reformat the value
         $this->assertSame('Mar 15, 2026', $this->raw('car', 1)['manufacture_date']);
         $this->assertSame('2020-02-01', $this->raw('car', 2)['manufacture_date']);
     }

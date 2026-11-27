@@ -68,7 +68,7 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
 
         $raw = $this->raw('stamped', $row->id);
         $this->assertSame('2001-02-03 04:05:06', $raw['created_at']);
-        // updated_at is written when the caller did not set it
+        // updated_at is written when the caller didn't set it
         $this->assertTrue($this->isUtcNow($raw['updated_at']));
     }
 
@@ -204,7 +204,7 @@ class TimestampTest extends \PHPUnit\Framework\TestCase
         $row->save();
 
         // The subclass's list includes last_login, so sort_order is no
-        // longer ignored, and changing it writes changed_on.
+        // longer ignored. Changing it writes changed_on.
         $row             = StampedChildOverride::q()->find_one($row->id);
         $row->sort_order = 9;
         $row->save();
