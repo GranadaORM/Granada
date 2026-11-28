@@ -73,7 +73,7 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate
     }
 
     /**
-     * Get the current result set as an array
+     * Get the current result set as JSON
      * @return string
      */
     public function as_json(): string
@@ -225,7 +225,7 @@ class ResultSet implements ArrayAccess, Countable, IteratorAggregate
 
         return ORM::transaction(function () use ($method, $params) {
             foreach ($this->_results as $model) {
-                $call_result = call_user_func_array([$model, $method], $params);
+                $call_result = $model->$method(...$params);
                 if (false === $call_result) {
                     $id = method_exists($model, 'id') ? $model->id() : null;
 

@@ -225,8 +225,6 @@ class ORM extends Orm\Db implements ArrayAccess
      * as the first parameter and leave out the second parameter.
      * Marks the properties as dirty so they will be saved to the
      * database when save() is called.
-     * @param string|array $key
-     * @param string|null $value
      */
     public function set_expr(array|string $key, mixed $value = null): static
     {
@@ -235,8 +233,6 @@ class ORM extends Orm\Db implements ArrayAccess
 
     /**
      * Set a property on the ORM object.
-     * @param string|array $key
-     * @param string|null $value
      */
     protected function _set_orm_property(array|string $key, mixed $value = null, bool $expr = false): static
     {
@@ -353,7 +349,7 @@ class ORM extends Orm\Db implements ArrayAccess
      */
     public function save()
     {
-        // Fix if id field is blank but not null
+        // Drop a blank id from the dirty fields.
         if (!($this->id() && array_key_exists($this->_get_id_column_name(), $this->_dirty_fields))) {
             unset($this->_dirty_fields[$this->_get_id_column_name()]);
         }
@@ -451,22 +447,6 @@ class ORM extends Orm\Db implements ArrayAccess
             expr_fields: $this->_expr_fields,
             id_value: $this->id(),
         );
-    }
-
-    /**
-     * Build an UPDATE query
-     */
-    protected function _build_update(): string
-    {
-        return Orm\Renderer::update($this->_write_spec())->query;
-    }
-
-    /**
-     * Build an INSERT query
-     */
-    protected function _build_insert(): string
-    {
-        return Orm\Renderer::insert($this->_write_spec())->query;
     }
 
     /**
@@ -623,6 +603,6 @@ class ORM extends Orm\Db implements ArrayAccess
             throw new \BadMethodCallException("Method {$name} does not exist");
         }
 
-        return call_user_func_array([static::class, $method], $arguments);
+        return static::$method(...$arguments);
     }
 }

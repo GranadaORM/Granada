@@ -331,7 +331,6 @@ class Renderer
 
     public static function update(WriteSpec $spec): Statement
     {
-        $query  = ['UPDATE ' . $spec->dialect->quote_identifier($spec->table_name) . ' SET'];
         $values = [];
         $fields = [];
         foreach ($spec->dirty_fields as $key => $value) {
@@ -342,13 +341,19 @@ class Renderer
                 $values[] = $value;
             }
         }
-        $query[]  = implode(', ', $fields);
-        $query[]  = 'WHERE';
-        $query[]  = $spec->dialect->quote_identifier($spec->id_column);
-        $query[]  = '= ?';
-        $values[] = $spec->id_value;
 
-        return new Statement(implode(' ', $query), $values);
+        return self::build_statement(
+            parts: [
+                'UPDATE ' . $spec->dialect->quote_identifier($spec->table_name) . ' SET',
+                implode(', ', $fields),
+                'WHERE',
+                $spec->dialect->quote_identifier($spec->id_column),
+                '= ?',
+            ],
+            values: [...$values, $spec->id_value],
+            where_conditions: [],
+            dialect: $spec->dialect,
+        );
     }
 
     public static function insert(WriteSpec $spec): Statement
@@ -404,17 +409,12 @@ class Renderer
             $values[] = $value;
         }
 
-        $where = self::build_condition('WHERE', $spec->where_conditions, $spec->dialect);
-
-        $query = self::join_if_not_empty(' ', [
-            'UPDATE',
-            $spec->dialect->quote_identifier($spec->table_name),
-            'SET',
-            implode(', ', $fields),
-            $where->fragment,
-        ]);
-
-        return new Statement($query, [...$values, ...$where->values]);
+        return self::build_statement(
+            parts: ['UPDATE', $spec->dialect->quote_identifier($spec->table_name), 'SET', implode(', ', $fields)],
+            values: $values,
+            where_conditions: $spec->where_conditions,
+            dialect: $spec->dialect,
+        );
     }
 
     /**
@@ -431,21 +431,21 @@ class Renderer
             $values[] = $position;
         }
 
-        $where = self::build_condition('WHERE', $spec->where_conditions, $spec->dialect);
-
-        $query = self::join_if_not_empty(' ', [
-            'UPDATE',
-            $spec->dialect->quote_identifier($spec->table_name),
-            'SET',
-            $spec->dialect->quote_identifier($spec->order_column)
-                . ' = CASE ' . $spec->dialect->quote_identifier($spec->id_column)
-                . ' ' . implode(' ', $whens)
-                . ' ELSE ' . $spec->dialect->quote_identifier($spec->order_column)
-                . ' END',
-            $where->fragment,
-        ]);
-
-        return new Statement($query, [...$values, ...$where->values]);
+        return self::build_statement(
+            parts: [
+                'UPDATE',
+                $spec->dialect->quote_identifier($spec->table_name),
+                'SET',
+                $spec->dialect->quote_identifier($spec->order_column)
+                    . ' = CASE ' . $spec->dialect->quote_identifier($spec->id_column)
+                    . ' ' . implode(' ', $whens)
+                    . ' ELSE ' . $spec->dialect->quote_identifier($spec->order_column)
+                    . ' END',
+            ],
+            values: $values,
+            where_conditions: $spec->where_conditions,
+            dialect: $spec->dialect,
+        );
     }
 
     /**
@@ -453,15 +453,29 @@ class Renderer
      */
     public static function delete_many(BulkDeleteSpec $spec): Statement
     {
-        $where = self::build_condition('WHERE', $spec->where_conditions, $spec->dialect);
+        return self::build_statement(
+            parts: ['DELETE FROM', $spec->dialect->quote_identifier($spec->table_name)],
+            values: [],
+            where_conditions: $spec->where_conditions,
+            dialect: $spec->dialect,
+        );
+    }
 
-        $query = self::join_if_not_empty(' ', [
-            'DELETE FROM',
-            $spec->dialect->quote_identifier($spec->table_name),
-            $where->fragment,
-        ]);
+    /**
+     * Builds the Statement from the parts, the values and the WHERE
+     * conditions. The WHERE clause renders last and its values bind after
+     * the caller's.
+     * @param string[]    $parts
+     * @param mixed[]     $values
+     * @param Condition[] $where_conditions
+     */
+    private static function build_statement(array $parts, array $values, array $where_conditions, Dialect $dialect): Statement
+    {
+        $where   = self::build_condition('WHERE', $where_conditions, $dialect);
+        $parts[] = $where->fragment;
+        $query   = self::join_if_not_empty(' ', $parts);
 
-        return new Statement($query, $where->values);
+        return new Statement($query, [...$values, ...$where->values]);
     }
 
     /**

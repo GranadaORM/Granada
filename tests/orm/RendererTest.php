@@ -492,13 +492,15 @@ class RendererTest extends \PHPUnit\Framework\TestCase
 
         ORM::reset_db();
 
+        $spec = $row->_write_spec();
+
         $this->assertSame(
             'INSERT INTO "person" ("name") VALUES (?) RETURNING "person_id"',
-            $row->_build_insert()
+            Renderer::insert($spec)->query
         );
         $this->assertSame(
             'UPDATE "person" SET "name" = ? WHERE "person_id" = ?',
-            $row->_build_update()
+            Renderer::update($spec)->query
         );
     }
 

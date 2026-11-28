@@ -87,7 +87,7 @@ class Relationship
      * The column on the associated model this relation matches. The
      * lazy item cache includes it in each entry's key.
      */
-    public function cache_column(): string
+    private function cache_column(): string
     {
         return $this->related_key_column();
     }
@@ -151,7 +151,7 @@ class Relationship
      *
      * @param mixed[] $keys
      */
-    public function query_for_keys(array $keys, bool $hide_soft_deleted = true): Query
+    private function query_for_keys(array $keys, bool $hide_soft_deleted = true): Query
     {
         $query = $this->query($hide_soft_deleted);
 
@@ -586,7 +586,7 @@ class Relationship
      * @param array<int|string, Granada>|ResultSet $parents
      * @return mixed[]
      */
-    public static function parent_column_values(array|ResultSet $parents, string $column): array
+    private static function parent_column_values(array|ResultSet $parents, string $column): array
     {
         $values = [];
         foreach ($parents as $parent) {
