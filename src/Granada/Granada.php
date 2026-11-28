@@ -308,16 +308,12 @@ class Granada implements ArrayAccess
      */
     protected function has_one(string $associated_class_name, ?string $foreign_key_name = null, ?string $foreign_key_name_in_current_models_table = null, ?string $connection_name = null): Relationship
     {
-        $base_table_name  = self::_get_table_name(get_class($this));
-        $foreign_key_name = self::_build_foreign_key_name($foreign_key_name, $base_table_name);
-
-        return new Relationship(
-            $this,
+        return $this->declare_relationship(
             'has_one',
-            self::$auto_prefix_models . $associated_class_name,
-            key: $foreign_key_name,
-            local_key: $foreign_key_name_in_current_models_table,
-            connection: $connection_name,
+            $associated_class_name,
+            $foreign_key_name,
+            $foreign_key_name_in_current_models_table,
+            $connection_name,
         );
     }
 
@@ -329,12 +325,28 @@ class Granada implements ArrayAccess
      */
     protected function has_many(string $associated_class_name, ?string $foreign_key_name = null, ?string $foreign_key_name_in_current_models_table = null, ?string $connection_name = null): Relationship
     {
+        return $this->declare_relationship(
+            'has_many',
+            $associated_class_name,
+            $foreign_key_name,
+            $foreign_key_name_in_current_models_table,
+            $connection_name,
+        );
+    }
+
+    private function declare_relationship(
+        string $kind,
+        string $associated_class_name,
+        ?string $foreign_key_name,
+        ?string $foreign_key_name_in_current_models_table,
+        ?string $connection_name,
+    ): Relationship {
         $base_table_name  = self::_get_table_name(get_class($this));
         $foreign_key_name = self::_build_foreign_key_name($foreign_key_name, $base_table_name);
 
         return new Relationship(
             $this,
-            'has_many',
+            $kind,
             self::$auto_prefix_models . $associated_class_name,
             key: $foreign_key_name,
             local_key: $foreign_key_name_in_current_models_table,
@@ -386,7 +398,7 @@ class Granada implements ArrayAccess
             $model      = explode('\\', $base_class_name);
             $model_name = end($model);
             if (self::$auto_prefix_models && str_starts_with($model_name, self::$auto_prefix_models)) {
-                $model_name = substr($model_name, strlen(self::$auto_prefix_models), strlen($model_name));
+                $model_name = substr($model_name, strlen(self::$auto_prefix_models));
             }
             $class_names = [$model_name, $associated_class_name];
             sort($class_names, SORT_STRING);
@@ -535,7 +547,7 @@ class Granada implements ArrayAccess
 
     /**
      * Magic setter method, allows $model->property = 'value' access to data.
-     * Added: use Model methods to determine if a relationship exists and populate it on $relationships instead of properties
+     * A relationship property keeps its value in the stash.
      */
     public function __set(string $property, mixed $value): void
     {
@@ -574,7 +586,6 @@ class Granada implements ArrayAccess
 
     /**
      * Setter method, allows $model->set('property', 'value') access to data.
-     * @param string|null $value
      */
     public function set(array|string $property, mixed $value = null)
     {
@@ -584,13 +595,12 @@ class Granada implements ArrayAccess
         foreach ($property as $field => $val) {
             if (method_exists($this, $method = 'set_' . $field)) {
                 $property[$field] = $this->$method($val);
-                $value            = null;
             } elseif (method_exists($this, self::RELATIONSHIP_METHOD_PREFIX . $field)) {
                 $this->value_stash()->set_value($field, $val);
             }
         }
 
-        return $this->orm->set($property, $value);
+        return $this->orm->set($property);
     }
 
     /**
@@ -616,7 +626,6 @@ class Granada implements ArrayAccess
 
     /**
      * Setter method, allows $model->set_expr('property', 'value') access to data.
-     * @param string|null $value
      */
     public function set_expr(string $property, mixed $value = null): static
     {
@@ -862,11 +871,6 @@ class Granada implements ArrayAccess
             ->force_all_dirty();
 
         return $this;
-    }
-
-    public function get_resultSetClass(): string
-    {
-        return static::$resultSetClass;
     }
 
     /**

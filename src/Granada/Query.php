@@ -2715,7 +2715,7 @@ class Query extends Orm\Db
         // Otherwise, convert camelCase to snake_case and check if the method exists
         $underscore_method = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $method));
         if (method_exists($this, $underscore_method)) {
-            return call_user_func_array([$this, $underscore_method], $parameters);
+            return $this->$underscore_method(...$parameters);
         }
 
         throw new \Error('Call to undefined method ' . static::class . "::{$method}()");
